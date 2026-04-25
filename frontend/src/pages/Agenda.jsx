@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../lib/api";
+import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR, PAYMENT_LABEL } from "../lib/utils";
 import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
@@ -55,16 +55,18 @@ export default function Agenda() {
   const [editing, setEditing] = useState(null);
 
   const load = async (d) => {
-    setLoading(true);
+    // Mostra subito dati cached (se disponibili) per evitare schermo vuoto durante cold start
+    const cClients = apiGetWithCache(`/clients`, { date: d });
+    const cAdvances = apiGetWithCache(`/advances`, { date: d });
+    if (cClients.cached) setClients(cClients.cached);
+    if (cAdvances.cached) setAdvances(cAdvances.cached);
+    setLoading(!(cClients.cached && cAdvances.cached));
     try {
-      const [c, a] = await Promise.all([
-        api.get(`/clients`, { params: { date: d } }),
-        api.get(`/advances`, { params: { date: d } }),
-      ]);
-      setClients(c.data);
-      setAdvances(a.data);
+      const [c, a] = await Promise.all([cClients.fresh, cAdvances.fresh]);
+      setClients(c);
+      setAdvances(a);
     } catch {
-      toast.error("Impossibile caricare l'agenda");
+      if (!cClients.cached) toast.error("Impossibile caricare l'agenda");
     } finally {
       setLoading(false);
     }

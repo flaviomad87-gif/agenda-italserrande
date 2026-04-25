@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../lib/api";
+import { api, apiGetWithCache } from "../lib/api";
 import { formatEUR, isoMonth } from "../lib/utils";
 import ExpenseFormDialog from "../components/ExpenseFormDialog";
 import RecurringExpensesDialog from "../components/RecurringExpensesDialog";
@@ -33,16 +33,17 @@ export default function Spese() {
   const [applying, setApplying] = useState(false);
 
   const load = async (m) => {
-    setLoading(true);
+    const cExp = apiGetWithCache(`/expenses`, { month: m });
+    const cRec = apiGetWithCache(`/recurring-expenses`);
+    if (cExp.cached) setItems(cExp.cached);
+    if (cRec.cached) setRecurring(cRec.cached);
+    setLoading(!(cExp.cached && cRec.cached));
     try {
-      const [exp, rec] = await Promise.all([
-        api.get(`/expenses`, { params: { month: m } }),
-        api.get(`/recurring-expenses`),
-      ]);
-      setItems(exp.data);
-      setRecurring(rec.data);
+      const [exp, rec] = await Promise.all([cExp.fresh, cRec.fresh]);
+      setItems(exp);
+      setRecurring(rec);
     } catch {
-      toast.error("Impossibile caricare le spese");
+      if (!cExp.cached) toast.error("Impossibile caricare le spese");
     } finally {
       setLoading(false);
     }

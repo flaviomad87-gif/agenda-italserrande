@@ -7,6 +7,7 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { clearAllCache } from "../lib/cache";
 
 const AuthContext = createContext(null);
 
@@ -27,7 +28,10 @@ export const AuthProvider = ({ children }) => {
     loading,
     login: (email, password) => signInWithEmailAndPassword(auth, email, password),
     register: (email, password) => createUserWithEmailAndPassword(auth, email, password),
-    logout: () => signOut(auth),
+    logout: async () => {
+      clearAllCache();
+      return signOut(auth);
+    },
     resetPassword: (email) => sendPasswordResetEmail(auth, email),
   };
 

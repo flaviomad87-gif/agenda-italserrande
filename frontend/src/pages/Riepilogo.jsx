@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, apiGetWithCache } from "../lib/api";
 import { formatEUR, isoMonth } from "../lib/utils";
 import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, ChevronRight as Chev } from "lucide-react";
 import { format, parseISO, addMonths, subMonths } from "date-fns";
@@ -25,18 +25,20 @@ export default function Riepilogo() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    Promise.all([
-      api.get(`/summary`, { params: { month } }),
-      api.get(`/advances/by-worker`, { params: { month } }),
-    ])
+    const cSum = apiGetWithCache(`/summary`, { month });
+    const cWk = apiGetWithCache(`/advances/by-worker`, { month });
+    if (cSum.cached) setData(cSum.cached);
+    if (cWk.cached) setByWorker(cWk.cached);
+    setLoading(!(cSum.cached && cWk.cached));
+    Promise.all([cSum.fresh, cWk.fresh])
       .then(([s, w]) => {
-        if (!cancelled) {
-          setData(s.data);
-          setByWorker(w.data);
-        }
+        if (cancelled) return;
+        setData(s);
+        setByWorker(w);
       })
-      .catch(() => toast.error("Impossibile caricare il riepilogo"))
+      .catch(() => {
+        if (!cSum.cached) toast.error("Impossibile caricare il riepilogo");
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
