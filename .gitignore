@@ -90,3 +90,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Firebase service account — never commit
+backend/firebase-admin.json
+firebase-admin.json
