@@ -5,13 +5,14 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { toast } from "sonner";
-import { Hammer, Loader2 } from "lucide-react";
+import { Hammer, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const { login, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e) => {
@@ -79,17 +80,28 @@ export default function Login() {
               <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-widest text-stone-500">
                 Password
               </Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                data-testid="login-password-input"
-                placeholder="••••••••"
-                className="mt-2 h-12 rounded-xl"
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  data-testid="login-password-input"
+                  placeholder="••••••••"
+                  className="mt-2 h-12 rounded-xl pr-12"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  data-testid="login-toggle-password"
+                  aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                  className="absolute right-2 top-1/2 mt-1 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <Button
