@@ -7,24 +7,24 @@ import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Loader2, Trash2 } from "lucide-react";
-import { isoDate } from "../lib/utils";
+import { isoMonth } from "../lib/utils";
 
-const empty = () => ({
-  date: isoDate(),
+const empty = (month) => ({
+  date: `${month || isoMonth()}-01`,
   category: "",
   amount: "",
   source: "contanti",
   notes: "",
 });
 
-export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved, onDeleted }) {
+export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved, onDeleted, month }) {
   const editing = Boolean(initial?.id);
-  const [form, setForm] = useState(empty());
+  const [form, setForm] = useState(empty(month));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) setForm(initial ? { ...empty(), ...initial, amount: initial.amount ?? "" } : empty());
-  }, [open, initial]);
+    if (open) setForm(initial ? { ...empty(month), ...initial, amount: initial.amount ?? "" } : empty(month));
+  }, [open, initial, month]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -73,17 +73,6 @@ export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div>
-            <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Data</Label>
-            <Input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="mt-2 h-12 rounded-xl"
-              data-testid="expense-date-input"
-              required
-            />
-          </div>
           <div>
             <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Categoria</Label>
             <Input

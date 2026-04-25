@@ -237,9 +237,9 @@ export default function Spese() {
             >
               <div className="min-w-0">
                 <div className="truncate font-semibold">{exp.category}</div>
-                <div className="mt-0.5 text-xs text-stone-500">
-                  {format(parseISO(exp.date), "d MMM yyyy", { locale: it })}
-                </div>
+                {exp.notes && (
+                  <div className="mt-0.5 truncate text-xs text-stone-500">{exp.notes}</div>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <SourceBadge source={exp.source} />
@@ -254,6 +254,7 @@ export default function Spese() {
         open={open}
         onOpenChange={setOpen}
         initial={editing}
+        month={month}
         onSaved={onSaved}
         onDeleted={onDeleted}
       />
