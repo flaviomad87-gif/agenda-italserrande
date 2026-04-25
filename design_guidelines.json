@@ -1,0 +1,162 @@
+{
+  "theme": "LIGHT",
+  "archetype": "Archetype 1 (Organic & Earthy)",
+  "design_philosophy": "Clean, warm, and highly legible. A productivity tool for hands-on professionals. Prioritizes thumb-friendly interaction, clear typography, and low-contrast soft UI elements to reduce eye strain in outdoor or varied lighting environments.",
+  "typography": {
+    "fonts": {
+      "headings": {
+        "family": "Manrope",
+        "weights": ["600", "700", "800"],
+        "usage": "Headers, dates, numbers, and primary labels."
+      },
+      "body": {
+        "family": "Figtree",
+        "weights": ["400", "500"],
+        "usage": "Client details, notes, secondary text, and forms."
+      }
+    },
+    "scales": {
+      "h1": "text-3xl sm:text-4xl tracking-tight leading-none font-bold",
+      "h2": "text-2xl sm:text-3xl tracking-tight leading-none font-semibold",
+      "h3": "text-xl sm:text-2xl tracking-tight leading-none font-semibold",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm text-stone-500",
+      "label": "text-xs font-semibold uppercase tracking-[0.1em] text-stone-500"
+    }
+  },
+  "colors": {
+    "background": {
+      "app": "#F9F8F6",
+      "card": "#FFFFFF",
+      "nav": "#F3F2F0"
+    },
+    "text": {
+      "primary": "#1C1C1A",
+      "secondary": "#5C5C59",
+      "disabled": "#A6A6A4"
+    },
+    "borders": {
+      "default": "rgba(28, 28, 26, 0.08)",
+      "focus": "#4A5D23"
+    },
+    "brand": {
+      "primary": "#4A5D23",
+      "primary_hover": "#3C4B1C",
+      "on_primary": "#FFFFFF"
+    },
+    "status": {
+      "preventivo": {
+        "bg": "#F8EBE4",
+        "text": "#B8683D",
+        "border": "rgba(184, 104, 61, 0.2)"
+      },
+      "lavoro_eseguito": {
+        "bg": "#EAF3EF",
+        "text": "#2E5A47",
+        "border": "rgba(46, 90, 71, 0.2)"
+      }
+    },
+    "payments": {
+      "contanti": {
+        "bg": "#EAF3EF",
+        "text": "#2E5A47",
+        "icon": "Wallet"
+      },
+      "pos": {
+        "bg": "#E8F0F4",
+        "text": "#335C6E",
+        "icon": "CreditCard"
+      },
+      "bonifico": {
+        "bg": "#F0EBF1",
+        "text": "#6B5B72",
+        "icon": "Bank"
+      },
+      "conto_aziendale": {
+        "bg": "#E6EEF5",
+        "text": "#2B5A82",
+        "icon": "Building"
+      }
+    }
+  },
+  "layout_and_spacing": {
+    "philosophy": "Mobile-first PWA. Generous tap targets (min 44px). Soft, non-intrusive container borders with rounded edges.",
+    "spacing_scale": {
+      "card_padding": "p-5 sm:p-6 md:p-8",
+      "section_gap": "gap-6 md:gap-8",
+      "item_gap": "gap-3 sm:gap-4"
+    },
+    "navigation": {
+      "mobile": "Fixed bottom tab bar with 4 distinct icons (Agenda, Spese, Riepilogo, Profilo). Haptic feedback on tap.",
+      "desktop": "Left-aligned fixed sidebar (w-64). Central content area with max-width container (max-w-4xl) to prevent horizontal stretching."
+    },
+    "cards": "bg-white rounded-2xl border border-stone-200/60 shadow-sm",
+    "buttons": "h-12 sm:h-14 rounded-xl px-6 font-semibold transition-all duration-200 active:scale-[0.98]"
+  },
+  "components": {
+    "date_navigator": {
+      "style": "Flex container with horizontal layout. Large, bold currently selected date in the center, flanked by soft chevron buttons (h-12 w-12 rounded-full bg-white border border-stone-200 shadow-sm hover:bg-stone-50) for previous/next day.",
+      "behavior": "Tap on date opens Shadcn DatePicker modal/popover."
+    },
+    "client_card": {
+      "layout": "Vertical stack inside. Header: Client Name + Total Amount. Subheader: Address, Phone. Footer: Badges for Status and Payment method.",
+      "interaction": "Entire card is clickable to open Edit modal. Subtle hover lift on desktop."
+    },
+    "status_badge": {
+      "style": "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border"
+    },
+    "fab": {
+      "mobile_only": true,
+      "style": "fixed bottom-20 right-4 h-14 w-14 bg-[#4A5D23] text-white rounded-2xl shadow-lg flex items-center justify-center cursor-pointer active:scale-95",
+      "icon": "Plus"
+    },
+    "bottom_sheet_modal": {
+      "usage": "Use for 'Add Entry', 'Add Expense', 'Add Advance' on mobile instead of center popups. On desktop, standard centered dialog.",
+      "style": "rounded-t-3xl bg-white p-6 shadow-2xl border-t border-stone-200"
+    }
+  },
+  "motion_and_interactions": {
+    "hover_states": "Buttons darken slightly (bg-[#3C4B1C]). Cards get a slightly deeper shadow (shadow-md) and border darkens.",
+    "page_transitions": "Subtle fade-in (opacity 0 to 1 over 200ms) when navigating between tabs.",
+    "empty_state": "Soft fade in for empty states, reassuring tone."
+  },
+  "media_and_icons": {
+    "icon_library": "lucide-react",
+    "empty_state_image": {
+      "url": "https://images.pexels.com/photos/214240/pexels-photo-214240.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "A calm, empty notebook and coffee on a wooden desk. Used in the 'Agenda' tab when there are no jobs or appointments for the day."
+    }
+  },
+  "testing_attributes": {
+    "rule": "All interactive elements MUST have data-testid in kebab-case format.",
+    "examples": [
+      "data-testid='login-submit-button'",
+      "data-testid='agenda-prev-day-button'",
+      "data-testid='add-client-fab'",
+      "data-testid='save-entry-button'",
+      "data-testid='status-preventivo-toggle'"
+    ]
+  },
+  "pwa_requirements": {
+    "manifest": {
+      "name": "Agenda del Capo",
+      "short_name": "Agenda",
+      "theme_color": "#F9F8F6",
+      "background_color": "#F9F8F6",
+      "display": "standalone",
+      "orientation": "portrait"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Initialize a React app with Tailwind CSS and Shadcn UI.",
+    "Implement Firebase Authentication (Email/Password) to guard all routes except login/register.",
+    "Set up a global state (Zustand or Context) or React Query for Firebase Firestore data fetching.",
+    "Collections needed in Firestore: 'users' (auth data), 'clients_agenda' (day-based client logs), 'fixed_expenses', 'worker_advances'.",
+    "Ensure all forms use Shadcn Form, Input, and Select components but customized to match the large touch-friendly sizes (h-12 to h-14) in these guidelines.",
+    "The DatePicker must work reliably on mobile. Use Shadcn calendar popover.",
+    "For the bottom mobile navigation, implement a conditional rendering or React Router setup that hides the top/side navigation and shows fixed bottom tabs on screens < 768px.",
+    "Remember to include the PWA setup (manifest.json and serviceWorker registration) so the user can 'Add to Homescreen'.",
+    "Inject fonts (Manrope and Figtree) via Google Fonts in index.html and configure Tailwind fontFamily.",
+    "Use lucide-react for all icons (e.g., Wallet, CreditCard, Landmark for bonifico, Plus, Calendar, Home, PieChart, User)."
+  ]
+}
