@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { formatEUR, isoMonth } from "../lib/utils";
-import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, ChevronRight as Chev } from "lucide-react";
 import { format, parseISO, addMonths, subMonths } from "date-fns";
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
+import WorkerAdvancesDialog from "../components/WorkerAdvancesDialog";
 
 const PAY_META = {
   contanti: { label: "Contanti", icon: Wallet, bg: "bg-[#EAF3EF]", text: "text-[#2E5A47]" },
@@ -17,6 +18,10 @@ export default function Riepilogo() {
   const [data, setData] = useState(null);
   const [byWorker, setByWorker] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedWorker, setSelectedWorker] = useState(null);
+
+  const reloadByWorker = (m) =>
+    api.get(`/advances/by-worker`, { params: { month: m } }).then((r) => setByWorker(r.data));
 
   useEffect(() => {
     let cancelled = false;
@@ -185,7 +190,9 @@ export default function Riepilogo() {
                 {byWorker.map((w) => (
                   <li
                     key={w.worker_name}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm"
+                    role="button"
+                    onClick={() => setSelectedWorker(w.worker_name)}
+                    className="group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm transition hover:border-stone-300 hover:shadow-md"
                     data-testid={`worker-row-${w.worker_name}`}
                   >
                     <div className="flex min-w-0 items-center gap-3">
@@ -195,11 +202,14 @@ export default function Riepilogo() {
                       <div className="min-w-0">
                         <div className="truncate font-semibold">{w.worker_name}</div>
                         <div className="text-xs text-stone-500">
-                          {w.count} {w.count === 1 ? "acconto" : "acconti"} nel mese
+                          {w.count} {w.count === 1 ? "acconto" : "acconti"} nel mese · tocca per dettagli
                         </div>
                       </div>
                     </div>
-                    <div className="font-display text-base font-bold">{formatEUR(w.total)}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-base font-bold">{formatEUR(w.total)}</span>
+                      <Chev className="h-4 w-4 text-stone-400 transition group-hover:translate-x-0.5 group-hover:text-stone-600" />
+                    </div>
                   </li>
                 ))}
                 <li className="flex items-center justify-between gap-3 rounded-2xl bg-[#F3F2F0] px-4 py-3">
@@ -223,6 +233,14 @@ export default function Riepilogo() {
           </section>
         </>
       )}
+
+      <WorkerAdvancesDialog
+        open={Boolean(selectedWorker)}
+        onOpenChange={(o) => !o && setSelectedWorker(null)}
+        worker={selectedWorker}
+        month={month}
+        onDeleted={() => reloadByWorker(month)}
+      />
     </div>
   );
 }

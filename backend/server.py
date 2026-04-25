@@ -247,6 +247,7 @@ async def create_advance(payload: AdvanceCreate, user=Depends(get_current_user))
 async def list_advances(
     date: Optional[str] = None,
     month: Optional[str] = None,
+    worker: Optional[str] = None,
     user=Depends(get_current_user),
 ):
     q: dict = {"user_id": user["uid"]}
@@ -254,7 +255,9 @@ async def list_advances(
         q["date"] = date
     elif month:
         q["date"] = {"$regex": f"^{month}"}
-    docs = await db.advances.find(q, {"_id": 0}).sort("created_at", 1).to_list(2000)
+    if worker:
+        q["worker_name"] = worker
+    docs = await db.advances.find(q, {"_id": 0}).sort("date", 1).to_list(2000)
     return docs
 
 
