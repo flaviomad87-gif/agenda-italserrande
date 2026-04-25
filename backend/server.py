@@ -1,88 +1,317 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
+"""Agenda Italserrande - FastAPI backend.
+
+All endpoints are scoped to the authenticated Firebase user (uid).
+Domain entities:
+  - Client (lavoro/preventivo per a given date)
+  - Expense (spesa fissa)
+  - Advance (acconto operaio)
+"""
 import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import List, Literal, Optional
 
+from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, ConfigDict, Field
+from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+# Initialize firebase BEFORE importing dependency users
+from firebase_auth import get_current_user  # noqa: E402
+
+# MongoDB
+mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ["DB_NAME"]]
 
-# Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(title="Agenda Italserrande API")
+api = APIRouter(prefix="/api")
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# ---------- Models ----------
+
+JobStatus = Literal["preventivo", "lavoro_eseguito"]
+PaymentMethod = Literal["contanti", "pos", "bonifico", ""]
+ExpenseSource = Literal["contanti", "conto_aziendale"]
 
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+class ClientBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    date: str  # ISO date YYYY-MM-DD
+    name: str
+    address: Optional[str] = ""
+    phone: Optional[str] = ""
+    notes: Optional[str] = ""
+    status: JobStatus = "preventivo"
+    payment_method: PaymentMethod = ""
+    amount: float = 0.0
+
+
+class ClientCreate(ClientBase):
+    pass
+
+
+class Client(ClientBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    user_id: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
+class ExpenseBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    date: str  # YYYY-MM-DD
+    category: str
+    amount: float = 0.0
+    source: ExpenseSource = "contanti"
+    notes: Optional[str] = ""
+
+
+class ExpenseCreate(ExpenseBase):
+    pass
+
+
+class Expense(ExpenseBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AdvanceBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    date: str  # YYYY-MM-DD
+    worker_name: str
+    amount: float = 0.0
+    notes: Optional[str] = ""
+
+
+class AdvanceCreate(AdvanceBase):
+    pass
+
+
+class Advance(AdvanceBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# ---------- Helpers ----------
+
+def _strip_id(doc: dict) -> dict:
+    doc.pop("_id", None)
+    return doc
+
+
+# ---------- Health ----------
+
+@api.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Agenda Italserrande API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+@api.get("/me")
+async def me(user=Depends(get_current_user)):
+    return user
 
-# Include the router in the main app
-app.include_router(api_router)
+
+# ---------- Clients ----------
+
+@api.post("/clients", response_model=Client)
+async def create_client(payload: ClientCreate, user=Depends(get_current_user)):
+    obj = Client(**payload.model_dump(), user_id=user["uid"])
+    await db.clients.insert_one(obj.model_dump())
+    return obj
+
+
+@api.get("/clients", response_model=List[Client])
+async def list_clients(
+    date: Optional[str] = None,
+    month: Optional[str] = None,  # YYYY-MM
+    user=Depends(get_current_user),
+):
+    q: dict = {"user_id": user["uid"]}
+    if date:
+        q["date"] = date
+    elif month:
+        q["date"] = {"$regex": f"^{month}"}
+    docs = await db.clients.find(q, {"_id": 0}).sort("created_at", 1).to_list(2000)
+    return docs
+
+
+@api.put("/clients/{client_id}", response_model=Client)
+async def update_client(client_id: str, payload: ClientCreate, user=Depends(get_current_user)):
+    res = await db.clients.find_one_and_update(
+        {"id": client_id, "user_id": user["uid"]},
+        {"$set": payload.model_dump()},
+        return_document=True,
+        projection={"_id": 0},
+    )
+    if not res:
+        raise HTTPException(404, "Cliente non trovato")
+    return res
+
+
+@api.delete("/clients/{client_id}")
+async def delete_client(client_id: str, user=Depends(get_current_user)):
+    res = await db.clients.delete_one({"id": client_id, "user_id": user["uid"]})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Cliente non trovato")
+    return {"ok": True}
+
+
+# ---------- Expenses ----------
+
+@api.post("/expenses", response_model=Expense)
+async def create_expense(payload: ExpenseCreate, user=Depends(get_current_user)):
+    obj = Expense(**payload.model_dump(), user_id=user["uid"])
+    await db.expenses.insert_one(obj.model_dump())
+    return obj
+
+
+@api.get("/expenses", response_model=List[Expense])
+async def list_expenses(
+    month: Optional[str] = None,
+    user=Depends(get_current_user),
+):
+    q: dict = {"user_id": user["uid"]}
+    if month:
+        q["date"] = {"$regex": f"^{month}"}
+    docs = await db.expenses.find(q, {"_id": 0}).sort("date", -1).to_list(2000)
+    return docs
+
+
+@api.put("/expenses/{expense_id}", response_model=Expense)
+async def update_expense(expense_id: str, payload: ExpenseCreate, user=Depends(get_current_user)):
+    res = await db.expenses.find_one_and_update(
+        {"id": expense_id, "user_id": user["uid"]},
+        {"$set": payload.model_dump()},
+        return_document=True,
+        projection={"_id": 0},
+    )
+    if not res:
+        raise HTTPException(404, "Spesa non trovata")
+    return res
+
+
+@api.delete("/expenses/{expense_id}")
+async def delete_expense(expense_id: str, user=Depends(get_current_user)):
+    res = await db.expenses.delete_one({"id": expense_id, "user_id": user["uid"]})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Spesa non trovata")
+    return {"ok": True}
+
+
+# ---------- Advances (acconti operai) ----------
+
+@api.post("/advances", response_model=Advance)
+async def create_advance(payload: AdvanceCreate, user=Depends(get_current_user)):
+    obj = Advance(**payload.model_dump(), user_id=user["uid"])
+    await db.advances.insert_one(obj.model_dump())
+    return obj
+
+
+@api.get("/advances", response_model=List[Advance])
+async def list_advances(
+    date: Optional[str] = None,
+    month: Optional[str] = None,
+    user=Depends(get_current_user),
+):
+    q: dict = {"user_id": user["uid"]}
+    if date:
+        q["date"] = date
+    elif month:
+        q["date"] = {"$regex": f"^{month}"}
+    docs = await db.advances.find(q, {"_id": 0}).sort("created_at", 1).to_list(2000)
+    return docs
+
+
+@api.delete("/advances/{advance_id}")
+async def delete_advance(advance_id: str, user=Depends(get_current_user)):
+    res = await db.advances.delete_one({"id": advance_id, "user_id": user["uid"]})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Acconto non trovato")
+    return {"ok": True}
+
+
+# ---------- Monthly Summary ----------
+
+@api.get("/summary")
+async def monthly_summary(month: str, user=Depends(get_current_user)):
+    """Aggregated totals for a month (YYYY-MM)."""
+    uid = user["uid"]
+    regex = {"$regex": f"^{month}"}
+
+    clients = await db.clients.find(
+        {"user_id": uid, "date": regex}, {"_id": 0}
+    ).to_list(5000)
+    expenses = await db.expenses.find(
+        {"user_id": uid, "date": regex}, {"_id": 0}
+    ).to_list(5000)
+    advances = await db.advances.find(
+        {"user_id": uid, "date": regex}, {"_id": 0}
+    ).to_list(5000)
+
+    incassi = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
+    total_executed = 0.0
+    total_quotes = 0.0
+    for c in clients:
+        amt = float(c.get("amount") or 0)
+        if c.get("status") == "lavoro_eseguito":
+            total_executed += amt
+            pm = c.get("payment_method") or ""
+            if pm in incassi:
+                incassi[pm] += amt
+        else:
+            total_quotes += amt
+
+    spese_by_source = {"contanti": 0.0, "conto_aziendale": 0.0}
+    for e in expenses:
+        spese_by_source[e.get("source", "contanti")] += float(e.get("amount") or 0)
+
+    total_advances = sum(float(a.get("amount") or 0) for a in advances)
+    total_incassi = sum(incassi.values())
+    total_spese = sum(spese_by_source.values())
+
+    return {
+        "month": month,
+        "incassi_by_method": incassi,
+        "total_incassi": total_incassi,
+        "total_quotes": total_quotes,
+        "total_executed": total_executed,
+        "spese_by_source": spese_by_source,
+        "total_spese": total_spese,
+        "total_advances": total_advances,
+        "balance": total_incassi - total_spese - total_advances,
+        "counts": {
+            "clients": len(clients),
+            "expenses": len(expenses),
+            "advances": len(advances),
+        },
+    }
+
+
+# ---------- Mount + middleware ----------
+
+app.include_router(api)
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

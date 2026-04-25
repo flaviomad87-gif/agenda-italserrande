@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "agenda-italserrande",
+  "private_key_id": "1f045e896096c2e795cf28c2374fd6bc5585061a",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCxl7NZxCeIbune\nk2ZaJyU9p6u3aoRFOcCGwfr5V2bEcdO67lvBfNyWHMv8O9Mih68s5vPXJ05/noL9\n2mBczfziRDV9+S6+vF2dyY7EMljWfNVZHDk0epHojTeTfp59YwLFM2r+byHV7L/J\nN51HSnt9E6fk57gtu7Fp4QiFCeRjeerj//+/YbMIWTyhsRj1k4t0sQ4RE0s41qmb\nPg3OFZ9SP0s/S4udcLXpbg+Nn6gR+ODaEETAIrIJtptcWgsu/ZkTpW2z/kdJK8tp\nBHVT9X9KIeZYHr6yksjkbWVascOGB/HTNcCcAfDczJ60dXexNixnvzHVjUsNOUxj\nmw21V2KpAgMBAAECggEALCjg7dYXD3em+1PTPGEmA0AFdLkNlWogK9Ih7mzzjq8Q\nO1gIZGNANaqI9ZpJrLkpD8UJBqvNOvInN+jck88bzgawd3fmDgMoUzM6pyIu0Xze\nj0czmU9OJ1GwK2KtldewKWmY9hYbx4ZUhTwpRYApl0czNToCZArbOYz9sZktW6eb\nlIz4S5LHEZyDqJPQ6SZSvhqsewfT2x48Hq72AvASE/8TTQT6hyvab9fbc2SOafwY\n4xIJuAFC8F6os3Zi2c9buLrYS+QvtiUi6l13FjLUi8iDNxt9UvvyfnZmus6xk4B9\nlBs887jefN2UsSSHPls5rs0yZB1tCd03elAfphI71QKBgQDowGXTpGASRSNqd9Vs\ney2o6ECivYvMnsuIUcnAO88aDokm9BuYuk37CbW1K2NwEEryrpSEtC1xa0MfOa8k\nmYr3yC6T3E9saraLGOr0xK1LrjXNMZ0kMNTeQDop2gVolySoABVsujOTLRnbMajc\nChHqPdCRxA+YM0EGpU13oOEUhQKBgQDDVNp/68CL9iJPVRwT1D0hGX4m0Mb9HLfv\nRDLF8bkPPqCOgnCWUp8P6YegZjusB5f+m1lt1RAQmxh+F92+ChKyouNzo5uF87P9\nFuyWK0FjSddSq+SrnEw93qzTcywmnmCiXSJIVB/Sh/cC2sFSon0ArwueDHmNjauj\nTXZ3SHUQ1QKBgH/kME+R88Q2P1aiUCCSsq0sKVADDQ07eCUIo+5ALvVnZU+FNKDA\nRlcZp8HL/JC4MyaUbUFZ69p1kOVYgfd/cw/h7E4M8YtmO7XE1F34sCx0plWA3JLl\nTiJtckhK50voORkjKqKa0fod/yYlbF60HdHzc2aVL+h2yVVIgX+pY+QtAoGBAIA5\nGnnwu2PlPh6Pwy+tGje5MVuvn4CWMpQpU58nD5FXTjReoiO7ttjONw7vLWq/TWKA\nfhMgUzxjY4+agSB4IlALp33Iv5YOJXAVdVcarADOfz+wwRp6Ln5Kx27C4w+y1cKf\nmpqaRo2AXYENMuzY52/keJ7Wl5B5mFtJxWOGN/rFAoGBAI/MHJ7H4LzG4RzgkX0u\nu94KRYyaOOEDb9H9EhxB+u68yqVddYcOVrtbSHdK9M//ButvowAs4r0ISj0aFGa0\njCv8SLV8EmAOAJqkRNho12B5PSyiMPCBfJBS+zErcI2MakvvC16PBMsOEaNBouKR\nNuXlbjxPjTGLM9lWs7yf+smB\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@agenda-italserrande.iam.gserviceaccount.com",
+  "client_id": "113213968088203610733",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40agenda-italserrande.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
