@@ -296,3 +296,192 @@ class TestIsolation:
             assert any(x["id"] == cid for x in r.json())
         finally:
             auth_a.delete(f"{API}/clients/{cid}")
+
+
+# ---------- Iteration 2: Client search ----------
+
+class TestClientSearch:
+    def test_search_requires_auth(self):
+        r = requests.get(f"{API}/clients/search", params={"q": "mario"})
+        assert r.status_code in (401, 403)
+
+    def test_search_short_query_returns_empty(self, auth_a):
+        # Single char must return [] regardless of data
+        r = auth_a.get(f"{API}/clients/search", params={"q": "m"})
+        assert r.status_code == 200
+        assert r.json() == []
+
+        r = auth_a.get(f"{API}/clients/search", params={"q": ""})
+        assert r.status_code == 200
+        assert r.json() == []
+
+    def test_search_matches_name_address_phone(self, auth_a):
+        seeded = []
+        try:
+            # Seed: 3 clients with unique name/address/phone tokens
+            uniq = uuid.uuid4().hex[:8].upper()
+            payloads = [
+                {"date": TODAY, "name": f"TEST_NAMEMATCH_{uniq}", "address": "Via X 1",
+                 "phone": "0000000000", "status": "preventivo", "payment_method": "", "amount": 1.0},
+                {"date": TODAY, "name": "TEST_other_a", "address": f"Via ADDRMATCH_{uniq} 9",
+                 "phone": "1111111111", "status": "preventivo", "payment_method": "", "amount": 2.0},
+                {"date": TODAY, "name": "TEST_other_b", "address": "Via Y 3",
+                 "phone": f"22{uniq}", "status": "preventivo", "payment_method": "", "amount": 3.0},
+            ]
+            for p in payloads:
+                r = auth_a.post(f"{API}/clients", json=p)
+                assert r.status_code == 200
+                seeded.append(r.json()["id"])
+
+            # Match by name (case insensitive)
+            r = auth_a.get(f"{API}/clients/search", params={"q": f"namematch_{uniq.lower()}"})
+            assert r.status_code == 200
+            ids = [c["id"] for c in r.json()]
+            assert seeded[0] in ids
+
+            # Match by address
+            r = auth_a.get(f"{API}/clients/search", params={"q": f"ADDRMATCH_{uniq}"})
+            assert r.status_code == 200
+            ids = [c["id"] for c in r.json()]
+            assert seeded[1] in ids
+
+            # Match by phone fragment
+            r = auth_a.get(f"{API}/clients/search", params={"q": f"22{uniq}"})
+            assert r.status_code == 200
+            ids = [c["id"] for c in r.json()]
+            assert seeded[2] in ids
+        finally:
+            for cid in seeded:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_search_sorted_by_date_desc_and_max_50(self, auth_a):
+        # Create 3 clients across 3 different dates with same unique token in name
+        uniq = uuid.uuid4().hex[:8].upper()
+        token = f"SORTTEST_{uniq}"
+        seeded = []
+        dates = ["2024-03-10", "2024-05-15", "2024-01-05"]
+        try:
+            for d in dates:
+                r = auth_a.post(f"{API}/clients", json={
+                    "date": d, "name": f"TEST_{token}_{d}", "status": "preventivo",
+                    "payment_method": "", "amount": 0.0,
+                })
+                assert r.status_code == 200
+                seeded.append(r.json()["id"])
+
+            r = auth_a.get(f"{API}/clients/search", params={"q": token})
+            assert r.status_code == 200
+            results = r.json()
+            assert len(results) >= 3
+            assert len(results) <= 50  # max 50 enforced
+            # Filter ours and check date ordering desc
+            ours = [c for c in results if token in c["name"]]
+            assert len(ours) == 3
+            assert ours[0]["date"] == "2024-05-15"
+            assert ours[-1]["date"] == "2024-01-05"
+        finally:
+            for cid in seeded:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_search_isolation_between_users(self, auth_a, auth_b):
+        uniq = uuid.uuid4().hex[:8].upper()
+        token = f"ISO_{uniq}"
+        r = auth_a.post(f"{API}/clients", json={
+            "date": TODAY, "name": f"TEST_{token}", "status": "preventivo",
+            "payment_method": "", "amount": 0.0,
+        })
+        cid = r.json()["id"]
+        try:
+            r = auth_b.get(f"{API}/clients/search", params={"q": token})
+            assert r.status_code == 200
+            assert all(c["id"] != cid for c in r.json())
+            # User A still sees it
+            r = auth_a.get(f"{API}/clients/search", params={"q": token})
+            assert any(c["id"] == cid for c in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{cid}")
+
+
+# ---------- Iteration 2: Advances by worker ----------
+
+class TestAdvancesByWorker:
+    def test_requires_auth(self):
+        r = requests.get(f"{API}/advances/by-worker", params={"month": MONTH})
+        assert r.status_code in (401, 403)
+
+    def test_aggregation_and_isolation(self, auth_a, auth_b):
+        uniq = uuid.uuid4().hex[:6].upper()
+        worker1 = f"TEST_W1_{uniq}"
+        worker2 = f"TEST_W2_{uniq}"
+        # Use a fixed test month far in the past (no other test data)
+        month = "2023-07"
+        d1 = "2023-07-05"
+        d2 = "2023-07-20"
+        d_other_month = "2023-08-01"
+
+        seeded_a = []
+        seeded_b = []
+        try:
+            # User A: 2 advances for worker1 (50 + 30) and 1 for worker2 (100), 1 in other month for worker1 (999)
+            for date_, w, amt in [
+                (d1, worker1, 50.0),
+                (d2, worker1, 30.0),
+                (d2, worker2, 100.0),
+                (d_other_month, worker1, 999.0),
+            ]:
+                r = auth_a.post(f"{API}/advances", json={
+                    "date": date_, "worker_name": w, "amount": amt,
+                })
+                assert r.status_code == 200
+                seeded_a.append(r.json()["id"])
+
+            # User B: 1 advance same worker name same month - must NOT leak
+            r = auth_b.post(f"{API}/advances", json={
+                "date": d1, "worker_name": worker1, "amount": 7777.0,
+            })
+            assert r.status_code == 200
+            seeded_b.append(r.json()["id"])
+
+            r = auth_a.get(f"{API}/advances/by-worker", params={"month": month})
+            assert r.status_code == 200, r.text
+            rows = r.json()
+            assert isinstance(rows, list)
+            # Filter our workers (other test runs may have added more)
+            ours = {row["worker_name"]: row for row in rows if row["worker_name"] in (worker1, worker2)}
+            assert worker1 in ours and worker2 in ours
+            assert ours[worker1]["total"] == 80.0
+            assert ours[worker1]["count"] == 2
+            assert ours[worker1]["last_date"] == d2
+            assert ours[worker2]["total"] == 100.0
+            assert ours[worker2]["count"] == 1
+            assert ours[worker2]["last_date"] == d2
+
+            # Sorted by total desc among ours
+            ordered = [row for row in rows if row["worker_name"] in (worker1, worker2)]
+            assert ordered[0]["worker_name"] == worker2  # 100 > 80
+
+            # Isolation: B sees its 7777 only, not A's 80
+            r = auth_b.get(f"{API}/advances/by-worker", params={"month": month})
+            assert r.status_code == 200
+            rows_b = {row["worker_name"]: row for row in r.json() if row["worker_name"] == worker1}
+            assert worker1 in rows_b
+            assert rows_b[worker1]["total"] == 7777.0
+            assert rows_b[worker1]["count"] == 1
+
+            # Other month shouldn't include worker1 from July
+            r = auth_a.get(f"{API}/advances/by-worker", params={"month": "2023-08"})
+            assert r.status_code == 200
+            rows_aug = {row["worker_name"]: row for row in r.json() if row["worker_name"] == worker1}
+            assert rows_aug[worker1]["total"] == 999.0
+            assert rows_aug[worker1]["count"] == 1
+        finally:
+            for aid in seeded_a:
+                auth_a.delete(f"{API}/advances/{aid}")
+            for aid in seeded_b:
+                auth_b.delete(f"{API}/advances/{aid}")
+
+    def test_empty_month_returns_empty_list(self, auth_a):
+        # Far future month with no data
+        r = auth_a.get(f"{API}/advances/by-worker", params={"month": "2099-12"})
+        assert r.status_code == 200
+        assert r.json() == []

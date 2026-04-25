@@ -4,6 +4,7 @@ import { isoDate, formatEUR, PAYMENT_LABEL } from "../lib/utils";
 import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
 import AdvanceFormDialog from "../components/AdvanceFormDialog";
+import ClientSearch from "../components/ClientSearch";
 import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,6 +118,14 @@ export default function Agenda() {
           La tua giornata
         </h1>
       </header>
+
+      <ClientSearch
+        onPick={(c) => {
+          setDate(c.date);
+          setEditing(c);
+          setOpenClient(true);
+        }}
+      />
 
       <div className="rounded-3xl border border-stone-200/60 bg-white p-4 shadow-sm sm:p-5">
         <DateNavigator value={date} onChange={setDate} />

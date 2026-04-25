@@ -15,15 +15,21 @@ const PAY_META = {
 export default function Riepilogo() {
   const [month, setMonth] = useState(isoMonth());
   const [data, setData] = useState(null);
+  const [byWorker, setByWorker] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    api
-      .get(`/summary`, { params: { month } })
-      .then((res) => {
-        if (!cancelled) setData(res.data);
+    Promise.all([
+      api.get(`/summary`, { params: { month } }),
+      api.get(`/advances/by-worker`, { params: { month } }),
+    ])
+      .then(([s, w]) => {
+        if (!cancelled) {
+          setData(s.data);
+          setByWorker(w.data);
+        }
       })
       .catch(() => toast.error("Impossibile caricare il riepilogo"))
       .finally(() => {
@@ -163,6 +169,47 @@ export default function Riepilogo() {
                 </div>
               </div>
             </div>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-end justify-between">
+              <h2 className="font-display text-lg font-semibold">Acconti per operaio</h2>
+              <span className="text-xs text-stone-500">azzerati ad ogni nuovo mese</span>
+            </div>
+            {byWorker.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-5 text-sm text-stone-500">
+                Nessun acconto registrato in questo mese.
+              </div>
+            ) : (
+              <ul className="space-y-2 stagger" data-testid="riepilogo-by-worker-list">
+                {byWorker.map((w) => (
+                  <li
+                    key={w.worker_name}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm"
+                    data-testid={`worker-row-${w.worker_name}`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[#F3F2F0] text-stone-700">
+                        <HardHat className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold">{w.worker_name}</div>
+                        <div className="text-xs text-stone-500">
+                          {w.count} {w.count === 1 ? "acconto" : "acconti"} nel mese
+                        </div>
+                      </div>
+                    </div>
+                    <div className="font-display text-base font-bold">{formatEUR(w.total)}</div>
+                  </li>
+                ))}
+                <li className="flex items-center justify-between gap-3 rounded-2xl bg-[#F3F2F0] px-4 py-3">
+                  <span className="text-sm font-semibold text-stone-700">Totale acconti del mese</span>
+                  <span className="font-display text-base font-bold">
+                    {formatEUR(byWorker.reduce((s, w) => s + (w.total || 0), 0))}
+                  </span>
+                </li>
+              </ul>
+            )}
           </section>
 
           <section>

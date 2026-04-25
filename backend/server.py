@@ -145,6 +145,32 @@ async def list_clients(
     return docs
 
 
+@api.get("/clients/search", response_model=List[Client])
+async def search_clients(q: str, user=Depends(get_current_user)):
+    """Cerca clienti per nome / indirizzo / telefono (case-insensitive)."""
+    term = (q or "").strip()
+    if len(term) < 2:
+        return []
+    import re
+    safe = re.escape(term)
+    docs = (
+        await db.clients.find(
+            {
+                "user_id": user["uid"],
+                "$or": [
+                    {"name": {"$regex": safe, "$options": "i"}},
+                    {"address": {"$regex": safe, "$options": "i"}},
+                    {"phone": {"$regex": safe, "$options": "i"}},
+                ],
+            },
+            {"_id": 0},
+        )
+        .sort("date", -1)
+        .to_list(50)
+    )
+    return docs
+
+
 @api.put("/clients/{client_id}", response_model=Client)
 async def update_client(client_id: str, payload: ClientCreate, user=Depends(get_current_user)):
     res = await db.clients.find_one_and_update(
@@ -230,6 +256,34 @@ async def list_advances(
         q["date"] = {"$regex": f"^{month}"}
     docs = await db.advances.find(q, {"_id": 0}).sort("created_at", 1).to_list(2000)
     return docs
+
+
+@api.get("/advances/by-worker")
+async def advances_by_worker(month: str, user=Depends(get_current_user)):
+    """Aggregazione mensile degli acconti per operaio.
+    Si 'resetta' naturalmente all'inizio di ogni nuovo mese perché filtra per mese."""
+    pipeline = [
+        {"$match": {"user_id": user["uid"], "date": {"$regex": f"^{month}"}}},
+        {
+            "$group": {
+                "_id": "$worker_name",
+                "total": {"$sum": "$amount"},
+                "count": {"$sum": 1},
+                "last_date": {"$max": "$date"},
+            }
+        },
+        {"$sort": {"total": -1}},
+    ]
+    rows = await db.advances.aggregate(pipeline).to_list(500)
+    return [
+        {
+            "worker_name": r["_id"],
+            "total": float(r.get("total") or 0),
+            "count": int(r.get("count") or 0),
+            "last_date": r.get("last_date"),
+        }
+        for r in rows
+    ]
 
 
 @api.delete("/advances/{advance_id}")
