@@ -94,3 +94,12 @@ credentials.json
 # Firebase service account — never commit
 backend/firebase-admin.json
 firebase-admin.json
+-e 
+# Environment and credential files
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
