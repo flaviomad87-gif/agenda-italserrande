@@ -220,6 +220,22 @@ export default function Agenda() {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <StatusBadge status={c.status} />
                   <PaymentBadge method={c.payment_method} />
+                  {c.quote_number && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-[#F4EFE6] px-2.5 py-1 text-xs font-semibold text-[#8A6B33]"
+                      data-testid={`client-quote-badge-${c.id}`}
+                    >
+                      <FileText className="h-3 w-3" /> Prev. {c.quote_number}
+                    </span>
+                  )}
+                  {c.invoice_number && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-[#E5EFE9] px-2.5 py-1 text-xs font-semibold text-[#2E5A47]"
+                      data-testid={`client-invoice-badge-${c.id}`}
+                    >
+                      <FileText className="h-3 w-3" /> Fatt. {c.invoice_number}
+                    </span>
+                  )}
                 </div>
               </li>
             ))}

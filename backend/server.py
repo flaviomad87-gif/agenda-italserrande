@@ -51,6 +51,8 @@ class ClientBase(BaseModel):
     status: JobStatus = "preventivo"
     payment_method: PaymentMethod = ""
     amount: float = 0.0
+    quote_number: Optional[str] = ""
+    invoice_number: Optional[str] = ""
 
 
 class ClientCreate(ClientBase):

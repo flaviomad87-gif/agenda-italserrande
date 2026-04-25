@@ -31,6 +31,8 @@ const empty = (date) => ({
   status: "preventivo",
   payment_method: "",
   amount: "",
+  quote_number: "",
+  invoice_number: "",
 });
 
 export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted }) {
@@ -171,6 +173,34 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               >
                 Lavoro eseguito
               </button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">N° Preventivo</Label>
+              <Input
+                value={form.quote_number}
+                onChange={(e) => update("quote_number", e.target.value)}
+                placeholder="Es. 2026/045"
+                className="mt-2 h-12 rounded-xl"
+                data-testid="client-quote-number-input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+                N° Fattura
+                {form.status !== "lavoro_eseguito" && (
+                  <span className="ml-2 normal-case tracking-normal text-[10px] text-stone-400">(a lavoro eseguito)</span>
+                )}
+              </Label>
+              <Input
+                value={form.invoice_number}
+                onChange={(e) => update("invoice_number", e.target.value)}
+                placeholder="Es. 2026/123"
+                className="mt-2 h-12 rounded-xl"
+                data-testid="client-invoice-number-input"
+              />
             </div>
           </div>
 
