@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 4 (file iteration_3.json) testing for the new Recurring Expenses feature + improved P&L panel + brief regression. Backend: 26/26 pytest tests pass — 6 new tests added (TestRecurringExpenses) covering: list/apply auth gates, full CRUD with per-user isolation (B cannot read/update/delete A's templates), apply IDEMPOTENCY (1st run created=2 skipped=0; 2nd run created=0 skipped=2; deleting one materialized expense and re-applying yields created=1 skipped=1, proving check is per recurring_id+month not per-template), apply with no templates returns {created:0, skipped:0}, and backward-compat for legacy expenses without recurring_id (Optional[str]=None loads/serializes fine). 20 prior regression tests retained and green. Frontend (Playwright, real preview URL): registered fresh user → Spese page shows the empty-state footer text 'Imposta le tue spese fisse ricorrenti...' with manage-recurring-button → opens recurring-dialog → added template (TEST_AffittoUI 350 € conto_aziendale) via testids (category/amount/source-conto/add-button) → recurring-row-<id> renders → Esc closes dialog → apply-recurring-banner appears with count + total → clicking apply-recurring-button materializes expense (expense-row appears, banner disappears) → re-opening dialog and clicking recurring-apply-button does NOT duplicate (1 → 1) confirming UI-side idempotency → Riepilogo page renders riepilogo-pnl panel with Ricavi (+0 €), Spese fisse (−350 €), Acconti operai (−0 €), Risultato (-350 €) with red 'Perdita' badge — matches data.balance. No JS errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "All shadcn Dialogs (RecurringExpensesDialog inherits the same)",
+        "issues": [
+          "Pre-existing console a11y warning: 'Missing Description or aria-describedby for DialogContent'. Not blocking."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "apply_recurring uses a date prefix regex on the materialized Expense (recurring_id + date ^YYYY-MM) — correctly idempotent per (template, month). Verified by deleting and re-applying.",
+    "Expense.recurring_id is Optional[str]=None with extra='ignore' — backward compatible with legacy docs lacking the field. Verified.",
+    "Spese.jsx computes recurringMissing using a Set of expense.recurring_id values — O(n) and correct; will hide the banner once every template has at least one Expense for the month with that recurring_id.",
+    "applyToMonth in RecurringExpensesDialog and applyRecurring in Spese.jsx duplicate the same POST logic. Minor DRY note — could be unified into a hook (not blocking).",
+    "RecurringExpensesDialog still uses window.confirm for delete confirmation — works but inconsistent with the rest of the app's shadcn dialogs. Cosmetic.",
+    "Riepilogo.jsx P&L panel uses data.balance for the badge color/sign — single source of truth from backend, no client-side recompute drift.",
+    "POST /recurring-expenses/apply takes month as a required query param (not body). The frontend correctly passes it via axios { params: { month } }. Worth documenting in OpenAPI/README."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {
+    "backend": "100% (26/26)",
+    "frontend": "100% (recurring add → banner → apply → idempotency → P&L all verified)"
+  },
+  "test_credentials": "Created dynamically via Firebase REST signUp using REACT_APP_FIREBASE_API_KEY. Pattern: testuser+it4<timestamp>@italserrande.test / TestPassword123!. Two distinct users for backend isolation tests (auth_a, auth_b fixtures, scope=module).",
+  "seed_data_creation": "Backend tests seed TEST_-prefixed recurring templates and expenses, all cleaned up in finally blocks. Idempotency test uses fixed past month 2022-11 to avoid pollution. Frontend test created 1 recurring template + 1 materialized expense under a fresh throwaway user — no FE cleanup performed (acceptable).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "backend_test.py now has 26 pytest tests across TestAuthGates, TestClientsCRUD, TestExpensesCRUD, TestAdvancesCRUD, TestSummary, TestIsolation, TestClientSearch, TestAdvancesByWorker, TestRecurringExpenses (6 new). Run with: pytest /app/backend/tests/backend_test.py -v. New iter-4 data-testids verified live: recurring-dialog, recurring-category-input, recurring-amount-input, recurring-source-contanti, recurring-source-conto, recurring-add-button, recurring-row-<id>, recurring-delete-<id>, recurring-apply-button, apply-recurring-banner, apply-recurring-button, open-recurring-dialog, manage-recurring-button, riepilogo-pnl, riepilogo-balance. Apply endpoint signature: POST /api/recurring-expenses/apply?month=YYYY-MM (no body).",
+  "rca of the issue": "No new bugs found in iteration 4."
+}

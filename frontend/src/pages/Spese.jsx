@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { formatEUR, isoMonth } from "../lib/utils";
 import ExpenseFormDialog from "../components/ExpenseFormDialog";
-import { Plus, Wallet, Building, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import RecurringExpensesDialog from "../components/RecurringExpensesDialog";
+import { Plus, Wallet, Building, ChevronLeft, ChevronRight, Repeat, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, addMonths, subMonths } from "date-fns";
 import { it } from "date-fns/locale";
@@ -24,15 +25,22 @@ const SourceBadge = ({ source }) => {
 export default function Spese() {
   const [month, setMonth] = useState(isoMonth());
   const [items, setItems] = useState([]);
+  const [recurring, setRecurring] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [openRecurring, setOpenRecurring] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [applying, setApplying] = useState(false);
 
   const load = async (m) => {
     setLoading(true);
     try {
-      const res = await api.get(`/expenses`, { params: { month: m } });
-      setItems(res.data);
+      const [exp, rec] = await Promise.all([
+        api.get(`/expenses`, { params: { month: m } }),
+        api.get(`/recurring-expenses`),
+      ]);
+      setItems(exp.data);
+      setRecurring(rec.data);
     } catch {
       toast.error("Impossibile caricare le spese");
     } finally {
@@ -43,6 +51,28 @@ export default function Spese() {
   useEffect(() => {
     load(month);
   }, [month]);
+
+  // Has every recurring template been applied for this month?
+  const recurringMissing = useMemo(() => {
+    if (recurring.length === 0) return [];
+    const presentIds = new Set(items.map((i) => i.recurring_id).filter(Boolean));
+    return recurring.filter((r) => !presentIds.has(r.id));
+  }, [recurring, items]);
+
+  const applyRecurring = async () => {
+    setApplying(true);
+    try {
+      const res = await api.post(`/recurring-expenses/apply`, null, { params: { month } });
+      const { created } = res.data;
+      if (created > 0) toast.success(`${created} ${created === 1 ? "spesa applicata" : "spese applicate"} al mese`);
+      else toast.info("Nessuna spesa nuova da applicare");
+      await load(month);
+    } catch {
+      toast.error("Impossibile applicare le spese ricorrenti");
+    } finally {
+      setApplying(false);
+    }
+  };
 
   const totals = useMemo(() => {
     const c = items.filter((i) => i.source === "contanti").reduce((s, i) => s + Number(i.amount || 0), 0);
@@ -111,6 +141,64 @@ export default function Spese() {
         </div>
       </div>
 
+      {/* Recurring banner */}
+      {recurringMissing.length > 0 ? (
+        <div
+          className="flex flex-col gap-3 rounded-3xl border border-[#4A5D23]/15 bg-[#EAE7DE]/60 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+          data-testid="apply-recurring-banner"
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white text-[#4A5D23]">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="font-display text-base font-bold leading-tight">
+                Hai {recurringMissing.length} {recurringMissing.length === 1 ? "spesa fissa" : "spese fisse"} da applicare a questo mese
+              </div>
+              <div className="text-sm text-stone-600">
+                Totale: {formatEUR(recurringMissing.reduce((s, r) => s + (Number(r.amount) || 0), 0))}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setOpenRecurring(true)}
+              data-testid="open-recurring-dialog"
+              className="h-11 rounded-xl border border-stone-300 bg-white px-4 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+            >
+              Modifica
+            </button>
+            <button
+              onClick={applyRecurring}
+              disabled={applying}
+              data-testid="apply-recurring-button"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#1C1C1A] px-4 text-sm font-semibold text-white hover:bg-[#2A2A28] disabled:opacity-60"
+            >
+              {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Repeat className="h-4 w-4" />}
+              Applica
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between rounded-2xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-stone-600">
+            <Repeat className="h-4 w-4 text-[#4A5D23]" />
+            <span>
+              {recurring.length === 0
+                ? "Imposta le tue spese fisse ricorrenti per non riscriverle ogni mese"
+                : `${recurring.length} ${recurring.length === 1 ? "spesa fissa attiva" : "spese fisse attive"}`}
+            </span>
+          </div>
+          <button
+            onClick={() => setOpenRecurring(true)}
+            data-testid="manage-recurring-button"
+            className="text-sm font-semibold text-[#4A5D23] hover:underline"
+          >
+            Gestisci
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-semibold">Movimenti</h2>
         <button
@@ -168,6 +256,15 @@ export default function Spese() {
         initial={editing}
         onSaved={onSaved}
         onDeleted={onDeleted}
+      />
+      <RecurringExpensesDialog
+        open={openRecurring}
+        onOpenChange={(o) => {
+          setOpenRecurring(o);
+          if (!o) load(month);
+        }}
+        month={month}
+        onApplied={() => load(month)}
       />
     </div>
   );

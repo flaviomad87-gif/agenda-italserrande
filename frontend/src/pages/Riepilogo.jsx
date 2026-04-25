@@ -83,20 +83,78 @@ export default function Riepilogo() {
         <div className="rounded-2xl border border-stone-200/60 bg-white p-6 text-stone-500">Caricamento…</div>
       ) : (
         <>
-          {/* Saldo */}
-          <div className="rounded-3xl border border-stone-200/60 bg-white p-6 shadow-sm sm:p-8">
-            <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Saldo del mese</div>
-            <div
-              className={`mt-1 font-display text-4xl font-bold tracking-tight sm:text-5xl ${
-                data.balance >= 0 ? "text-[#2E5A47]" : "text-red-600"
-              }`}
-              data-testid="riepilogo-balance"
-            >
-              {formatEUR(data.balance)}
+          {/* Conto economico — guadagno / perdita del mese */}
+          <div
+            className={`overflow-hidden rounded-3xl border shadow-sm sm:p-1 ${
+              data.balance >= 0
+                ? "border-[#2E5A47]/20 bg-gradient-to-br from-[#EAF3EF] to-white"
+                : "border-red-200 bg-gradient-to-br from-red-50 to-white"
+            }`}
+            data-testid="riepilogo-pnl"
+          >
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+                  {data.balance >= 0 ? "Guadagno del mese" : "Perdita del mese"}
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    data.balance >= 0 ? "bg-[#2E5A47] text-white" : "bg-red-600 text-white"
+                  }`}
+                >
+                  {data.balance >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  {data.balance >= 0 ? "Utile" : "Perdita"}
+                </span>
+              </div>
+              <div
+                className={`mt-1 font-display text-4xl font-bold tracking-tight sm:text-5xl ${
+                  data.balance >= 0 ? "text-[#2E5A47]" : "text-red-600"
+                }`}
+                data-testid="riepilogo-balance"
+              >
+                {formatEUR(data.balance)}
+              </div>
+
+              <div className="mt-5 space-y-2 rounded-2xl bg-white/80 p-4 backdrop-blur">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 font-semibold text-[#2E5A47]">
+                    <TrendingUp className="h-4 w-4" /> Ricavi (lavori eseguiti)
+                  </span>
+                  <span className="font-display text-base font-bold tabular-nums">
+                    + {formatEUR(data.total_incassi)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 font-semibold text-stone-700">
+                    <TrendingDown className="h-4 w-4 text-red-600" /> Spese fisse
+                  </span>
+                  <span className="font-display text-base font-bold tabular-nums text-red-600">
+                    − {formatEUR(data.total_spese)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 font-semibold text-stone-700">
+                    <TrendingDown className="h-4 w-4 text-red-600" /> Acconti operai
+                  </span>
+                  <span className="font-display text-base font-bold tabular-nums text-red-600">
+                    − {formatEUR(data.total_advances)}
+                  </span>
+                </div>
+                <div className="my-2 h-px bg-stone-200" />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-stone-700">
+                    {data.balance >= 0 ? "Risultato (utile)" : "Risultato (perdita)"}
+                  </span>
+                  <span
+                    className={`font-display text-lg font-bold tabular-nums ${
+                      data.balance >= 0 ? "text-[#2E5A47]" : "text-red-600"
+                    }`}
+                  >
+                    {formatEUR(data.balance)}
+                  </span>
+                </div>
+              </div>
             </div>
-            <p className="mt-2 text-sm text-stone-500">
-              Incassi - Spese - Acconti operai
-            </p>
           </div>
 
           {/* Incassi by method */}

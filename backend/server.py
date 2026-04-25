@@ -73,6 +73,7 @@ class ExpenseBase(BaseModel):
     amount: float = 0.0
     source: ExpenseSource = "contanti"
     notes: Optional[str] = ""
+    recurring_id: Optional[str] = None  # set when materialized from a RecurringExpense template
 
 
 class ExpenseCreate(ExpenseBase):
@@ -80,6 +81,25 @@ class ExpenseCreate(ExpenseBase):
 
 
 class Expense(ExpenseBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class RecurringExpenseBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    category: str
+    amount: float = 0.0
+    source: ExpenseSource = "contanti"
+    notes: Optional[str] = ""
+
+
+class RecurringExpenseCreate(RecurringExpenseBase):
+    pass
+
+
+class RecurringExpense(RecurringExpenseBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -234,6 +254,80 @@ async def delete_expense(expense_id: str, user=Depends(get_current_user)):
     if res.deleted_count == 0:
         raise HTTPException(404, "Spesa non trovata")
     return {"ok": True}
+
+
+# ---------- Recurring Expenses (templates) ----------
+
+@api.get("/recurring-expenses", response_model=List[RecurringExpense])
+async def list_recurring(user=Depends(get_current_user)):
+    docs = await db.recurring_expenses.find(
+        {"user_id": user["uid"]}, {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+    return docs
+
+
+@api.post("/recurring-expenses", response_model=RecurringExpense)
+async def create_recurring(payload: RecurringExpenseCreate, user=Depends(get_current_user)):
+    obj = RecurringExpense(**payload.model_dump(), user_id=user["uid"])
+    await db.recurring_expenses.insert_one(obj.model_dump())
+    return obj
+
+
+@api.put("/recurring-expenses/{rid}", response_model=RecurringExpense)
+async def update_recurring(rid: str, payload: RecurringExpenseCreate, user=Depends(get_current_user)):
+    res = await db.recurring_expenses.find_one_and_update(
+        {"id": rid, "user_id": user["uid"]},
+        {"$set": payload.model_dump()},
+        return_document=True,
+        projection={"_id": 0},
+    )
+    if not res:
+        raise HTTPException(404, "Spesa ricorrente non trovata")
+    return res
+
+
+@api.delete("/recurring-expenses/{rid}")
+async def delete_recurring(rid: str, user=Depends(get_current_user)):
+    res = await db.recurring_expenses.delete_one({"id": rid, "user_id": user["uid"]})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Spesa ricorrente non trovata")
+    return {"ok": True}
+
+
+@api.post("/recurring-expenses/apply")
+async def apply_recurring(month: str, user=Depends(get_current_user)):
+    """Materializza i template come Expense per il mese (idempotente).
+    Per ogni recurring template, se non esiste già una Expense per
+    {user_id, recurring_id, mese} la crea (data = primo del mese)."""
+    uid = user["uid"]
+    templates = await db.recurring_expenses.find({"user_id": uid}, {"_id": 0}).to_list(500)
+    if not templates:
+        return {"created": 0, "skipped": 0, "month": month}
+
+    target_date = f"{month}-01"
+    created = 0
+    skipped = 0
+    for t in templates:
+        existing = await db.expenses.find_one({
+            "user_id": uid,
+            "recurring_id": t["id"],
+            "date": {"$regex": f"^{month}"},
+        })
+        if existing:
+            skipped += 1
+            continue
+        exp = Expense(
+            date=target_date,
+            category=t["category"],
+            amount=float(t.get("amount") or 0),
+            source=t.get("source", "contanti"),
+            notes=t.get("notes", ""),
+            recurring_id=t["id"],
+            user_id=uid,
+        )
+        await db.expenses.insert_one(exp.model_dump())
+        created += 1
+    return {"created": created, "skipped": skipped, "month": month}
 
 
 # ---------- Advances (acconti operai) ----------

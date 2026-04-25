@@ -485,3 +485,179 @@ class TestAdvancesByWorker:
         r = auth_a.get(f"{API}/advances/by-worker", params={"month": "2099-12"})
         assert r.status_code == 200
         assert r.json() == []
+
+
+# ---------- Iteration 4: Recurring Expenses (templates) + apply (idempotent) ----------
+
+class TestRecurringExpenses:
+    def test_list_requires_auth(self):
+        r = requests.get(f"{API}/recurring-expenses")
+        assert r.status_code in (401, 403)
+
+    def test_apply_requires_auth(self):
+        r = requests.post(f"{API}/recurring-expenses/apply", params={"month": "2024-01"})
+        assert r.status_code in (401, 403)
+
+    def test_crud_template_per_user_isolation(self, auth_a, auth_b):
+        # User A creates 2 templates
+        seeded_a = []
+        seeded_b = []
+        try:
+            uniq = uuid.uuid4().hex[:6].upper()
+            for cat, amt, src in [
+                (f"TEST_REC_AFFITTO_{uniq}", 500.0, "conto_aziendale"),
+                (f"TEST_REC_LUCE_{uniq}", 80.0, "contanti"),
+            ]:
+                r = auth_a.post(f"{API}/recurring-expenses", json={
+                    "category": cat, "amount": amt, "source": src, "notes": "n",
+                })
+                assert r.status_code == 200, r.text
+                t = r.json()
+                assert t["category"] == cat
+                assert t["amount"] == amt
+                assert t["source"] == src
+                assert "id" in t and "user_id" in t
+                seeded_a.append(t["id"])
+
+            # User B creates one
+            r = auth_b.post(f"{API}/recurring-expenses", json={
+                "category": f"TEST_REC_OTHER_{uniq}", "amount": 1.0, "source": "contanti",
+            })
+            assert r.status_code == 200
+            seeded_b.append(r.json()["id"])
+
+            # GET list user A only sees its own
+            r = auth_a.get(f"{API}/recurring-expenses")
+            assert r.status_code == 200
+            ids = [t["id"] for t in r.json()]
+            for sid in seeded_a:
+                assert sid in ids
+            for sid in seeded_b:
+                assert sid not in ids
+
+            # Update one of A's templates
+            tid = seeded_a[0]
+            r = auth_a.put(f"{API}/recurring-expenses/{tid}", json={
+                "category": f"TEST_REC_AFFITTO_UPD_{uniq}", "amount": 600.0,
+                "source": "conto_aziendale", "notes": "updated",
+            })
+            assert r.status_code == 200
+            assert r.json()["amount"] == 600.0
+            assert r.json()["category"] == f"TEST_REC_AFFITTO_UPD_{uniq}"
+
+            # Verify persisted via GET
+            r = auth_a.get(f"{API}/recurring-expenses")
+            row = next(t for t in r.json() if t["id"] == tid)
+            assert row["amount"] == 600.0
+            assert row["notes"] == "updated"
+
+            # B cannot update/delete A's template
+            r = auth_b.put(f"{API}/recurring-expenses/{tid}", json={
+                "category": "hack", "amount": 0.0, "source": "contanti",
+            })
+            assert r.status_code == 404
+            r = auth_b.delete(f"{API}/recurring-expenses/{tid}")
+            assert r.status_code == 404
+
+            # Delete by A
+            r = auth_a.delete(f"{API}/recurring-expenses/{tid}")
+            assert r.status_code == 200
+            seeded_a.remove(tid)
+
+            # Verify deletion
+            r = auth_a.get(f"{API}/recurring-expenses")
+            assert all(t["id"] != tid for t in r.json())
+        finally:
+            for sid in seeded_a:
+                auth_a.delete(f"{API}/recurring-expenses/{sid}")
+            for sid in seeded_b:
+                auth_b.delete(f"{API}/recurring-expenses/{sid}")
+
+    def test_apply_is_idempotent_and_recreates_after_delete(self, auth_a):
+        # Use a fixed past month with no other data to avoid pollution
+        month = "2022-11"
+        uniq = uuid.uuid4().hex[:6].upper()
+        seeded_templates = []
+        seeded_expenses = []
+        try:
+            # Seed 2 templates
+            for cat, amt in [(f"TEST_REC_T1_{uniq}", 100.0), (f"TEST_REC_T2_{uniq}", 50.0)]:
+                r = auth_a.post(f"{API}/recurring-expenses", json={
+                    "category": cat, "amount": amt, "source": "contanti",
+                })
+                assert r.status_code == 200
+                seeded_templates.append(r.json()["id"])
+
+            # First apply -> created=2 skipped=0
+            r = auth_a.post(f"{API}/recurring-expenses/apply", params={"month": month})
+            assert r.status_code == 200, r.text
+            data = r.json()
+            assert data["created"] == 2
+            assert data["skipped"] == 0
+            assert data["month"] == month
+
+            # Verify two expenses exist with date YYYY-MM-01 and recurring_id set
+            r = auth_a.get(f"{API}/expenses", params={"month": month})
+            assert r.status_code == 200
+            exp_for_month = [e for e in r.json() if e.get("recurring_id") in seeded_templates]
+            assert len(exp_for_month) == 2
+            for e in exp_for_month:
+                assert e["date"] == f"{month}-01"
+                seeded_expenses.append(e["id"])
+
+            # Second apply -> created=0 skipped=2 (idempotency)
+            r = auth_a.post(f"{API}/recurring-expenses/apply", params={"month": month})
+            data = r.json()
+            assert data["created"] == 0
+            assert data["skipped"] == 2
+
+            # Delete one of the materialized expenses, then apply again -> created=1 skipped=1
+            target_exp = exp_for_month[0]
+            r = auth_a.delete(f"{API}/expenses/{target_exp['id']}")
+            assert r.status_code == 200
+            seeded_expenses.remove(target_exp["id"])
+
+            r = auth_a.post(f"{API}/recurring-expenses/apply", params={"month": month})
+            data = r.json()
+            assert data["created"] == 1, data
+            assert data["skipped"] == 1, data
+
+            # Cleanup-track the recreated expense id
+            r = auth_a.get(f"{API}/expenses", params={"month": month})
+            for e in r.json():
+                if e.get("recurring_id") == target_exp["recurring_id"] and e["id"] not in seeded_expenses:
+                    seeded_expenses.append(e["id"])
+        finally:
+            for eid in seeded_expenses:
+                auth_a.delete(f"{API}/expenses/{eid}")
+            for tid in seeded_templates:
+                auth_a.delete(f"{API}/recurring-expenses/{tid}")
+
+    def test_apply_no_templates_returns_zero(self, auth_a):
+        # Ensure no templates: list and delete any TEST_ ones first (best effort)
+        r = auth_a.get(f"{API}/recurring-expenses")
+        existing = r.json() if r.status_code == 200 else []
+        # If user has any templates, this test cannot guarantee 0 — only assert format
+        r = auth_a.post(f"{API}/recurring-expenses/apply", params={"month": "2030-01"})
+        assert r.status_code == 200
+        data = r.json()
+        assert "created" in data and "skipped" in data and data["month"] == "2030-01"
+        if not existing:
+            assert data["created"] == 0 and data["skipped"] == 0
+
+    def test_legacy_expense_without_recurring_id_loads_ok(self, auth_a):
+        """Backward compat: an Expense created via the legacy endpoint (no
+        recurring_id) must list & serialize fine (Optional[str] = None)."""
+        r = auth_a.post(f"{API}/expenses", json={
+            "date": TODAY, "category": "TEST_legacy_no_rec", "amount": 9.99, "source": "contanti",
+        })
+        assert r.status_code == 200
+        e = r.json()
+        assert e.get("recurring_id") is None
+        try:
+            r = auth_a.get(f"{API}/expenses", params={"month": MONTH})
+            assert r.status_code == 200
+            row = next(x for x in r.json() if x["id"] == e["id"])
+            assert row.get("recurring_id") is None
+        finally:
+            auth_a.delete(f"{API}/expenses/{e['id']}")
