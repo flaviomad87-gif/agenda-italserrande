@@ -42,3 +42,10 @@ Small-business owner (contractor / Italserrande) doing field work; needs a fast,
 
 ## Test Credentials
 See `/app/memory/test_credentials.md`. Tests dynamically create Firebase users per run.
+
+## Iteration 2 — 2026-04 (Feature Update)
+Implemented:
+- **Ricerca clienti** (GET /api/clients/search): cerca per nome / indirizzo / telefono, case-insensitive, max 50 risultati, ordinati per data desc. Barra di ricerca in cima alla pagina Agenda con dropdown live (debounce 250ms). Click su un risultato → naviga al giorno del cliente e apre il dialog di modifica.
+- **Acconti per operaio** (GET /api/advances/by-worker?month=YYYY-MM): aggregazione mensile per worker_name (totale, conteggio, ultima data). Nuova sezione in Riepilogo che si "resetta" naturalmente all'inizio di ogni mese.
+
+Testing: 20/20 backend test pass, frontend e2e 100%.
