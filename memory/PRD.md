@@ -60,6 +60,19 @@ Implemented:
 
 Testing: 31/31 pytest backend pass (5 nuovi test su scenari unpaid + isolamento utente), frontend e2e 100% su flow registrazione → /incassi vuota → seeding lavoro → badge/totali/pill aggiornati → click → dialog.
 
+## Iteration 4 — 2026-02 (Feature Update — "Spese fornitura per cliente")
+Implemented:
+- **Modello `Material`** + campo `materials: List[Material]` su `ClientBase` (id, description, amount, supplier, source contanti/conto_aziendale, date, notes).
+- **`GET /api/summary`** ora restituisce `total_materials`, `materials_by_source` e bilancio aggiornato: `balance = total_incassi - total_spese - total_advances - total_materials`.
+- **`GET /api/clients/unpaid`** aggiunge `materials_total` e `expected_margin` per ogni item (margine = imponibile − materiali).
+- **`MaterialsList.jsx`** componente in stile `PaymentsList`: descrizione + importo + fornitore + sorgente (contanti/conto), totale e margine atteso live.
+- **`ClientFormDialog`** integra la sezione "Spese fornitura / materiali" dopo i pagamenti.
+- **`Agenda.jsx`** card cliente: nuova riga "Margine €X (Y%)" visibile quando ci sono materiali.
+- **`Incassi.jsx`**: per ogni cliente da incassare mostra anche il margine atteso.
+- **`Riepilogo.jsx`**: riga separata "Spese fornitura clienti" nel P&L e nella sezione Uscite con breakdown per sorgente (contanti/conto). Totale uscite include i materiali.
+
+Testing: 41/41 pytest backend pass (10 nuovi test materials), frontend e2e 100% verificato (creazione, persistenza, rimozione live, badge su Agenda/Incassi/Riepilogo).
+
 ## Backlog (P1) — aggiornato
 - Export Riepilogo mensile in PDF/CSV.
 - Tap-to-maps sull'indirizzo cliente.
