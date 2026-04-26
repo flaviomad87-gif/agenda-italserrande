@@ -9,6 +9,7 @@ import Register from "./pages/Register";
 // Code-splitting: queste pagine sono caricate solo quando servono
 const AppShell = lazy(() => import("./layouts/AppShell"));
 const Agenda = lazy(() => import("./pages/Agenda"));
+const Incassi = lazy(() => import("./pages/Incassi"));
 const Spese = lazy(() => import("./pages/Spese"));
 const Riepilogo = lazy(() => import("./pages/Riepilogo"));
 const Profilo = lazy(() => import("./pages/Profilo"));
@@ -55,6 +56,7 @@ function App() {
               >
                 <Route path="/" element={<Navigate to="/agenda" replace />} />
                 <Route path="/agenda" element={<Agenda />} />
+                <Route path="/incassi" element={<Incassi />} />
                 <Route path="/spese" element={<Spese />} />
                 <Route path="/riepilogo" element={<Riepilogo />} />
                 <Route path="/profilo" element={<Profilo />} />

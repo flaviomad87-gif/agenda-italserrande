@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
-import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat } from "../lib/utils";
+import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat, computeClientBalance } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
 import AdvanceFormDialog from "../components/AdvanceFormDialog";
 import ClientSearch from "../components/ClientSearch";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
-import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, Trash2 } from "lucide-react";
+import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, Trash2, AlarmClock } from "lucide-react";
 import { toast } from "sonner";
 
 const PaymentIcon = ({ method, className }) => {
@@ -274,6 +274,25 @@ export default function Agenda() {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <StatusBadge status={c.status} />
+                  {(() => {
+                    const { isOpen, daysWaiting, severity } = computeClientBalance(c);
+                    if (!isOpen || daysWaiting < 1) return null;
+                    const cls =
+                      severity === "danger"
+                        ? "bg-[#FCE3DC] text-[#9A3A1A]"
+                        : severity === "warn"
+                        ? "bg-[#FBF1DE] text-[#7A4F0A]"
+                        : "bg-stone-100 text-stone-600";
+                    return (
+                      <span
+                        data-testid={`days-waiting-${c.id}`}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}
+                      >
+                        <AlarmClock className="h-3 w-3" />
+                        {daysWaiting} {daysWaiting === 1 ? "giorno" : "giorni"} in attesa
+                      </span>
+                    );
+                  })()}
                   {(() => {
                     const payments = c.payments || [];
                     if (payments.length === 0) {

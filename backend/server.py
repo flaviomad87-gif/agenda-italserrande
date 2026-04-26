@@ -185,7 +185,15 @@ async def list_clients(
 
 @api.get("/clients/unpaid")
 async def list_unpaid_clients(user=Depends(get_current_user)):
-    """Tutti i clienti con saldo aperto (da incassare > 0), ordinati dal più vecchio."""
+    """Clienti con saldo aperto da incassare, ordinati dal più vecchio.
+
+    Inclusi:
+      - Lavoro eseguito con saldo > 0 (anche senza pagamenti registrati)
+      - Preventivo che ha già ricevuto almeno un acconto (saldo parziale aperto)
+    Esclusi:
+      - Preventivi senza alcun pagamento (non sono ancora "da incassare")
+      - Lavori legacy considerati saldati (payment_method o invoice_number presenti)
+    """
     clients = await db.clients.find(
         {"user_id": user["uid"], "amount": {"$gt": 0}}, {"_id": 0}
     ).sort("date", 1).to_list(5000)
@@ -200,13 +208,19 @@ async def list_unpaid_clients(user=Depends(get_current_user)):
         to_collect = gross - withholding
 
         payments = c.get("payments") or []
+        status = c.get("status")
+
         if payments:
             paid = sum(float(p.get("amount") or 0) for p in payments)
-        elif c.get("status") == "lavoro_eseguito" and (c.get("payment_method") or c.get("invoice_number")):
-            # Legacy: lavoro eseguito senza lista pagamenti → considerato saldato
+        elif status == "lavoro_eseguito" and (c.get("payment_method") or c.get("invoice_number")):
+            # Legacy: lavoro eseguito con metodo/fattura → considerato saldato
             paid = to_collect
-        else:
+        elif status == "lavoro_eseguito":
+            # Lavoro eseguito senza pagamenti registrati → tutto da incassare
             paid = 0.0
+        else:
+            # Preventivo senza pagamenti → non ancora "da incassare"
+            continue
 
         balance = to_collect - paid
         if balance > 0.01:

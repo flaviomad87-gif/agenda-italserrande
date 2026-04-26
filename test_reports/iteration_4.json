@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 5 (file iteration_4.json) — Tested new 'Da incassare' feature: backend GET /api/clients/unpaid + frontend /incassi page + nav badge + days-waiting pill. Backend: appended TestUnpaidClients (5 tests) to backend_test.py. Total 31/31 pytest tests pass. New tests cover: (a) auth gates 401/403 unauth/invalid token; (b) all 6 fixture scenarios from the user request — preventivo no-payments excluded; lavoro_eseguito no-payments included with full to_collect; lavoro_eseguito with partial payments included with correct balance; lavoro_eseguito fully paid excluded; preventivo with one acconto + balance>0 included; legacy lavoro_eseguito (payment_method='contanti', no payments[]) excluded; (c) math verification: amount=1000, vat=10, wh=4 → to_collect=1060.0, balance=1060.0 (no payments) and 760.0 (300 paid); (d) sort by date ascending verified; (e) per-item required fields (id,name,date,amount,balance,to_collect,paid) present; (f) user isolation — user B does not see user A's unpaid clients; (g) zero-balance edge case excluded. Frontend (Playwright on real preview URL): registered fresh user testuser+inc<ts>@italserrande.test, verified: nav-incassi sidebar link present; navigated to /incassi → incassi-page rendered, empty state shows incassi-empty 'Tutto saldato!' with count=0 and total=0,00 €; seeded one lavoro_eseguito (1000€, vat 10, wh 4, date 2024-06-01) via API → reloaded page → incasso-card-<id> visible with days-waiting-pill-danger (694 giorni in attesa, correctly >60d), incassi-count=1, incassi-total=1060,00 €, nav-incassi-badge=1; clicked the card → ClientFormDialog opened ([role='dialog']) confirming integration; cleanup successful. Screenshot confirms layout matches design (badge, totals, severity pill, Sollecita WhatsApp button).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "ClientFormDialog (and other shadcn dialogs)",
+        "issues": [
+          "Pre-existing console a11y warning: 'Missing Description or aria-describedby={undefined} for DialogContent'. Carry-over from previous iterations, not blocking."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "list_unpaid_clients in server.py correctly filters preventivi with zero payments via the 'continue' branch — verified by test_unpaid_logic_and_math. The legacy lavoro_eseguito branch (payment_method or invoice_number → considered saldato) also verified.",
+    "Math is centralized in the endpoint: to_collect = amount*(1+vat/100) - amount*(wh/100). Frontend Incassi.jsx uses backend-computed balance/to_collect/paid (no client-side recompute drift) — single source of truth. Good.",
+    "Severity thresholds (>60 danger, >30 warn, else ok) duplicated between Incassi.jsx severityFor() and Agenda.jsx computeClientBalance via lib/utils.js. Minor DRY: could be unified into one helper but currently consistent.",
+    "AppShell.jsx polls /clients/unpaid every 60s + on focus + via window.__refreshUnpaidBadge after save/delete. Solid. One nit: setInterval keeps running even on unauthenticated routes (guarded by auth.currentUser check, so just an unnecessary tick — acceptable).",
+    "Incassi.jsx sorts client-side by daysSince(b.date) desc on top of backend's date-asc sort — both produce same ordering since older date = more days. Functionally correct, but redundant. Consider trusting backend order.",
+    "Empty state and loading state have distinct testids (incassi-empty + 'Caricamento…' text without testid). Adding data-testid='incassi-loading' on the loading div would help future automated tests.",
+    "Backend endpoint returns a plain list (not a model) because it adds dynamic fields (balance, to_collect, paid). OK, but consider declaring a UnpaidClient response model for OpenAPI documentation."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {
+    "backend": "100% (31/31, 5 new TestUnpaidClients tests added)",
+    "frontend": "100% — empty state, populated state, badge, severity pill (danger), card click → ClientFormDialog, totals all verified live"
+  },
+  "test_credentials": "Created on demand via Firebase REST signUp using REACT_APP_FIREBASE_API_KEY. Pattern: testuser+a/b/inc<timestamp><uuid6>@italserrande.test / TestPassword123!. Two distinct backend users (auth_a, auth_b) and one fresh frontend user per run.",
+  "seed_data_creation": "Backend tests seed 6 TEST_UNPAID_*-prefixed clients per scenario inside try/finally with full cleanup (DELETE on each id). Frontend test seeds a single TEST_UI_UNPAID lavoro_eseguito client and deletes it at end. No DB residue.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "backend_test.py now has 31 pytest tests across 9 classes, including TestUnpaidClients (5 new). Run: pytest /app/backend/tests/backend_test.py -v. Key data-testids for /incassi page: incassi-page, incassi-total, incassi-count, incassi-empty, incasso-card-<id>, days-waiting-pill-ok|warn|danger, whatsapp-share-incasso-<id>, nav-incassi, nav-incassi-badge. Agenda page: days-waiting-<id>. Endpoint: GET /api/clients/unpaid (auth required, returns array sorted by date asc with extra fields balance/to_collect/paid). Sample math: amount=1000, vat=10, wh=4 → to_collect=1060.",
+  "rca of the issue": "No bugs found. Feature implementation matches all acceptance criteria from review_request."
+}

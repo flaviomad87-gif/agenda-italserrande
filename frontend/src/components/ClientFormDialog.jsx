@@ -110,6 +110,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
         : await api.post(`/clients`, payload);
       toast.success(editing ? "Cliente aggiornato" : "Cliente aggiunto");
       onSaved?.(res.data);
+      window.__refreshUnpaidBadge?.();
       onOpenChange(false);
     } catch (err) {
       toast.error("Errore durante il salvataggio");
@@ -125,6 +126,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       await api.delete(`/clients/${initial.id}`);
       toast.success("Cliente eliminato");
       onDeleted?.(initial.id);
+      window.__refreshUnpaidBadge?.();
       onOpenChange(false);
     } catch {
       toast.error("Impossibile eliminare");

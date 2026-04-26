@@ -69,3 +69,44 @@ export const computeWithVat = (amount, vatRate, withholdingRate) => {
   const toCollect = gross - withholding;
   return { net, vat, gross, withholding, toCollect, hasVat, hasWithholding };
 };
+
+/** Giorni trascorsi tra una data ISO (YYYY-MM-DD) e oggi (incluso 0 se è oggi). */
+export const daysSince = (isoDateStr) => {
+  if (!isoDateStr) return 0;
+  const start = new Date(`${isoDateStr}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = today.getTime() - start.getTime();
+  return Math.max(0, Math.floor(diff / 86400000));
+};
+
+/** Stato di un cliente rispetto al saldo. Restituisce { isOpen, balance, paid, toCollect, daysWaiting, severity }.
+ * severity: "ok" | "warn" (>30g) | "danger" (>60g)
+ * Inclusi solo lavori eseguiti o clienti che hanno almeno un pagamento (preventivi vuoti = ok). */
+export const computeClientBalance = (c) => {
+  const { toCollect } = computeWithVat(c?.amount, c?.vat_rate, c?.withholding_rate);
+  const payments = Array.isArray(c?.payments) ? c.payments : [];
+  const hasPayments = payments.length > 0;
+  let paid = 0;
+  let countsAsUnpaid = false;
+  if (hasPayments) {
+    paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    countsAsUnpaid = true;
+  } else if (c?.status === "lavoro_eseguito") {
+    if (c?.payment_method || c?.invoice_number) {
+      paid = toCollect; // legacy saldato
+    } else {
+      paid = 0;
+      countsAsUnpaid = true;
+    }
+  }
+  const balance = toCollect - paid;
+  const isOpen = countsAsUnpaid && balance > 0.01;
+  const daysWaiting = isOpen ? daysSince(c?.date) : 0;
+  let severity = "ok";
+  if (isOpen) {
+    if (daysWaiting > 60) severity = "danger";
+    else if (daysWaiting > 30) severity = "warn";
+  }
+  return { isOpen, balance, paid, toCollect, daysWaiting, severity };
+};

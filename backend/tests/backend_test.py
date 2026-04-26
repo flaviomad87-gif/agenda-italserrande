@@ -661,3 +661,156 @@ class TestRecurringExpenses:
             assert row.get("recurring_id") is None
         finally:
             auth_a.delete(f"{API}/expenses/{e['id']}")
+
+
+# ---------- Unpaid Clients (Da incassare) ----------
+
+class TestUnpaidClients:
+    """Tests for GET /api/clients/unpaid feature."""
+
+    def test_unpaid_no_token(self):
+        r = requests.get(f"{API}/clients/unpaid")
+        assert r.status_code in (401, 403)
+
+    def test_unpaid_invalid_token(self):
+        r = requests.get(f"{API}/clients/unpaid", headers={"Authorization": "Bearer bad"})
+        assert r.status_code == 401
+
+    def test_unpaid_logic_and_math(self, auth_a):
+        """Seed 6 clients covering all scenarios. Verify inclusion + math + sort."""
+        created_ids = []
+        try:
+            # Use distinct dates so we can sort & identify
+            base = "2024-01-"
+            # 1) preventivo, no payments → SHOULD NOT appear
+            c1 = auth_a.post(f"{API}/clients", json={
+                "date": base + "05", "name": "TEST_UNPAID_PREV_NOPAY",
+                "status": "preventivo", "amount": 500.0,
+            }).json(); created_ids.append(c1["id"])
+            # 2) lavoro_eseguito no payments, no legacy → SHOULD appear; full to_collect
+            c2 = auth_a.post(f"{API}/clients", json={
+                "date": base + "10", "name": "TEST_UNPAID_LAV_NOPAY",
+                "status": "lavoro_eseguito", "amount": 1000.0,
+                "vat_rate": 10, "withholding_rate": 4,
+            }).json(); created_ids.append(c2["id"])
+            # 3) lavoro_eseguito with partial payments → SHOULD appear; balance = to_collect - sum
+            c3_payload = {
+                "date": base + "15", "name": "TEST_UNPAID_LAV_PARTIAL",
+                "status": "lavoro_eseguito", "amount": 1000.0,
+                "vat_rate": 10, "withholding_rate": 4,
+                "payments": [
+                    {"id": str(uuid.uuid4()), "type": "acconto", "amount": 300.0,
+                     "date": base + "16", "method": "contanti"},
+                ],
+            }
+            c3 = auth_a.post(f"{API}/clients", json=c3_payload).json(); created_ids.append(c3["id"])
+            # 4) lavoro_eseguito fully paid → SHOULD NOT appear
+            c4_payload = {
+                "date": base + "20", "name": "TEST_UNPAID_LAV_FULL",
+                "status": "lavoro_eseguito", "amount": 500.0,
+                "payments": [
+                    {"id": str(uuid.uuid4()), "type": "saldo", "amount": 500.0,
+                     "date": base + "21", "method": "bonifico"},
+                ],
+            }
+            c4 = auth_a.post(f"{API}/clients", json=c4_payload).json(); created_ids.append(c4["id"])
+            # 5) preventivo with one acconto, balance left → SHOULD appear
+            c5_payload = {
+                "date": base + "25", "name": "TEST_UNPAID_PREV_ACCONTO",
+                "status": "preventivo", "amount": 800.0,
+                "payments": [
+                    {"id": str(uuid.uuid4()), "type": "acconto", "amount": 200.0,
+                     "date": base + "26", "method": "contanti"},
+                ],
+            }
+            c5 = auth_a.post(f"{API}/clients", json=c5_payload).json(); created_ids.append(c5["id"])
+            # 6) legacy lavoro_eseguito with payment_method, no payments[] → SHOULD NOT appear
+            c6 = auth_a.post(f"{API}/clients", json={
+                "date": base + "28", "name": "TEST_UNPAID_LEGACY_LAV",
+                "status": "lavoro_eseguito", "amount": 600.0,
+                "payment_method": "contanti",
+            }).json(); created_ids.append(c6["id"])
+
+            r = auth_a.get(f"{API}/clients/unpaid")
+            assert r.status_code == 200
+            data = r.json()
+            assert isinstance(data, list)
+            ids = {c["id"] for c in data}
+
+            # Inclusion rules
+            assert c1["id"] not in ids, "preventivo no-payments must NOT appear"
+            assert c2["id"] in ids, "lavoro_eseguito no-payments MUST appear"
+            assert c3["id"] in ids, "lavoro_eseguito partial MUST appear"
+            assert c4["id"] not in ids, "lavoro_eseguito fully paid must NOT appear"
+            assert c5["id"] in ids, "preventivo with acconto+balance MUST appear"
+            assert c6["id"] not in ids, "legacy paid-method lavoro_eseguito must NOT appear"
+
+            by_id = {c["id"]: c for c in data}
+
+            # Math: c2 amount=1000, vat=10, wh=4 → to_collect = 1100 - 40 = 1060, balance = 1060
+            v2 = by_id[c2["id"]]
+            assert v2["to_collect"] == 1060.0, v2
+            assert v2["paid"] == 0.0
+            assert v2["balance"] == 1060.0
+            # Required fields per item
+            for k in ("id", "name", "date", "amount", "balance", "to_collect", "paid"):
+                assert k in v2, f"missing {k}"
+            assert v2["balance"] > 0
+
+            # Math: c3 same to_collect 1060, paid 300 → balance 760
+            v3 = by_id[c3["id"]]
+            assert v3["to_collect"] == 1060.0
+            assert v3["paid"] == 300.0
+            assert v3["balance"] == 760.0
+
+            # c5 preventivo: amount 800, no vat/wh → to_collect = 800, paid 200, balance 600
+            v5 = by_id[c5["id"]]
+            assert v5["to_collect"] == 800.0
+            assert v5["paid"] == 200.0
+            assert v5["balance"] == 600.0
+
+            # Sort by date ascending
+            test_only = [c for c in data if c["id"] in {c2["id"], c3["id"], c5["id"]}]
+            dates = [c["date"] for c in test_only]
+            assert dates == sorted(dates), f"not sorted asc: {dates}"
+
+        finally:
+            for cid in created_ids:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_unpaid_user_isolation(self, auth_a, auth_b):
+        """User B must not see User A's unpaid clients."""
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2024-02-15", "name": "TEST_UNPAID_ISOLATION",
+            "status": "lavoro_eseguito", "amount": 750.0,
+        }).json()
+        try:
+            r_b = auth_b.get(f"{API}/clients/unpaid")
+            assert r_b.status_code == 200
+            ids_b = {x["id"] for x in r_b.json()}
+            assert c["id"] not in ids_b
+            r_a = auth_a.get(f"{API}/clients/unpaid")
+            ids_a = {x["id"] for x in r_a.json()}
+            assert c["id"] in ids_a
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_unpaid_zero_balance_excluded(self, auth_a):
+        """lavoro_eseguito with payments summing >= to_collect should NOT appear (balance ~0)."""
+        payload = {
+            "date": "2024-03-10", "name": "TEST_UNPAID_EXACT",
+            "status": "lavoro_eseguito", "amount": 200.0,
+            "payments": [
+                {"id": str(uuid.uuid4()), "type": "saldo", "amount": 200.0,
+                 "date": "2024-03-11", "method": "pos"},
+            ],
+        }
+        c = auth_a.post(f"{API}/clients", json=payload).json()
+        try:
+            r = auth_a.get(f"{API}/clients/unpaid")
+            assert r.status_code == 200
+            ids = {x["id"] for x in r.json()}
+            assert c["id"] not in ids
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+

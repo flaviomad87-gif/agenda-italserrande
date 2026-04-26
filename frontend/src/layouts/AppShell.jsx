@@ -1,23 +1,27 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Calendar, Receipt, PieChart, User, Hammer } from "lucide-react";
+import { Calendar, Receipt, PieChart, User, Hammer, Wallet } from "lucide-react";
 import { cn } from "../lib/utils";
+import { api, apiGetWithCache } from "../lib/api";
+import { auth } from "../lib/firebase";
 
 const navItems = [
   { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
+  { to: "/incassi", label: "Da incassare", icon: Wallet, testId: "nav-incassi", badgeKey: "unpaid" },
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
   { to: "/riepilogo", label: "Riepilogo", icon: PieChart, testId: "nav-riepilogo" },
   { to: "/profilo", label: "Profilo", icon: User, testId: "nav-profilo" },
 ];
 
-const NavItem = ({ to, label, icon: Icon, testId, mobile }) => (
+const NavItem = ({ to, label, icon: Icon, testId, mobile, badge }) => (
   <NavLink
     to={to}
     data-testid={testId}
     className={({ isActive }) =>
       cn(
-        "flex items-center gap-3 rounded-xl transition-all",
+        "relative flex items-center gap-3 rounded-xl transition-all",
         mobile
-          ? "flex-col flex-1 py-2 text-xs font-medium"
+          ? "flex-col flex-1 py-2 text-[11px] font-medium"
           : "px-4 py-3 text-sm font-semibold",
         isActive
           ? mobile
@@ -29,19 +33,82 @@ const NavItem = ({ to, label, icon: Icon, testId, mobile }) => (
   >
     {({ isActive }) => (
       <>
-        <Icon
-          className={cn(
-            mobile ? "h-5 w-5" : "h-5 w-5",
-            isActive && mobile ? "stroke-[2.4]" : "",
+        <span className="relative">
+          <Icon
+            className={cn(
+              mobile ? "h-5 w-5" : "h-5 w-5",
+              isActive && mobile ? "stroke-[2.4]" : "",
+            )}
+          />
+          {badge > 0 && (
+            <span
+              data-testid={`${testId}-badge`}
+              className="absolute -right-2 -top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#B8683D] px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white"
+            >
+              {badge > 99 ? "99+" : badge}
+            </span>
           )}
-        />
-        <span>{label}</span>
+        </span>
+        <span className="whitespace-nowrap">{label}</span>
       </>
     )}
   </NavLink>
 );
 
 export default function AppShell() {
+  const [unpaidCount, setUnpaidCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      // Guarda la cache per un primo render istantaneo
+      const c = apiGetWithCache(`/clients/unpaid`);
+      if (c.cached && !cancelled) setUnpaidCount(c.cached.length || 0);
+      try {
+        const fresh = await c.fresh;
+        if (!cancelled) setUnpaidCount((fresh || []).length);
+      } catch {
+        // silenzioso
+      }
+    };
+
+    // Aspetta che l'utente sia autenticato (token disponibile) prima di chiamare l'API
+    const unsub = auth.onAuthStateChanged((u) => {
+      if (u) refresh();
+    });
+
+    // Aggiorna ogni 60s e quando la finestra torna in focus
+    const interval = setInterval(() => {
+      if (auth.currentUser) refresh();
+    }, 60000);
+    const onFocus = () => {
+      if (auth.currentUser) refresh();
+    };
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      cancelled = true;
+      unsub && unsub();
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
+
+  // Espone un refresh manuale (la pagina Incassi può aggiornare il badge)
+  useEffect(() => {
+    window.__refreshUnpaidBadge = async () => {
+      try {
+        const data = await api.get("/clients/unpaid").then((r) => r.data);
+        setUnpaidCount((data || []).length);
+      } catch {
+        // ignore
+      }
+    };
+    return () => {
+      delete window.__refreshUnpaidBadge;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F9F8F6]">
       {/* Desktop sidebar */}
@@ -58,7 +125,11 @@ export default function AppShell() {
 
         <nav className="flex flex-col gap-1">
           {navItems.map((it) => (
-            <NavItem key={it.to} {...it} />
+            <NavItem
+              key={it.to}
+              {...it}
+              badge={it.badgeKey === "unpaid" ? unpaidCount : 0}
+            />
           ))}
         </nav>
       </aside>
@@ -73,10 +144,15 @@ export default function AppShell() {
       {/* Mobile bottom nav */}
       <nav
         data-testid="mobile-bottom-nav"
-        className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-stone-200/70 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-stone-200/70 bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur md:hidden"
       >
         {navItems.map((it) => (
-          <NavItem key={it.to} {...it} mobile />
+          <NavItem
+            key={it.to}
+            {...it}
+            mobile
+            badge={it.badgeKey === "unpaid" ? unpaidCount : 0}
+          />
         ))}
       </nav>
     </div>
