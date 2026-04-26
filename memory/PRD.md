@@ -49,3 +49,23 @@ Implemented:
 - **Acconti per operaio** (GET /api/advances/by-worker?month=YYYY-MM): aggregazione mensile per worker_name (totale, conteggio, ultima data). Nuova sezione in Riepilogo che si "resetta" naturalmente all'inizio di ogni mese.
 
 Testing: 20/20 backend test pass, frontend e2e 100%.
+
+## Iteration 3 — 2026-02 (Feature Update — "Da incassare")
+Implemented:
+- **Endpoint `GET /api/clients/unpaid`**: ritorna i clienti con saldo aperto, ordinati dalla data più vecchia. Logica: include lavori eseguiti senza pagamenti, lavori con pagamenti parziali e preventivi che hanno ricevuto almeno un acconto; esclude preventivi vuoti e lavori legacy considerati saldati. Aggiunge campi calcolati `to_collect`, `paid`, `balance`.
+- **Pagina `/incassi`** (`Incassi.jsx`): elenco clienti da incassare con totale aperto, conteggio, pill "X giorni in attesa" colorata per severità (>30g warn, >60g danger), CTA "Sollecita WhatsApp", click → apre il `ClientFormDialog` per registrare il pagamento.
+- **Voce di menu "Da incassare"** in sidebar e bottom-nav con badge contatore live (refresh ogni 60s + on focus + post-save).
+- **Indicatore "giorni in attesa"** sulla card cliente in Agenda (visibile solo per saldi aperti ≥1 giorno, con stessa codifica colore).
+- Nuovi helper `daysSince` e `computeClientBalance` in `lib/utils.js` (single source of truth lato frontend).
+
+Testing: 31/31 pytest backend pass (5 nuovi test su scenari unpaid + isolamento utente), frontend e2e 100% su flow registrazione → /incassi vuota → seeding lavoro → badge/totali/pill aggiornati → click → dialog.
+
+## Backlog (P1) — aggiornato
+- Export Riepilogo mensile in PDF/CSV.
+- Tap-to-maps sull'indirizzo cliente.
+- Storico annuale per operaio (breakdown mese per mese).
+- Indicatore "vs mese precedente" (+/- %) nel dashboard P&L.
+
+## Refactoring futuro
+- Split di `server.py` (>500 righe) in `routes/clients.py`, `routes/expenses.py`, `routes/advances.py`.
+- Considerare un response model Pydantic dedicato per `/clients/unpaid`.
