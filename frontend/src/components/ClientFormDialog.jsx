@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Loader2, Trash2 } from "lucide-react";
-import { VAT_RATES, computeWithVat, formatEUR } from "../lib/utils";
+import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 
 const empty = (date) => ({
@@ -32,6 +32,7 @@ const empty = (date) => ({
   status: "preventivo",
   amount: "",
   vat_rate: "",
+  withholding_rate: "",
   quote_number: "",
   payments: [],
 });
@@ -97,6 +98,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
         ...form,
         amount: parseFloat(form.amount) || 0,
         vat_rate: form.vat_rate === "" || form.vat_rate === null ? null : parseFloat(form.vat_rate),
+        withholding_rate: form.withholding_rate === "" || form.withholding_rate === null ? null : parseFloat(form.withholding_rate),
         date: form.date || date,
         payments,
         // Reset legacy fields once we use the new payments model
@@ -254,24 +256,67 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
             </div>
           </div>
 
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+              Ritenuta d'acconto
+            </Label>
+            <Select
+              value={
+                form.withholding_rate === null || form.withholding_rate === undefined || form.withholding_rate === ""
+                  ? "none"
+                  : String(form.withholding_rate)
+              }
+              onValueChange={(v) => update("withholding_rate", v === "none" ? "" : v)}
+            >
+              <SelectTrigger className="mt-2 h-12 rounded-xl" data-testid="client-withholding-select">
+                <SelectValue placeholder="Nessuna" />
+              </SelectTrigger>
+              <SelectContent>
+                {WITHHOLDING_RATES.map((r) => (
+                  <SelectItem key={r.label} value={r.value || "none"}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {(() => {
-            const { net, vat, gross, hasVat } = computeWithVat(form.amount, form.vat_rate);
-            if (!hasVat || net <= 0) return null;
+            const { net, vat, gross, withholding, toCollect, hasVat, hasWithholding } = computeWithVat(
+              form.amount,
+              form.vat_rate,
+              form.withholding_rate,
+            );
+            if ((!hasVat && !hasWithholding) || net <= 0) return null;
             return (
               <div className="rounded-xl bg-stone-50 px-4 py-3 text-sm">
                 <div className="flex items-center justify-between text-stone-600">
                   <span>Imponibile</span>
                   <span className="tabular-nums">{formatEUR(net)}</span>
                 </div>
-                <div className="flex items-center justify-between text-stone-600">
-                  <span>IVA {form.vat_rate}%</span>
-                  <span className="tabular-nums">{formatEUR(vat)}</span>
-                </div>
-                <div className="my-1 h-px bg-stone-200" />
-                <div className="flex items-center justify-between font-display text-base font-bold">
-                  <span>Totale lordo</span>
+                {hasVat && (
+                  <div className="flex items-center justify-between text-stone-600">
+                    <span>+ IVA {form.vat_rate}%</span>
+                    <span className="tabular-nums">{formatEUR(vat)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between font-semibold">
+                  <span>= Totale fattura</span>
                   <span className="tabular-nums">{formatEUR(gross)}</span>
                 </div>
+                {hasWithholding && (
+                  <>
+                    <div className="flex items-center justify-between text-stone-600">
+                      <span>− Ritenuta {form.withholding_rate}%</span>
+                      <span className="tabular-nums">−{formatEUR(withholding)}</span>
+                    </div>
+                    <div className="my-1 h-px bg-stone-200" />
+                    <div className="flex items-center justify-between font-display text-base font-bold text-[#2E5A47]">
+                      <span>Da incassare</span>
+                      <span className="tabular-nums">{formatEUR(toCollect)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })()}
@@ -289,7 +334,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
 
           <PaymentsList
             payments={form.payments || []}
-            totalAmount={computeWithVat(form.amount, form.vat_rate).gross}
+            totalAmount={computeWithVat(form.amount, form.vat_rate, form.withholding_rate).toCollect}
             jobDate={form.date || date}
             onChange={(p) => update("payments", p)}
           />

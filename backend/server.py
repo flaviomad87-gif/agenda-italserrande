@@ -65,6 +65,7 @@ class ClientBase(BaseModel):
     payment_method: PaymentMethod = ""  # legacy (kept for backward compat)
     amount: float = 0.0  # imponibile concordato
     vat_rate: Optional[float] = None  # aliquota IVA in % (None = senza IVA)
+    withholding_rate: Optional[float] = None  # ritenuta d'acconto in % sull'imponibile (None = nessuna)
     quote_number: Optional[str] = ""
     invoice_number: Optional[str] = ""  # legacy (kept for backward compat)
     payments: List[Payment] = Field(default_factory=list)

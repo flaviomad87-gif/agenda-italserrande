@@ -44,12 +44,28 @@ export const VAT_RATES = [
   { value: "22", label: "IVA 22%" },
 ];
 
-/** Calcola il totale lordo dato l'imponibile e l'aliquota IVA (in %).
- * Ritorna { net, vat, gross }. Se aliquota null/undefined/0 → vat=0 e gross=net. */
-export const computeWithVat = (amount, vatRate) => {
+export const WITHHOLDING_RATES = [
+  { value: "", label: "Nessuna" },
+  { value: "4", label: "Ritenuta 4% (condomini)" },
+  { value: "20", label: "Ritenuta 20% (professionisti)" },
+];
+
+/** Calcola il totale lordo e gli importi netti dato l'imponibile, l'aliquota IVA e l'eventuale ritenuta d'acconto.
+ * - net: imponibile
+ * - vat: importo IVA (= net * vatRate/100)
+ * - gross: totale fattura (= net + vat)
+ * - withholding: ritenuta d'acconto (= net * withholdingRate/100)
+ * - toCollect: importo che il cliente paga effettivamente (= gross - withholding)
+ */
+export const computeWithVat = (amount, vatRate, withholdingRate) => {
   const net = Number(amount) || 0;
-  const rate = Number(vatRate);
-  if (!rate || isNaN(rate)) return { net, vat: 0, gross: net, hasVat: false };
-  const vat = net * (rate / 100);
-  return { net, vat, gross: net + vat, hasVat: true };
+  const vRate = Number(vatRate);
+  const wRate = Number(withholdingRate);
+  const hasVat = !!vRate && !isNaN(vRate);
+  const hasWithholding = !!wRate && !isNaN(wRate);
+  const vat = hasVat ? net * (vRate / 100) : 0;
+  const gross = net + vat;
+  const withholding = hasWithholding ? net * (wRate / 100) : 0;
+  const toCollect = gross - withholding;
+  return { net, vat, gross, withholding, toCollect, hasVat, hasWithholding };
 };

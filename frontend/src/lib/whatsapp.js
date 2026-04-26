@@ -32,12 +32,22 @@ export const buildClientMessage = (c) => {
   lines.push("");
   lines.push(c.status === "lavoro_eseguito" ? "✅ Lavoro eseguito" : "📋 Preventivo");
 
-  const { net, vat, gross, hasVat } = computeWithVat(c.amount, c.vat_rate);
+  const { net, vat, gross, withholding, toCollect, hasVat, hasWithholding } = computeWithVat(
+    c.amount,
+    c.vat_rate,
+    c.withholding_rate,
+  );
   if (net > 0) {
-    if (hasVat) {
+    if (hasVat || hasWithholding) {
       lines.push(`💶 Imponibile: ${formatEUR(net)}`);
-      lines.push(`   IVA ${c.vat_rate}%: ${formatEUR(vat)}`);
-      lines.push(`💰 *Totale: ${formatEUR(gross)}*`);
+      if (hasVat) lines.push(`   + IVA ${c.vat_rate}%: ${formatEUR(vat)}`);
+      lines.push(`📑 Totale fattura: ${formatEUR(gross)}`);
+      if (hasWithholding) {
+        lines.push(`   − Ritenuta ${c.withholding_rate}%: ${formatEUR(withholding)}`);
+        lines.push(`💰 *Da incassare: ${formatEUR(toCollect)}*`);
+      } else {
+        lines.push(`💰 *Da incassare: ${formatEUR(gross)}*`);
+      }
     } else {
       lines.push(`💶 Totale: ${formatEUR(net)}`);
     }
@@ -62,8 +72,8 @@ export const buildClientMessage = (c) => {
       lines.push(`  • ${typeLabel}: ${formatEUR(p.amount)}${methodLabel}${invoiceLabel}${dateLabel}`);
       incassato += Number(p.amount) || 0;
     });
-    if (gross > 0) {
-      const saldo = gross - incassato;
+    if (toCollect > 0) {
+      const saldo = toCollect - incassato;
       lines.push("");
       lines.push(`💚 Incassato: ${formatEUR(incassato)}`);
       if (Math.abs(saldo) > 0.001) {

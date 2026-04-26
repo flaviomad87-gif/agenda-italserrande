@@ -218,13 +218,22 @@ export default function Agenda() {
                   </div>
                   <div className="text-right">
                     {(() => {
-                      const { gross, hasVat, vat } = computeWithVat(c.amount, c.vat_rate);
+                      const { gross, hasVat, vat, hasWithholding, withholding, toCollect } = computeWithVat(
+                        c.amount,
+                        c.vat_rate,
+                        c.withholding_rate,
+                      );
                       return (
                         <>
-                          <div className="font-display text-xl font-bold tracking-tight">{formatEUR(gross)}</div>
+                          <div className="font-display text-xl font-bold tracking-tight">{formatEUR(hasWithholding ? toCollect : gross)}</div>
                           {hasVat && (
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
                               di cui IVA {c.vat_rate}% · {formatEUR(vat)}
+                            </div>
+                          )}
+                          {hasWithholding && (
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-[#B8683D]">
+                              ritenuta {c.withholding_rate}% · −{formatEUR(withholding)}
                             </div>
                           )}
                         </>
@@ -234,8 +243,8 @@ export default function Agenda() {
                       const payments = c.payments || [];
                       if (payments.length === 0) return null;
                       const incassato = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-                      const { gross } = computeWithVat(c.amount, c.vat_rate);
-                      const saldo = gross - incassato;
+                      const { toCollect } = computeWithVat(c.amount, c.vat_rate, c.withholding_rate);
+                      const saldo = toCollect - incassato;
                       return (
                         <div className="mt-1 text-xs">
                           <div className="text-[#2E5A47] font-semibold">+{formatEUR(incassato)} incassato</div>
@@ -283,7 +292,7 @@ export default function Agenda() {
                         </>
                       );
                     }
-                    const totalAmt = computeWithVat(c.amount, c.vat_rate).gross;
+                    const totalAmt = computeWithVat(c.amount, c.vat_rate, c.withholding_rate).toCollect;
                     const incassato = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
                     const saldoAperto = totalAmt > 0 && totalAmt - incassato > 0.001;
                     return (
