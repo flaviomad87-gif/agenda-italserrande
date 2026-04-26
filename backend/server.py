@@ -37,7 +37,20 @@ api = APIRouter(prefix="/api")
 
 JobStatus = Literal["preventivo", "lavoro_eseguito"]
 PaymentMethod = Literal["contanti", "pos", "bonifico", ""]
+PaymentType = Literal["acconto", "saldo", "altro"]
 ExpenseSource = Literal["contanti", "conto_aziendale"]
+
+
+class Payment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: PaymentType = "acconto"
+    amount: float = 0.0
+    date: str = ""  # YYYY-MM-DD (default: data del client)
+    method: PaymentMethod = ""
+    invoice_number: Optional[str] = ""
+    notes: Optional[str] = ""
 
 
 class ClientBase(BaseModel):
@@ -49,10 +62,11 @@ class ClientBase(BaseModel):
     phone: Optional[str] = ""
     notes: Optional[str] = ""
     status: JobStatus = "preventivo"
-    payment_method: PaymentMethod = ""
-    amount: float = 0.0
+    payment_method: PaymentMethod = ""  # legacy (kept for backward compat)
+    amount: float = 0.0  # totale concordato
     quote_number: Optional[str] = ""
-    invoice_number: Optional[str] = ""
+    invoice_number: Optional[str] = ""  # legacy (kept for backward compat)
+    payments: List[Payment] = Field(default_factory=list)
 
 
 class ClientCreate(ClientBase):
@@ -416,13 +430,24 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
     total_quotes = 0.0
     for c in clients:
         amt = float(c.get("amount") or 0)
-        if c.get("status") == "lavoro_eseguito":
-            total_executed += amt
-            pm = c.get("payment_method") or ""
-            if pm in incassi:
-                incassi[pm] += amt
+        payments = c.get("payments") or []
+        if payments:
+            # Nuovo modello: somma i pagamenti per metodo (sempre conteggiati)
+            for p in payments:
+                p_amt = float(p.get("amount") or 0)
+                method = (p.get("method") or "").strip()
+                if method in incassi:
+                    incassi[method] += p_amt
+                total_executed += p_amt
         else:
-            total_quotes += amt
+            # Legacy: usa amount + payment_method se status = lavoro_eseguito
+            if c.get("status") == "lavoro_eseguito":
+                total_executed += amt
+                pm = c.get("payment_method") or ""
+                if pm in incassi:
+                    incassi[pm] += amt
+            else:
+                total_quotes += amt
 
     spese_by_source = {"contanti": 0.0, "conto_aziendale": 0.0}
     for e in expenses:

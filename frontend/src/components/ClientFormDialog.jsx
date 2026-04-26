@@ -10,17 +10,10 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import { PAYMENT_METHODS } from "../lib/utils";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Loader2, Trash2 } from "lucide-react";
+import PaymentsList from "./PaymentsList";
 
 const empty = (date) => ({
   date,
@@ -29,11 +22,39 @@ const empty = (date) => ({
   phone: "",
   notes: "",
   status: "preventivo",
-  payment_method: "",
   amount: "",
   quote_number: "",
-  invoice_number: "",
+  payments: [],
 });
+
+/** Migra i campi legacy (payment_method, invoice_number) in un singolo payment, una sola volta. */
+const migrateLegacy = (data) => {
+  if (!data) return data;
+  const hasPayments = Array.isArray(data.payments) && data.payments.length > 0;
+  if (hasPayments) return data;
+  const legacyMethod = data.payment_method;
+  const legacyInvoice = data.invoice_number;
+  if (
+    data.status === "lavoro_eseguito" &&
+    (legacyMethod || legacyInvoice) &&
+    parseFloat(data.amount) > 0
+  ) {
+    return {
+      ...data,
+      payments: [
+        {
+          type: "saldo",
+          amount: data.amount,
+          method: legacyMethod || "",
+          invoice_number: legacyInvoice || "",
+          date: data.date || "",
+          notes: "",
+        },
+      ],
+    };
+  }
+  return data;
+};
 
 export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted }) {
   const [form, setForm] = useState(empty(date));
@@ -56,10 +77,21 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
     }
     setSaving(true);
     try {
+      const payments = (form.payments || [])
+        .map((p) => ({
+          ...p,
+          amount: parseFloat(p.amount) || 0,
+          date: p.date || form.date || date,
+        }))
+        .filter((p) => p.amount > 0 || p.invoice_number);
       const payload = {
         ...form,
         amount: parseFloat(form.amount) || 0,
         date: form.date || date,
+        payments,
+        // Reset legacy fields once we use the new payments model
+        payment_method: "",
+        invoice_number: "",
       };
       const res = editing
         ? await api.put(`/clients/${initial.id}`, payload)
@@ -178,35 +210,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">N° Preventivo</Label>
-              <Input
-                value={form.quote_number}
-                onChange={(e) => update("quote_number", e.target.value)}
-                placeholder="Es. 2026/045"
-                className="mt-2 h-12 rounded-xl"
-                data-testid="client-quote-number-input"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-                N° Fattura
-                {form.status !== "lavoro_eseguito" && (
-                  <span className="ml-2 normal-case tracking-normal text-[10px] text-stone-400">(a lavoro eseguito)</span>
-                )}
-              </Label>
-              <Input
-                value={form.invoice_number}
-                onChange={(e) => update("invoice_number", e.target.value)}
-                placeholder="Es. 2026/123"
-                className="mt-2 h-12 rounded-xl"
-                data-testid="client-invoice-number-input"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Importo (€)</Label>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Importo concordato (€)</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -219,25 +223,23 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               />
             </div>
             <div>
-              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Pagamento</Label>
-              <Select
-                value={form.payment_method || "none"}
-                onValueChange={(v) => update("payment_method", v === "none" ? "" : v)}
-              >
-                <SelectTrigger className="mt-2 h-12 rounded-xl" data-testid="client-payment-select">
-                  <SelectValue placeholder="Seleziona" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— nessuno —</SelectItem>
-                  {PAYMENT_METHODS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">N° Preventivo</Label>
+              <Input
+                value={form.quote_number}
+                onChange={(e) => update("quote_number", e.target.value)}
+                placeholder="Es. 2026/045"
+                className="mt-2 h-12 rounded-xl"
+                data-testid="client-quote-number-input"
+              />
             </div>
           </div>
+
+          <PaymentsList
+            payments={form.payments || []}
+            totalAmount={form.amount}
+            jobDate={form.date || date}
+            onChange={(p) => update("payments", p)}
+          />
 
           <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             {editing ? (

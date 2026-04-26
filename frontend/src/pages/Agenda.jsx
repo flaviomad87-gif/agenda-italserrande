@@ -218,6 +218,22 @@ export default function Agenda() {
                   </div>
                   <div className="text-right">
                     <div className="font-display text-xl font-bold tracking-tight">{formatEUR(c.amount)}</div>
+                    {(() => {
+                      const payments = c.payments || [];
+                      if (payments.length === 0) return null;
+                      const incassato = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                      const saldo = (Number(c.amount) || 0) - incassato;
+                      return (
+                        <div className="mt-1 text-xs">
+                          <div className="text-[#2E5A47] font-semibold">+{formatEUR(incassato)} incassato</div>
+                          {Math.abs(saldo) > 0.001 && (
+                            <div className={saldo > 0 ? "text-[#B8683D] font-semibold" : "text-stone-500"}>
+                              {saldo > 0 ? `${formatEUR(saldo)} da saldare` : `Eccedenza ${formatEUR(-saldo)}`}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -236,21 +252,63 @@ export default function Agenda() {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <StatusBadge status={c.status} />
-                  <PaymentBadge method={c.payment_method} />
+                  {(() => {
+                    const payments = c.payments || [];
+                    if (payments.length === 0) {
+                      // Legacy: mostra il singolo metodo se presente
+                      return (
+                        <>
+                          <PaymentBadge method={c.payment_method} />
+                          {c.invoice_number && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full bg-[#E5EFE9] px-2.5 py-1 text-xs font-semibold text-[#2E5A47]"
+                              data-testid={`client-invoice-badge-${c.id}`}
+                            >
+                              <FileText className="h-3 w-3" /> Fatt. {c.invoice_number}
+                            </span>
+                          )}
+                        </>
+                      );
+                    }
+                    const totalAmt = Number(c.amount) || 0;
+                    const incassato = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                    const saldoAperto = totalAmt > 0 && totalAmt - incassato > 0.001;
+                    return (
+                      <>
+                        {saldoAperto ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#F8EBE4] px-2.5 py-1 text-xs font-semibold text-[#B8683D]">
+                            ⚠ Saldo aperto
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#EAF3EF] px-2.5 py-1 text-xs font-semibold text-[#2E5A47]">
+                            ✓ Saldato
+                          </span>
+                        )}
+                        {payments.map((p, i) => (
+                          <span
+                            key={i}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              p.type === "saldo"
+                                ? "bg-[#EAF3EF] text-[#2E5A47]"
+                                : p.type === "acconto"
+                                ? "bg-[#FBF1DE] text-[#7A4F0A]"
+                                : "bg-stone-100 text-stone-700"
+                            }`}
+                          >
+                            <FileText className="h-3 w-3" />
+                            {p.type === "acconto" ? "Acc." : p.type === "saldo" ? "Saldo" : "Pag."}
+                            {p.invoice_number ? ` ${p.invoice_number}` : ""} · {formatEUR(p.amount)}
+                          </span>
+                        ))}
+                      </>
+                    );
+                  })()}
                   {c.quote_number && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full bg-[#F4EFE6] px-2.5 py-1 text-xs font-semibold text-[#8A6B33]"
                       data-testid={`client-quote-badge-${c.id}`}
                     >
                       <FileText className="h-3 w-3" /> Prev. {c.quote_number}
-                    </span>
-                  )}
-                  {c.invoice_number && (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full bg-[#E5EFE9] px-2.5 py-1 text-xs font-semibold text-[#2E5A47]"
-                      data-testid={`client-invoice-badge-${c.id}`}
-                    >
-                      <FileText className="h-3 w-3" /> Fatt. {c.invoice_number}
                     </span>
                   )}
                 </div>
