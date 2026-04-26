@@ -15,7 +15,7 @@ from datetime import datetime
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://work-scheduler-69.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://fatture-cantiere.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 FIREBASE_API_KEY = os.environ.get(
     "REACT_APP_FIREBASE_API_KEY", "AIzaSyA76r_z4Fy5VybzG8cjJIgVhVx7tKhxnpM"

@@ -183,6 +183,42 @@ async def list_clients(
     return docs
 
 
+@api.get("/clients/unpaid")
+async def list_unpaid_clients(user=Depends(get_current_user)):
+    """Tutti i clienti con saldo aperto (da incassare > 0), ordinati dal più vecchio."""
+    clients = await db.clients.find(
+        {"user_id": user["uid"], "amount": {"$gt": 0}}, {"_id": 0}
+    ).sort("date", 1).to_list(5000)
+
+    result = []
+    for c in clients:
+        amt = float(c.get("amount") or 0)
+        vat_rate = float(c.get("vat_rate") or 0) if c.get("vat_rate") is not None else 0
+        wh_rate = float(c.get("withholding_rate") or 0) if c.get("withholding_rate") is not None else 0
+        gross = amt * (1 + vat_rate / 100.0)
+        withholding = amt * (wh_rate / 100.0)
+        to_collect = gross - withholding
+
+        payments = c.get("payments") or []
+        if payments:
+            paid = sum(float(p.get("amount") or 0) for p in payments)
+        elif c.get("status") == "lavoro_eseguito" and (c.get("payment_method") or c.get("invoice_number")):
+            # Legacy: lavoro eseguito senza lista pagamenti → considerato saldato
+            paid = to_collect
+        else:
+            paid = 0.0
+
+        balance = to_collect - paid
+        if balance > 0.01:
+            result.append({
+                **c,
+                "to_collect": round(to_collect, 2),
+                "paid": round(paid, 2),
+                "balance": round(balance, 2),
+            })
+    return result
+
+
 @api.get("/clients/search", response_model=List[Client])
 async def search_clients(q: str, user=Depends(get_current_user)):
     """Cerca clienti per nome / indirizzo / telefono (case-insensitive)."""
