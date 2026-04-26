@@ -36,3 +36,20 @@ export const PAYMENT_LABEL = {
   pos: "POS / Carta",
   bonifico: "Bonifico",
 };
+
+export const VAT_RATES = [
+  { value: "", label: "Senza IVA" },
+  { value: "4", label: "IVA 4%" },
+  { value: "10", label: "IVA 10%" },
+  { value: "22", label: "IVA 22%" },
+];
+
+/** Calcola il totale lordo dato l'imponibile e l'aliquota IVA (in %).
+ * Ritorna { net, vat, gross }. Se aliquota null/undefined/0 → vat=0 e gross=net. */
+export const computeWithVat = (amount, vatRate) => {
+  const net = Number(amount) || 0;
+  const rate = Number(vatRate);
+  if (!rate || isNaN(rate)) return { net, vat: 0, gross: net, hasVat: false };
+  const vat = net * (rate / 100);
+  return { net, vat, gross: net + vat, hasVat: true };
+};

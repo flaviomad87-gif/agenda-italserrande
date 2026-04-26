@@ -10,9 +10,17 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Loader2, Trash2 } from "lucide-react";
+import { VAT_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 
 const empty = (date) => ({
@@ -23,6 +31,7 @@ const empty = (date) => ({
   notes: "",
   status: "preventivo",
   amount: "",
+  vat_rate: "",
   quote_number: "",
   payments: [],
 });
@@ -87,6 +96,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       const payload = {
         ...form,
         amount: parseFloat(form.amount) || 0,
+        vat_rate: form.vat_rate === "" || form.vat_rate === null ? null : parseFloat(form.vat_rate),
         date: form.date || date,
         payments,
         // Reset legacy fields once we use the new payments model
@@ -210,7 +220,9 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Importo concordato (€)</Label>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+                Imponibile (€)
+              </Label>
               <Input
                 type="number"
                 step="0.01"
@@ -223,20 +235,61 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               />
             </div>
             <div>
-              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">N° Preventivo</Label>
-              <Input
-                value={form.quote_number}
-                onChange={(e) => update("quote_number", e.target.value)}
-                placeholder="Es. 2026/045"
-                className="mt-2 h-12 rounded-xl"
-                data-testid="client-quote-number-input"
-              />
+              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">IVA</Label>
+              <Select
+                value={form.vat_rate === null || form.vat_rate === undefined || form.vat_rate === "" ? "none" : String(form.vat_rate)}
+                onValueChange={(v) => update("vat_rate", v === "none" ? "" : v)}
+              >
+                <SelectTrigger className="mt-2 h-12 rounded-xl" data-testid="client-vat-select">
+                  <SelectValue placeholder="Senza IVA" />
+                </SelectTrigger>
+                <SelectContent>
+                  {VAT_RATES.map((r) => (
+                    <SelectItem key={r.label} value={r.value || "none"}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+
+          {(() => {
+            const { net, vat, gross, hasVat } = computeWithVat(form.amount, form.vat_rate);
+            if (!hasVat || net <= 0) return null;
+            return (
+              <div className="rounded-xl bg-stone-50 px-4 py-3 text-sm">
+                <div className="flex items-center justify-between text-stone-600">
+                  <span>Imponibile</span>
+                  <span className="tabular-nums">{formatEUR(net)}</span>
+                </div>
+                <div className="flex items-center justify-between text-stone-600">
+                  <span>IVA {form.vat_rate}%</span>
+                  <span className="tabular-nums">{formatEUR(vat)}</span>
+                </div>
+                <div className="my-1 h-px bg-stone-200" />
+                <div className="flex items-center justify-between font-display text-base font-bold">
+                  <span>Totale lordo</span>
+                  <span className="tabular-nums">{formatEUR(gross)}</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">N° Preventivo</Label>
+            <Input
+              value={form.quote_number}
+              onChange={(e) => update("quote_number", e.target.value)}
+              placeholder="Es. 2026/045"
+              className="mt-2 h-12 rounded-xl"
+              data-testid="client-quote-number-input"
+            />
           </div>
 
           <PaymentsList
             payments={form.payments || []}
-            totalAmount={form.amount}
+            totalAmount={computeWithVat(form.amount, form.vat_rate).gross}
             jobDate={form.date || date}
             onChange={(p) => update("payments", p)}
           />

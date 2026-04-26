@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
-import { isoDate, formatEUR, PAYMENT_LABEL } from "../lib/utils";
+import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
@@ -217,12 +217,25 @@ export default function Agenda() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-display text-xl font-bold tracking-tight">{formatEUR(c.amount)}</div>
+                    {(() => {
+                      const { gross, hasVat, vat } = computeWithVat(c.amount, c.vat_rate);
+                      return (
+                        <>
+                          <div className="font-display text-xl font-bold tracking-tight">{formatEUR(gross)}</div>
+                          {hasVat && (
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+                              di cui IVA {c.vat_rate}% · {formatEUR(vat)}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                     {(() => {
                       const payments = c.payments || [];
                       if (payments.length === 0) return null;
                       const incassato = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-                      const saldo = (Number(c.amount) || 0) - incassato;
+                      const { gross } = computeWithVat(c.amount, c.vat_rate);
+                      const saldo = gross - incassato;
                       return (
                         <div className="mt-1 text-xs">
                           <div className="text-[#2E5A47] font-semibold">+{formatEUR(incassato)} incassato</div>
@@ -270,7 +283,7 @@ export default function Agenda() {
                         </>
                       );
                     }
-                    const totalAmt = Number(c.amount) || 0;
+                    const totalAmt = computeWithVat(c.amount, c.vat_rate).gross;
                     const incassato = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
                     const saldoAperto = totalAmt > 0 && totalAmt - incassato > 0.001;
                     return (

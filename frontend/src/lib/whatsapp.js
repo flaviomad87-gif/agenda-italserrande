@@ -6,7 +6,7 @@
 
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
-import { formatEUR, PAYMENT_LABEL } from "./utils";
+import { formatEUR, PAYMENT_LABEL, computeWithVat } from "./utils";
 
 const PAYMENT_TYPE_LABEL = {
   acconto: "Acconto",
@@ -32,7 +32,16 @@ export const buildClientMessage = (c) => {
   lines.push("");
   lines.push(c.status === "lavoro_eseguito" ? "✅ Lavoro eseguito" : "📋 Preventivo");
 
-  if (Number(c.amount) > 0) lines.push(`💶 Totale: ${formatEUR(c.amount)}`);
+  const { net, vat, gross, hasVat } = computeWithVat(c.amount, c.vat_rate);
+  if (net > 0) {
+    if (hasVat) {
+      lines.push(`💶 Imponibile: ${formatEUR(net)}`);
+      lines.push(`   IVA ${c.vat_rate}%: ${formatEUR(vat)}`);
+      lines.push(`💰 *Totale: ${formatEUR(gross)}*`);
+    } else {
+      lines.push(`💶 Totale: ${formatEUR(net)}`);
+    }
+  }
   if (c.quote_number) lines.push(`📄 N° Preventivo: ${c.quote_number}`);
 
   const payments = c.payments || [];
@@ -53,8 +62,8 @@ export const buildClientMessage = (c) => {
       lines.push(`  • ${typeLabel}: ${formatEUR(p.amount)}${methodLabel}${invoiceLabel}${dateLabel}`);
       incassato += Number(p.amount) || 0;
     });
-    const saldo = (Number(c.amount) || 0) - incassato;
-    if (Number(c.amount) > 0) {
+    if (gross > 0) {
+      const saldo = gross - incassato;
       lines.push("");
       lines.push(`💚 Incassato: ${formatEUR(incassato)}`);
       if (Math.abs(saldo) > 0.001) {
@@ -64,7 +73,6 @@ export const buildClientMessage = (c) => {
       }
     }
   } else {
-    // Legacy single payment fallback
     if (c.payment_method) lines.push(`💳 Pagamento: ${PAYMENT_LABEL[c.payment_method] || c.payment_method}`);
     if (c.invoice_number) lines.push(`🧾 N° Fattura: ${c.invoice_number}`);
   }
