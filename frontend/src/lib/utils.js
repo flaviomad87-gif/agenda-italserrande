@@ -110,3 +110,21 @@ export const computeClientBalance = (c) => {
   }
   return { isOpen, balance, paid, toCollect, daysWaiting, severity };
 };
+
+/** Totale spese fornitura (materiali) di un cliente. */
+export const computeMaterialsTotal = (materials) =>
+  (Array.isArray(materials) ? materials : []).reduce(
+    (s, m) => s + (Number(m?.amount) || 0),
+    0,
+  );
+
+/** Margine atteso/realizzato del cliente: imponibile (netto fattura) − materiali.
+ * L'IVA è pass-through fiscalmente; la ritenuta è anticipo d'imposta che recuperi,
+ * quindi il margine reale lavoro = amount (netto concordato) − costo materiali. */
+export const computeClientMargin = (c) => {
+  const net = Number(c?.amount) || 0;
+  const materialsTotal = computeMaterialsTotal(c?.materials);
+  const margin = net - materialsTotal;
+  const marginPct = net > 0 ? (margin / net) * 100 : 0;
+  return { net, materialsTotal, margin, marginPct };
+};

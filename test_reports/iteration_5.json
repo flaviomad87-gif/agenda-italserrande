@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 5 — 'Spese fornitura' (per-client material expenses) feature tested end-to-end. Backend: 41/41 pytest tests pass (10 new TestMaterials covering CRUD, persistence, source default, summary aggregation by source, materials_total + expected_margin in /clients/unpaid, balance formula = incassi-spese-advances-materials, isolation, edge cases). Frontend: full flow verified — register, create client with 2 materials (Tubolare 300€ contanti + Motore 120€ conto_aziendale), live total=420€/margin=580€, save, reopen-persistence, remove-row updates live, Agenda margin pill, Incassi margin pill, Riepilogo P&L line + dedicated Uscite card with source breakdown all show correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ClientFormDialog (and other Dialogs)", "issues": ["Console warning: 'Missing Description or aria-describedby={undefined} for {DialogContent}' — non-blocking a11y warning. Add a DialogDescription or aria-describedby to all Radix Dialog/AlertDialog instances."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional/minor) Add DialogDescription / aria-describedby to ClientFormDialog and other dialog components to silence Radix a11y console warnings."
+  ],
+  "critical_code_review_comments": [
+    "server.py:235 — `paid = to_collect` for legacy lavoro_eseguito with payment_method/invoice_number; correct, but consider documenting that this excludes the client from /clients/unpaid even when materials exist (materials still count in /summary, which matches spec).",
+    "Material.source uses Pydantic Literal['contanti','conto_aziendale']; an invalid string returns 422 (FastAPI default). Spec wording 'defaults to conto_aziendale if missing/null/invalid' is partially met (missing/null OK; invalid → 422 instead of coerce). Acceptable, but if frontend ever sends a stray value it will fail save — front-end MaterialsList uses a Select restricted to those 2 values, so safe in practice.",
+    "Riepilogo total materials renders with thin-space + minus glyph ('− 420,00 €') — purely cosmetic.",
+    "server.py is single-file (~580 lines); still under 700-line guideline but approaching split threshold as more features land."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestMaterials class — 10 new tests)"
+  ],
+  "success_rate": {"backend": "100% (41/41)", "frontend": "100%"},
+  "test_credentials": "Fresh Firebase signup per run via REACT_APP_FIREBASE_API_KEY: testuser+m<ts>@italserrande.test / TestPassword123! (also testuser+a<ts> / testuser+b<ts> for isolation tests).",
+  "seed_data_creation": "All seeded data uses TEST_ prefix and is cleaned up in pytest finally blocks; frontend test client TEST_FE_Mat_Mario remains in the freshly created test user account (account itself is throwaway).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Existing /app/backend/tests/backend_test.py covers iterations 1-5 (auth gates, clients CRUD, expenses CRUD, advances CRUD, summary, isolation, search, advances-by-worker, recurring expenses + apply idempotency, unpaid clients, materials). All 41 pass. Materials feature: clients can have a `materials: [{description, amount, supplier?, source: 'contanti'|'conto_aziendale', date?, notes?}]` array; /summary returns total_materials + materials_by_source; /clients/unpaid returns materials_total + expected_margin per item; balance = total_incassi - total_spese - total_advances - total_materials. Frontend uses MaterialsList component inside ClientFormDialog. Margin pills (client-margin-<id>, incasso-margin-<id>) appear only when materialsTotal > 0. Riepilogo shows riepilogo-total-materials and riepilogo-materials-card with sub-source breakdown.",
+  "rca of the issue": "N/A — no bugs found."
+}

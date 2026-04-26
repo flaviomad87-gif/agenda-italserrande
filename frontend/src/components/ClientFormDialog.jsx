@@ -22,6 +22,7 @@ import { api } from "../lib/api";
 import { Loader2, Trash2 } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
+import MaterialsList from "./MaterialsList";
 
 const empty = (date) => ({
   date,
@@ -35,6 +36,7 @@ const empty = (date) => ({
   withholding_rate: "",
   quote_number: "",
   payments: [],
+  materials: [],
 });
 
 /** Migra i campi legacy (payment_method, invoice_number) in un singolo payment, una sola volta. */
@@ -94,6 +96,14 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
           date: p.date || form.date || date,
         }))
         .filter((p) => p.amount > 0 || p.invoice_number);
+      const materials = (form.materials || [])
+        .map((m) => ({
+          ...m,
+          amount: parseFloat(m.amount) || 0,
+          date: m.date || form.date || date,
+          source: m.source || "conto_aziendale",
+        }))
+        .filter((m) => m.amount > 0 || (m.description && m.description.trim()));
       const payload = {
         ...form,
         amount: parseFloat(form.amount) || 0,
@@ -101,6 +111,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
         withholding_rate: form.withholding_rate === "" || form.withholding_rate === null ? null : parseFloat(form.withholding_rate),
         date: form.date || date,
         payments,
+        materials,
         // Reset legacy fields once we use the new payments model
         payment_method: "",
         invoice_number: "",
@@ -339,6 +350,13 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
             totalAmount={computeWithVat(form.amount, form.vat_rate, form.withholding_rate).toCollect}
             jobDate={form.date || date}
             onChange={(p) => update("payments", p)}
+          />
+
+          <MaterialsList
+            materials={form.materials || []}
+            jobAmount={form.amount}
+            jobDate={form.date || date}
+            onChange={(m) => update("materials", m)}
           />
 
           <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">

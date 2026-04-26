@@ -162,6 +162,14 @@ export default function Incassi() {
                         +{formatEUR(c.paid)} incassato
                       </div>
                     )}
+                    {(c.materials_total || 0) > 0 && (
+                      <div className="mt-0.5 text-xs" data-testid={`incasso-margin-${c.id}`}>
+                        <div className="text-stone-500">−{formatEUR(c.materials_total)} materiali</div>
+                        <div className={`font-semibold ${(c.expected_margin || 0) >= 0 ? "text-[#2E5A47]" : "text-red-600"}`}>
+                          Margine {formatEUR(c.expected_margin || 0)}
+                        </div>
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {

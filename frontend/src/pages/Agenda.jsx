@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
-import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat, computeClientBalance } from "../lib/utils";
+import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat, computeClientBalance, computeClientMargin } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
@@ -253,6 +253,21 @@ export default function Agenda() {
                               {saldo > 0 ? `${formatEUR(saldo)} da saldare` : `Eccedenza ${formatEUR(-saldo)}`}
                             </div>
                           )}
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const { materialsTotal, margin, marginPct } = computeClientMargin(c);
+                      if (materialsTotal <= 0) return null;
+                      return (
+                        <div className="mt-1 text-xs" data-testid={`client-margin-${c.id}`}>
+                          <div className="text-[#B8683D]">−{formatEUR(materialsTotal)} materiali</div>
+                          <div className={`font-semibold ${margin >= 0 ? "text-[#2E5A47]" : "text-red-600"}`}>
+                            Margine {formatEUR(margin)}
+                            {c.amount > 0 && (
+                              <span className="ml-1 font-normal text-stone-400">({marginPct.toFixed(0)}%)</span>
+                            )}
+                          </div>
                         </div>
                       );
                     })()}

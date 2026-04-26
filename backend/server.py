@@ -53,6 +53,20 @@ class Payment(BaseModel):
     notes: Optional[str] = ""
 
 
+class Material(BaseModel):
+    """Spesa di fornitura/materiale legata a uno specifico cliente.
+    Permette di calcolare il margine reale del lavoro (ricavo netto - materiali)."""
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    description: str = ""  # es. "Tubolare 40x40", "Motore tapparella"
+    amount: float = 0.0
+    supplier: Optional[str] = ""  # es. "Ferramenta Rossi"
+    source: ExpenseSource = "conto_aziendale"
+    date: str = ""  # YYYY-MM-DD (default: data del client)
+    notes: Optional[str] = ""
+
+
 class ClientBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -69,6 +83,7 @@ class ClientBase(BaseModel):
     quote_number: Optional[str] = ""
     invoice_number: Optional[str] = ""  # legacy (kept for backward compat)
     payments: List[Payment] = Field(default_factory=list)
+    materials: List[Material] = Field(default_factory=list)
 
 
 class ClientCreate(ClientBase):
@@ -224,11 +239,17 @@ async def list_unpaid_clients(user=Depends(get_current_user)):
 
         balance = to_collect - paid
         if balance > 0.01:
+            materials = c.get("materials") or []
+            materials_total = sum(float(m.get("amount") or 0) for m in materials)
+            # Margine atteso = imponibile (netto fattura, senza IVA che è pass-through) - materiali
+            expected_margin = amt - materials_total
             result.append({
                 **c,
                 "to_collect": round(to_collect, 2),
                 "paid": round(paid, 2),
                 "balance": round(balance, 2),
+                "materials_total": round(materials_total, 2),
+                "expected_margin": round(expected_margin, 2),
             })
     return result
 
@@ -505,6 +526,18 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
     for e in expenses:
         spese_by_source[e.get("source", "contanti")] += float(e.get("amount") or 0)
 
+    # Materiali / spese di fornitura legati ai clienti del mese
+    materials_by_source = {"contanti": 0.0, "conto_aziendale": 0.0}
+    total_materials = 0.0
+    for c in clients:
+        for m in (c.get("materials") or []):
+            m_amt = float(m.get("amount") or 0)
+            src = m.get("source") or "conto_aziendale"
+            if src not in materials_by_source:
+                src = "conto_aziendale"
+            materials_by_source[src] += m_amt
+            total_materials += m_amt
+
     total_advances = sum(float(a.get("amount") or 0) for a in advances)
     total_incassi = sum(incassi.values())
     total_spese = sum(spese_by_source.values())
@@ -517,8 +550,10 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
         "total_executed": total_executed,
         "spese_by_source": spese_by_source,
         "total_spese": total_spese,
+        "materials_by_source": materials_by_source,
+        "total_materials": round(total_materials, 2),
         "total_advances": total_advances,
-        "balance": total_incassi - total_spese - total_advances,
+        "balance": total_incassi - total_spese - total_advances - total_materials,
         "counts": {
             "clients": len(clients),
             "expenses": len(expenses),

@@ -814,3 +814,259 @@ class TestUnpaidClients:
         finally:
             auth_a.delete(f"{API}/clients/{c['id']}")
 
+
+
+# ---------- Iteration 5: Materials (Spese fornitura per cliente) ----------
+
+class TestMaterials:
+    """Tests for per-client material expenses feature."""
+
+    def test_create_client_with_materials_and_persistence(self, auth_a):
+        payload = {
+            "date": TODAY, "name": "TEST_MAT_PERSIST",
+            "status": "lavoro_eseguito", "amount": 1000.0,
+            "vat_rate": 10, "withholding_rate": 4,
+            "materials": [
+                {"description": "Tubolare 40x40", "amount": 300.0,
+                 "supplier": "Ferramenta Rossi", "source": "contanti"},
+                {"description": "Motore tapparella", "amount": 120.0,
+                 "supplier": "ElettroX", "source": "conto_aziendale"},
+            ],
+        }
+        r = auth_a.post(f"{API}/clients", json=payload)
+        assert r.status_code == 200, r.text
+        c = r.json()
+        try:
+            assert "materials" in c and len(c["materials"]) == 2
+            assert c["materials"][0]["description"] == "Tubolare 40x40"
+            assert c["materials"][0]["amount"] == 300.0
+            assert c["materials"][0]["source"] == "contanti"
+            # IDs auto-generated
+            for m in c["materials"]:
+                assert "id" in m and isinstance(m["id"], str) and len(m["id"]) > 0
+
+            # GET to verify persistence
+            r = auth_a.get(f"{API}/clients", params={"date": TODAY})
+            row = next(x for x in r.json() if x["id"] == c["id"])
+            assert len(row["materials"]) == 2
+            assert sum(m["amount"] for m in row["materials"]) == 420.0
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_legacy_client_without_materials_field(self, auth_a):
+        """Backward compat: client posted without materials must default to []."""
+        r = auth_a.post(f"{API}/clients", json={
+            "date": TODAY, "name": "TEST_MAT_LEGACY",
+            "status": "preventivo", "amount": 100.0,
+        })
+        assert r.status_code == 200
+        c = r.json()
+        try:
+            assert c.get("materials") == []
+            r = auth_a.get(f"{API}/clients", params={"date": TODAY})
+            row = next(x for x in r.json() if x["id"] == c["id"])
+            assert row.get("materials") == []
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_update_client_add_remove_materials(self, auth_a):
+        r = auth_a.post(f"{API}/clients", json={
+            "date": TODAY, "name": "TEST_MAT_UPD",
+            "status": "lavoro_eseguito", "amount": 500.0,
+        })
+        c = r.json()
+        try:
+            # Add 2 materials via PUT
+            upd = {
+                "date": TODAY, "name": "TEST_MAT_UPD",
+                "status": "lavoro_eseguito", "amount": 500.0,
+                "materials": [
+                    {"description": "M1", "amount": 50.0, "source": "contanti"},
+                    {"description": "M2", "amount": 70.0, "source": "conto_aziendale"},
+                ],
+            }
+            r = auth_a.put(f"{API}/clients/{c['id']}", json=upd)
+            assert r.status_code == 200
+            assert len(r.json()["materials"]) == 2
+
+            # Remove one (replace with single material)
+            upd["materials"] = [{"description": "M2", "amount": 70.0, "source": "conto_aziendale"}]
+            r = auth_a.put(f"{API}/clients/{c['id']}", json=upd)
+            assert r.status_code == 200
+            mats = r.json()["materials"]
+            assert len(mats) == 1
+            assert mats[0]["description"] == "M2"
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_material_zero_amount_with_description_persists(self, auth_a):
+        r = auth_a.post(f"{API}/clients", json={
+            "date": TODAY, "name": "TEST_MAT_ZERO",
+            "status": "preventivo", "amount": 100.0,
+            "materials": [{"description": "TBD", "amount": 0, "source": "conto_aziendale"}],
+        })
+        c = r.json()
+        try:
+            assert len(c["materials"]) == 1
+            assert c["materials"][0]["amount"] == 0.0
+            assert c["materials"][0]["description"] == "TBD"
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_material_invalid_or_missing_source_defaults(self, auth_a):
+        """Missing source falls back to 'conto_aziendale' default. Pydantic
+        rejects a literal-invalid source via 422."""
+        # Missing source → default
+        r = auth_a.post(f"{API}/clients", json={
+            "date": TODAY, "name": "TEST_MAT_DEFSRC",
+            "status": "preventivo", "amount": 100.0,
+            "materials": [{"description": "no-source", "amount": 10.0}],
+        })
+        assert r.status_code == 200
+        c = r.json()
+        try:
+            assert c["materials"][0]["source"] == "conto_aziendale"
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+        # Invalid source string → 422 from pydantic Literal validation
+        r = auth_a.post(f"{API}/clients", json={
+            "date": TODAY, "name": "TEST_MAT_BADSRC",
+            "status": "preventivo", "amount": 100.0,
+            "materials": [{"description": "bad", "amount": 5.0, "source": "carta"}],
+        })
+        # Either rejected (422) OR coerced to default — both acceptable per spec
+        assert r.status_code in (200, 422)
+        if r.status_code == 200:
+            cid = r.json()["id"]
+            assert r.json()["materials"][0]["source"] == "conto_aziendale"
+            auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_unpaid_returns_materials_total_and_expected_margin(self, auth_a):
+        """Per spec: amount=1000, vat=10, wh=4, materials=[300,120] →
+        materials_total=420, expected_margin=580 (=1000-420).
+        balance still computed on to_collect (no payments → 1060)."""
+        payload = {
+            "date": "2024-04-10", "name": "TEST_MAT_UNPAID",
+            "status": "lavoro_eseguito", "amount": 1000.0,
+            "vat_rate": 10, "withholding_rate": 4,
+            "materials": [
+                {"description": "A", "amount": 300.0, "source": "contanti"},
+                {"description": "B", "amount": 120.0, "source": "conto_aziendale"},
+            ],
+        }
+        c = auth_a.post(f"{API}/clients", json=payload).json()
+        try:
+            r = auth_a.get(f"{API}/clients/unpaid")
+            assert r.status_code == 200
+            row = next(x for x in r.json() if x["id"] == c["id"])
+            assert row["materials_total"] == 420.0
+            assert row["expected_margin"] == 580.0
+            assert row["to_collect"] == 1060.0
+            assert row["balance"] == 1060.0
+            assert row["paid"] == 0.0
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_summary_total_materials_and_by_source(self, auth_a):
+        """Materials summary: clients of the month aggregated by source.
+        Includes a saldato (legacy) lavoro_eseguito with materials → still counts."""
+        seeded = []
+        month = "2024-05"
+        try:
+            # Client 1: lavoro_eseguito with materials, legacy saldato (payment_method)
+            c1 = auth_a.post(f"{API}/clients", json={
+                "date": "2024-05-05", "name": "TEST_MAT_SUM1",
+                "status": "lavoro_eseguito", "amount": 500.0, "payment_method": "contanti",
+                "materials": [
+                    {"description": "X1", "amount": 100.0, "source": "contanti"},
+                    {"description": "X2", "amount": 50.0, "source": "conto_aziendale"},
+                ],
+            }).json()
+            seeded.append(c1["id"])
+            # Client 2: preventivo with materials (still counts in summary)
+            c2 = auth_a.post(f"{API}/clients", json={
+                "date": "2024-05-12", "name": "TEST_MAT_SUM2",
+                "status": "preventivo", "amount": 800.0,
+                "materials": [
+                    {"description": "Y1", "amount": 200.0, "source": "conto_aziendale"},
+                ],
+            }).json()
+            seeded.append(c2["id"])
+            # Client 3 different month should NOT count
+            c3 = auth_a.post(f"{API}/clients", json={
+                "date": "2024-06-01", "name": "TEST_MAT_OTHER_MONTH",
+                "status": "preventivo", "amount": 100.0,
+                "materials": [{"description": "Z", "amount": 999.0, "source": "contanti"}],
+            }).json()
+            seeded.append(c3["id"])
+
+            r = auth_a.get(f"{API}/summary", params={"month": month})
+            assert r.status_code == 200, r.text
+            s = r.json()
+            assert "total_materials" in s
+            assert "materials_by_source" in s
+            assert s["total_materials"] >= 350.0  # 100+50+200
+            assert s["materials_by_source"]["contanti"] >= 100.0
+            assert s["materials_by_source"]["conto_aziendale"] >= 250.0  # 50+200
+
+            # 999 from June not in May
+            assert s["total_materials"] < 999.0 + 350.0  # June not included
+
+            # balance formula: incassi - spese - advances - materials
+            expected = (
+                s["total_incassi"] - s["total_spese"]
+                - s["total_advances"] - s["total_materials"]
+            )
+            assert abs(s["balance"] - expected) < 0.01
+        finally:
+            for cid in seeded:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_summary_no_materials_legacy_clients_balance_unchanged(self, auth_a):
+        """Pre-existing clients (no materials) → total_materials=0, balance unchanged."""
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2024-07-15", "name": "TEST_MAT_LEGACY_SUM",
+            "status": "lavoro_eseguito", "amount": 100.0, "payment_method": "contanti",
+        }).json()
+        try:
+            r = auth_a.get(f"{API}/summary", params={"month": "2024-07"})
+            assert r.status_code == 200
+            s = r.json()
+            # If no other tests seeded, totals should reflect this client only
+            assert s["total_materials"] == 0.0
+            assert s["materials_by_source"] == {"contanti": 0.0, "conto_aziendale": 0.0}
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_materials_user_isolation(self, auth_a, auth_b):
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2024-08-10", "name": "TEST_MAT_ISO",
+            "status": "lavoro_eseguito", "amount": 500.0,
+            "materials": [{"description": "secret", "amount": 200.0, "source": "contanti"}],
+        }).json()
+        try:
+            # B's summary for that month must NOT include A's materials
+            r = auth_b.get(f"{API}/summary", params={"month": "2024-08"})
+            assert r.status_code == 200
+            sb = r.json()
+            assert sb["total_materials"] == 0.0
+            # B's unpaid must not include A's client
+            r = auth_b.get(f"{API}/clients/unpaid")
+            assert all(x["id"] != c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_preventivo_with_materials_no_payments_not_in_unpaid(self, auth_a):
+        """Edge case (a): preventivo with materials but no payments → NOT in unpaid."""
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2024-09-01", "name": "TEST_MAT_PREV_ONLY",
+            "status": "preventivo", "amount": 500.0,
+            "materials": [{"description": "tools", "amount": 100.0, "source": "contanti"}],
+        }).json()
+        try:
+            r = auth_a.get(f"{API}/clients/unpaid")
+            assert r.status_code == 200
+            assert all(x["id"] != c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")

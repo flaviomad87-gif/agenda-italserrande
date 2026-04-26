@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
 import { formatEUR, isoMonth } from "../lib/utils";
-import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, ChevronRight as Chev } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, Package, ChevronRight as Chev } from "lucide-react";
 import { format, parseISO, addMonths, subMonths } from "date-fns";
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
@@ -136,6 +136,17 @@ export default function Riepilogo() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1.5 font-semibold text-stone-700">
+                    <Package className="h-4 w-4 text-[#B8683D]" /> Spese fornitura clienti
+                  </span>
+                  <span
+                    className="font-display text-base font-bold tabular-nums text-red-600"
+                    data-testid="riepilogo-total-materials"
+                  >
+                    − {formatEUR(data.total_materials || 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 font-semibold text-stone-700">
                     <TrendingDown className="h-4 w-4 text-red-600" /> Acconti operai
                   </span>
                   <span className="font-display text-base font-bold tabular-nums text-red-600">
@@ -225,11 +236,33 @@ export default function Riepilogo() {
               </div>
               <div className="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#B8683D]">
+                    <Package className="h-4 w-4" /> Spese fornitura clienti
+                  </div>
+                  <div className="font-display text-lg font-bold" data-testid="riepilogo-materials-card">
+                    {formatEUR(data.total_materials || 0)}
+                  </div>
+                </div>
+                {(data.materials_by_source?.contanti || 0) + (data.materials_by_source?.conto_aziendale || 0) > 0 && (
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-stone-500">
+                    <div className="rounded-lg bg-stone-50 px-2 py-1">
+                      <span className="inline-flex items-center gap-1"><Wallet className="h-3 w-3" /> Contanti</span>
+                      <div className="font-semibold text-stone-700">{formatEUR(data.materials_by_source?.contanti || 0)}</div>
+                    </div>
+                    <div className="rounded-lg bg-stone-50 px-2 py-1">
+                      <span className="inline-flex items-center gap-1"><Landmark className="h-3 w-3" /> Conto</span>
+                      <div className="font-semibold text-stone-700">{formatEUR(data.materials_by_source?.conto_aziendale || 0)}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-semibold text-red-600">
                     <TrendingDown className="h-4 w-4" /> Totale uscite
                   </div>
                   <div className="font-display text-xl font-bold">
-                    {formatEUR((data.total_spese || 0) + (data.total_advances || 0))}
+                    {formatEUR((data.total_spese || 0) + (data.total_advances || 0) + (data.total_materials || 0))}
                   </div>
                 </div>
               </div>
