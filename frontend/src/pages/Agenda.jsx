@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR, PAYMENT_LABEL } from "../lib/utils";
+import { sendClientToWhatsApp } from "../lib/whatsapp";
 import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
 import AdvanceFormDialog from "../components/AdvanceFormDialog";
 import ClientSearch from "../components/ClientSearch";
-import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, ChevronRight, Trash2 } from "lucide-react";
+import WhatsAppIcon from "../components/icons/WhatsAppIcon";
+import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const PaymentIcon = ({ method, className }) => {
@@ -216,7 +218,20 @@ export default function Agenda() {
                   </div>
                   <div className="text-right">
                     <div className="font-display text-xl font-bold tracking-tight">{formatEUR(c.amount)}</div>
-                    <ChevronRight className="ml-auto mt-1 h-4 w-4 text-stone-400 transition group-hover:translate-x-0.5 group-hover:text-stone-600" />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sendClientToWhatsApp(c);
+                      }}
+                      data-testid={`whatsapp-share-${c.id}`}
+                      aria-label="Invia su WhatsApp"
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#25D366] px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1FB053] active:scale-95"
+                    >
+                      <WhatsAppIcon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">WhatsApp</span>
+                      <span className="sm:hidden">Invia</span>
+                    </button>
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
