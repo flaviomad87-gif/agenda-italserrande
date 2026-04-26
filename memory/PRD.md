@@ -73,6 +73,19 @@ Implemented:
 
 Testing: 41/41 pytest backend pass (10 nuovi test materials), frontend e2e 100% verificato (creazione, persistenza, rimozione live, badge su Agenda/Incassi/Riepilogo).
 
+## Iteration 5 — 2026-02 (Feature Update — "Prossimi lavori" / Backlog)
+Implemented:
+- **Campo `pending: bool`** su `ClientBase` (default False, retrocompatibile con clienti esistenti tramite `$or` su `$exists:false`).
+- **`GET /api/clients`**: i clienti `pending=true` sono esclusi dall'Agenda giornaliera/mensile.
+- **`GET /api/clients/pending`**: nuovo endpoint che restituisce il backlog ordinato per data prevista crescente.
+- **`POST /api/clients/{id}/execute?date=YYYY-MM-DD`**: sposta atomicamente il cliente dal backlog all'Agenda del giorno indicato (default oggi UTC).
+- **`/clients/unpaid`** e **`/summary`** ora escludono i clienti pending (non sono ancora da incassare/contabilizzare).
+- **Frontend**: nuova pagina `/prossimi-lavori` (`ProssimiLavori.jsx`) con totale, lista ordinata, FAB "Nuovo lavoro", quick action "Esegui oggi", click su card → apre `ClientFormDialog`.
+- **`ClientFormDialog`**: aggiunto Switch "Lavoro in attesa" (default ON quando si apre da Prossimi lavori). Toggle OFF + save = sposta in Agenda.
+- **`AppShell`**: nuova voce nav "Prossimi" con badge contatore live (refresh polling 60s + on focus + post-save).
+
+Testing: 56/56 pytest backend pass (15 nuovi test backlog), frontend e2e 100% — verificato create-pending → execute-today → move-to-agenda con preservazione di tutta la scheda (materiali, pagamenti, IVA, ritenuta).
+
 ## Backlog (P1) — aggiornato
 - Export Riepilogo mensile in PDF/CSV.
 - Tap-to-maps sull'indirizzo cliente.
