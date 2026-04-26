@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 6 — 'Prossimi lavori' (pending backlog) feature tested end-to-end. Backend: 56/56 pytest tests pass (15 new TestProssimiLavori covering auth gates, pending flag persistence, default=False backward-compat for legacy clients, /clients/pending sort by date+created_at asc, /execute with explicit date, /execute defaults to today UTC, 404 when not pending or nonexistent, user isolation on list+execute, /unpaid excludes pending, /summary excludes pending from incassi/quotes/materials, full round-trip preserving all scheda fields (address, phone, notes, vat_rate, withholding_rate, materials, payments), /search MAY include pending, PUT pending=False moves to agenda). Frontend: full backlog flow verified — fresh signup → /prossimi-lavori loads, prossimi-empty visible, add-pending-button opens ClientFormDialog with client-pending-switch state=checked aria-checked=true (ON by default), filling name/address/amount and saving creates a pending card and nav-prossimi-badge updates to '1', execute-today-<id> button triggers confirm, calls /execute, card disappears, empty state returns, toast 'Lavoro spostato in agenda' shown.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py /clients query uses $or [pending: {$exists: false}, pending: false] for backward compat — correct and ensures iteration_4 clients (no pending field) still appear in Agenda.",
+    "/clients/{id}/execute uses find_one_and_update with pending=True filter — atomic, prevents race condition where two concurrent execute calls both succeed.",
+    "Default date for execute uses datetime.now(timezone.utc).date() — fine, but contractor users in Italy live in Europe/Rome timezone. After 22:00 UTC (24:00 CEST in summer or 23:00 CET in winter) 'today' UTC is already tomorrow local. Consider Europe/Rome tz for the default to match contractor expectation; current behavior is documented (UTC) so acceptable.",
+    "server.py is now ~625 lines, still under the 700-line guideline but creeping up; future feature would justify splitting into routers/clients.py, routers/expenses.py, routers/summary.py.",
+    "ProssimiLavori.jsx + ClientFormDialog refresh both badges on save/delete via shared callback — good. Polling /clients/pending every 60s + on focus is fine for a single-user app; consider switching to optimistic state updates if multi-tab sync becomes an issue.",
+    "client-pending-switch toggling OFF and saving in dialog correctly removes from /pending list — verified visually, also covered by backend test test_toggle_pending_off_via_put_moves_to_agenda."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestProssimiLavori class — 15 new tests, file now 1304 lines)"
+  ],
+  "success_rate": {"backend": "100% (56/56)", "frontend": "100% (core flow verified visually + via API)"},
+  "test_credentials": "Fresh Firebase signup per run via REACT_APP_FIREBASE_API_KEY: testuser+pend<ts>@italserrande.test / TestPassword123! (also testuser+a<ts> / testuser+b<ts> for backend isolation tests).",
+  "seed_data_creation": "All seeded data uses TEST_ prefix and is cleaned up in pytest finally blocks; frontend test cleans up TEST_FE_PEND_Mario via DELETE /api/clients/{id} after execute. Throwaway Firebase test accounts remain (Firebase has no clean delete in REST without admin SDK).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test file /app/backend/tests/backend_test.py covers iterations 1-6 (56 tests). For Prossimi Lavori: ClientBase has 'pending: bool = False'. List /api/clients?date= and ?month= exclude pending using $or [pending: {$exists:false}, pending: false] (backward compat). New endpoints: GET /api/clients/pending (sorted by date asc, created_at asc) and POST /api/clients/{id}/execute?date= (atomic find_one_and_update on pending=True; 404 if not pending). /unpaid and /summary also exclude pending. /search MAY include pending (no exclusion). Frontend: AppShell has nav-prossimi sidebar item with nav-prossimi-badge from polled /clients/pending count. ProssimiLavori page (data-testid='prossimi-lavori-page') has prossimi-empty state, add-pending-button (FAB), pending-card-<id> list items each with execute-today-<id> button. ClientFormDialog has client-pending-switch (defaults ON when opened from ProssimiLavori page).",
+  "rca of the issue": "N/A — no bugs found."
+}

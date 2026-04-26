@@ -1070,3 +1070,282 @@ class TestMaterials:
             assert all(x["id"] != c["id"] for x in r.json())
         finally:
             auth_a.delete(f"{API}/clients/{c['id']}")
+
+
+
+# ---------- Iteration 6: Prossimi Lavori (pending backlog) ----------
+
+class TestProssimiLavori:
+    """Tests for pending=true backlog and execute endpoint."""
+
+    def test_pending_list_requires_auth(self):
+        r = requests.get(f"{API}/clients/pending")
+        assert r.status_code in (401, 403)
+
+    def test_execute_requires_auth(self):
+        r = requests.post(f"{API}/clients/some-id/execute")
+        assert r.status_code in (401, 403)
+
+    def test_create_pending_client_persists_flag(self, auth_a):
+        r = auth_a.post(f"{API}/clients", json={
+            "date": "2025-12-15", "name": "TEST_PEND_CREATE",
+            "status": "preventivo", "amount": 0.0, "pending": True,
+        })
+        assert r.status_code == 200
+        c = r.json()
+        try:
+            assert c["pending"] is True
+            # Should appear in /pending
+            r = auth_a.get(f"{API}/clients/pending")
+            assert r.status_code == 200
+            ids = {x["id"] for x in r.json()}
+            assert c["id"] in ids
+            # Should NOT appear in date filter
+            r = auth_a.get(f"{API}/clients", params={"date": "2025-12-15"})
+            assert all(x["id"] != c["id"] for x in r.json())
+            # Should NOT appear in month filter
+            r = auth_a.get(f"{API}/clients", params={"month": "2025-12"})
+            assert all(x["id"] != c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_default_pending_is_false_backward_compat(self, auth_a):
+        """Client posted without pending field → pending=False, appears in agenda."""
+        r = auth_a.post(f"{API}/clients", json={
+            "date": "2025-11-10", "name": "TEST_PEND_DEFAULT",
+            "status": "preventivo", "amount": 0.0,
+        })
+        c = r.json()
+        try:
+            assert c.get("pending") is False
+            # Appears in agenda
+            r = auth_a.get(f"{API}/clients", params={"date": "2025-11-10"})
+            assert any(x["id"] == c["id"] for x in r.json())
+            # Does NOT appear in pending list
+            r = auth_a.get(f"{API}/clients/pending")
+            assert all(x["id"] != c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_pending_sort_order_date_then_created_at(self, auth_a):
+        """Pending list sorted by date asc, then created_at asc."""
+        seeded = []
+        try:
+            uniq = uuid.uuid4().hex[:6].upper()
+            for d in ["2026-03-15", "2026-01-10", "2026-02-05"]:
+                r = auth_a.post(f"{API}/clients", json={
+                    "date": d, "name": f"TEST_PEND_SORT_{uniq}_{d}",
+                    "status": "preventivo", "amount": 0.0, "pending": True,
+                })
+                seeded.append(r.json()["id"])
+            r = auth_a.get(f"{API}/clients/pending")
+            ours = [x for x in r.json() if f"TEST_PEND_SORT_{uniq}" in x["name"]]
+            assert len(ours) == 3
+            dates = [x["date"] for x in ours]
+            assert dates == sorted(dates), f"not asc: {dates}"
+        finally:
+            for cid in seeded:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_execute_with_explicit_date_moves_to_agenda(self, auth_a):
+        """Execute with date param sets pending=False and date=target."""
+        r = auth_a.post(f"{API}/clients", json={
+            "date": "2025-12-31", "name": "TEST_PEND_EXEC",
+            "status": "preventivo", "amount": 200.0, "pending": True,
+            "materials": [{"description": "tubo", "amount": 50.0, "source": "contanti"}],
+            "payments": [{"id": str(uuid.uuid4()), "type": "acconto", "amount": 30.0,
+                          "date": "2025-12-31", "method": "contanti"}],
+        })
+        c = r.json()
+        try:
+            target = "2025-10-20"
+            r = auth_a.post(f"{API}/clients/{c['id']}/execute", params={"date": target})
+            assert r.status_code == 200, r.text
+            updated = r.json()
+            assert updated["pending"] is False
+            assert updated["date"] == target
+            # Scheda preserved
+            assert len(updated["materials"]) == 1
+            assert updated["materials"][0]["description"] == "tubo"
+            assert len(updated["payments"]) == 1
+            assert updated["payments"][0]["amount"] == 30.0
+            assert updated["amount"] == 200.0
+
+            # Now appears in agenda for target date
+            r = auth_a.get(f"{API}/clients", params={"date": target})
+            assert any(x["id"] == c["id"] for x in r.json())
+            # Disappears from pending
+            r = auth_a.get(f"{API}/clients/pending")
+            assert all(x["id"] != c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_execute_without_date_defaults_today_utc(self, auth_a):
+        r = auth_a.post(f"{API}/clients", json={
+            "date": "2025-11-30", "name": "TEST_PEND_TODAY",
+            "status": "preventivo", "amount": 0.0, "pending": True,
+        })
+        c = r.json()
+        try:
+            r = auth_a.post(f"{API}/clients/{c['id']}/execute")
+            assert r.status_code == 200, r.text
+            updated = r.json()
+            today = datetime.utcnow().strftime("%Y-%m-%d")
+            assert updated["date"] == today
+            assert updated["pending"] is False
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_execute_404_when_not_pending(self, auth_a):
+        """Already non-pending client cannot be re-executed."""
+        r = auth_a.post(f"{API}/clients", json={
+            "date": "2025-09-10", "name": "TEST_PEND_NOT_PEND",
+            "status": "preventivo", "amount": 0.0, "pending": False,
+        })
+        c = r.json()
+        try:
+            r = auth_a.post(f"{API}/clients/{c['id']}/execute")
+            assert r.status_code == 404
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_execute_404_for_nonexistent(self, auth_a):
+        r = auth_a.post(f"{API}/clients/nonexistent-pend-xyz/execute")
+        assert r.status_code == 404
+
+    def test_pending_isolation_between_users(self, auth_a, auth_b):
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2025-08-01", "name": "TEST_PEND_ISO",
+            "status": "preventivo", "amount": 0.0, "pending": True,
+        }).json()
+        try:
+            # B cannot see in /pending
+            r = auth_b.get(f"{API}/clients/pending")
+            assert all(x["id"] != c["id"] for x in r.json())
+            # B cannot execute A's pending client
+            r = auth_b.post(f"{API}/clients/{c['id']}/execute")
+            assert r.status_code == 404
+            # A still sees it pending
+            r = auth_a.get(f"{API}/clients/pending")
+            assert any(x["id"] == c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_unpaid_excludes_pending(self, auth_a):
+        """Pending lavoro_eseguito with no payments must NOT appear in /unpaid."""
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2025-07-15", "name": "TEST_PEND_UNPAID",
+            "status": "lavoro_eseguito", "amount": 500.0, "pending": True,
+        }).json()
+        try:
+            r = auth_a.get(f"{API}/clients/unpaid")
+            assert r.status_code == 200
+            assert all(x["id"] != c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_summary_excludes_pending(self, auth_a):
+        """Pending clients must NOT count in summary totals."""
+        seeded = []
+        month = "2025-06"
+        try:
+            # Pending lavoro_eseguito with payment + materials → must NOT count
+            cp = auth_a.post(f"{API}/clients", json={
+                "date": "2025-06-10", "name": "TEST_PEND_SUM_PEND",
+                "status": "lavoro_eseguito", "amount": 1000.0, "pending": True,
+                "payment_method": "contanti",
+                "materials": [{"description": "M", "amount": 200.0, "source": "contanti"}],
+            }).json()
+            seeded.append(cp["id"])
+            # Non-pending with payment → counts
+            cn = auth_a.post(f"{API}/clients", json={
+                "date": "2025-06-12", "name": "TEST_PEND_SUM_NORMAL",
+                "status": "lavoro_eseguito", "amount": 300.0,
+                "payment_method": "contanti", "pending": False,
+            }).json()
+            seeded.append(cn["id"])
+            r = auth_a.get(f"{API}/summary", params={"month": month})
+            s = r.json()
+            # The pending 1000 + 200 materials must NOT inflate
+            assert s["incassi_by_method"]["contanti"] >= 300.0
+            assert s["incassi_by_method"]["contanti"] < 1000.0  # pending excluded
+            assert s["total_materials"] == 0.0  # only pending had materials
+        finally:
+            for cid in seeded:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_round_trip_pending_to_agenda_preserves_scheda(self, auth_a):
+        """Full round-trip with all scheda fields preserved."""
+        payload = {
+            "date": "2025-04-01", "name": "TEST_PEND_RT",
+            "address": "Via Test 5", "phone": "1234567",
+            "notes": "important", "status": "preventivo",
+            "amount": 800.0, "vat_rate": 22, "withholding_rate": 4,
+            "pending": True,
+            "materials": [
+                {"description": "Mat1", "amount": 100.0, "source": "contanti"},
+                {"description": "Mat2", "amount": 50.0, "source": "conto_aziendale"},
+            ],
+            "payments": [
+                {"id": str(uuid.uuid4()), "type": "acconto", "amount": 100.0,
+                 "date": "2025-04-01", "method": "bonifico"},
+            ],
+        }
+        c = auth_a.post(f"{API}/clients", json=payload).json()
+        try:
+            # Execute today
+            r = auth_a.post(f"{API}/clients/{c['id']}/execute")
+            assert r.status_code == 200
+            u = r.json()
+            assert u["pending"] is False
+            assert u["address"] == "Via Test 5"
+            assert u["phone"] == "1234567"
+            assert u["notes"] == "important"
+            assert u["amount"] == 800.0
+            assert u["vat_rate"] == 22
+            assert u["withholding_rate"] == 4
+            assert len(u["materials"]) == 2
+            assert sum(m["amount"] for m in u["materials"]) == 150.0
+            assert len(u["payments"]) == 1
+            assert u["payments"][0]["method"] == "bonifico"
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_search_may_include_pending(self, auth_a):
+        """Spec: search MAY include pending clients (not enforced exclusion)."""
+        uniq = uuid.uuid4().hex[:8].upper()
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2025-03-01", "name": f"TEST_PEND_SEARCH_{uniq}",
+            "status": "preventivo", "amount": 0.0, "pending": True,
+        }).json()
+        try:
+            r = auth_a.get(f"{API}/clients/search", params={"q": f"PEND_SEARCH_{uniq}"})
+            assert r.status_code == 200
+            ids = {x["id"] for x in r.json()}
+            # Search includes pending (per spec)
+            assert c["id"] in ids
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_toggle_pending_off_via_put_moves_to_agenda(self, auth_a):
+        """PUT with pending=False moves backlog item to agenda for its date."""
+        c = auth_a.post(f"{API}/clients", json={
+            "date": "2025-02-20", "name": "TEST_PEND_TOGGLE",
+            "status": "preventivo", "amount": 0.0, "pending": True,
+        }).json()
+        try:
+            # Toggle off via PUT
+            r = auth_a.put(f"{API}/clients/{c['id']}", json={
+                "date": "2025-02-20", "name": "TEST_PEND_TOGGLE",
+                "status": "preventivo", "amount": 0.0, "pending": False,
+            })
+            assert r.status_code == 200
+            assert r.json()["pending"] is False
+            # Now in agenda
+            r = auth_a.get(f"{API}/clients", params={"date": "2025-02-20"})
+            assert any(x["id"] == c["id"] for x in r.json())
+            # Not in pending
+            r = auth_a.get(f"{API}/clients/pending")
+            assert all(x["id"] != c["id"] for x in r.json())
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")

@@ -19,10 +19,11 @@ import {
 } from "./ui/select";
 import { toast } from "sonner";
 import { api } from "../lib/api";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Clock, CalendarCheck } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
+import { Switch } from "./ui/switch";
 
 const empty = (date) => ({
   date,
@@ -37,6 +38,7 @@ const empty = (date) => ({
   quote_number: "",
   payments: [],
   materials: [],
+  pending: false,
 });
 
 /** Migra i campi legacy (payment_method, invoice_number) in un singolo payment, una sola volta. */
@@ -68,16 +70,18 @@ const migrateLegacy = (data) => {
   return data;
 };
 
-export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted }) {
+export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, defaultPending = false }) {
   const [form, setForm] = useState(empty(date));
   const [saving, setSaving] = useState(false);
   const editing = Boolean(initial?.id);
 
   useEffect(() => {
     if (open) {
-      setForm(initial ? { ...empty(date), ...initial, amount: initial.amount ?? "" } : empty(date));
+      const base = empty(date);
+      if (defaultPending && !initial) base.pending = true;
+      setForm(initial ? { ...base, ...initial, amount: initial.amount ?? "" } : base);
     }
-  }, [open, initial, date]);
+  }, [open, initial, date, defaultPending]);
 
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -112,6 +116,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
         date: form.date || date,
         payments,
         materials,
+        pending: !!form.pending,
         // Reset legacy fields once we use the new payments model
         payment_method: "",
         invoice_number: "",
@@ -122,6 +127,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       toast.success(editing ? "Cliente aggiornato" : "Cliente aggiunto");
       onSaved?.(res.data);
       window.__refreshUnpaidBadge?.();
+      window.__refreshPendingBadge?.();
       onOpenChange(false);
     } catch (err) {
       toast.error("Errore durante il salvataggio");
@@ -138,6 +144,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       toast.success("Cliente eliminato");
       onDeleted?.(initial.id);
       window.__refreshUnpaidBadge?.();
+      window.__refreshPendingBadge?.();
       onOpenChange(false);
     } catch {
       toast.error("Impossibile eliminare");
@@ -156,6 +163,38 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
+          {/* Toggle "Lavoro in attesa" — backlog Prossimi lavori */}
+          <div
+            className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
+              form.pending
+                ? "border-[#B8683D]/30 bg-[#FBF1DE]"
+                : "border-stone-200/70 bg-stone-50"
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              {form.pending ? (
+                <Clock className="mt-0.5 h-4 w-4 text-[#B8683D]" />
+              ) : (
+                <CalendarCheck className="mt-0.5 h-4 w-4 text-[#2E5A47]" />
+              )}
+              <div>
+                <div className="text-sm font-semibold text-stone-800">
+                  {form.pending ? "Lavoro in attesa" : "Lavoro in agenda"}
+                </div>
+                <div className="text-xs text-stone-500">
+                  {form.pending
+                    ? "Compare in 'Prossimi lavori', non nell'agenda del giorno."
+                    : "Compare nell'agenda del giorno selezionato."}
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={!!form.pending}
+              onCheckedChange={(v) => update("pending", v)}
+              data-testid="client-pending-switch"
+              aria-label="Lavoro in attesa"
+            />
+          </div>
           <div>
             <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Nome / Ragione sociale</Label>
             <Input

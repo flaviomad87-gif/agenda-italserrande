@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Calendar, Receipt, PieChart, User, Hammer, Wallet } from "lucide-react";
+import { Calendar, Receipt, PieChart, User, Hammer, Wallet, Clock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { api, apiGetWithCache } from "../lib/api";
 import { auth } from "../lib/firebase";
 
 const navItems = [
   { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
-  { to: "/incassi", label: "Da incassare", icon: Wallet, testId: "nav-incassi", badgeKey: "unpaid" },
+  { to: "/prossimi-lavori", label: "Prossimi", icon: Clock, testId: "nav-prossimi", badgeKey: "pending" },
+  { to: "/incassi", label: "Incassi", icon: Wallet, testId: "nav-incassi", badgeKey: "unpaid" },
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
   { to: "/riepilogo", label: "Riepilogo", icon: PieChart, testId: "nav-riepilogo" },
   { to: "/profilo", label: "Profilo", icon: User, testId: "nav-profilo" },
@@ -57,27 +58,31 @@ const NavItem = ({ to, label, icon: Icon, testId, mobile, badge }) => (
 
 export default function AppShell() {
   const [unpaidCount, setUnpaidCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
-      // Guarda la cache per un primo render istantaneo
-      const c = apiGetWithCache(`/clients/unpaid`);
-      if (c.cached && !cancelled) setUnpaidCount(c.cached.length || 0);
+      // Cache-first per badge istantaneo
+      const cu = apiGetWithCache(`/clients/unpaid`);
+      const cp = apiGetWithCache(`/clients/pending`);
+      if (cu.cached && !cancelled) setUnpaidCount(cu.cached.length || 0);
+      if (cp.cached && !cancelled) setPendingCount(cp.cached.length || 0);
       try {
-        const fresh = await c.fresh;
-        if (!cancelled) setUnpaidCount((fresh || []).length);
+        const [u, p] = await Promise.all([cu.fresh, cp.fresh]);
+        if (!cancelled) {
+          setUnpaidCount((u || []).length);
+          setPendingCount((p || []).length);
+        }
       } catch {
         // silenzioso
       }
     };
 
-    // Aspetta che l'utente sia autenticato (token disponibile) prima di chiamare l'API
     const unsub = auth.onAuthStateChanged((u) => {
       if (u) refresh();
     });
 
-    // Aggiorna ogni 60s e quando la finestra torna in focus
     const interval = setInterval(() => {
       if (auth.currentUser) refresh();
     }, 60000);
@@ -94,7 +99,7 @@ export default function AppShell() {
     };
   }, []);
 
-  // Espone un refresh manuale (la pagina Incassi può aggiornare il badge)
+  // Refresh manuali per dialog/quick actions
   useEffect(() => {
     window.__refreshUnpaidBadge = async () => {
       try {
@@ -104,10 +109,25 @@ export default function AppShell() {
         // ignore
       }
     };
+    window.__refreshPendingBadge = async () => {
+      try {
+        const data = await api.get("/clients/pending").then((r) => r.data);
+        setPendingCount((data || []).length);
+      } catch {
+        // ignore
+      }
+    };
     return () => {
       delete window.__refreshUnpaidBadge;
+      delete window.__refreshPendingBadge;
     };
   }, []);
+
+  const badgeFor = (key) => {
+    if (key === "unpaid") return unpaidCount;
+    if (key === "pending") return pendingCount;
+    return 0;
+  };
 
   return (
     <div className="min-h-screen bg-[#F9F8F6]">
@@ -128,7 +148,7 @@ export default function AppShell() {
             <NavItem
               key={it.to}
               {...it}
-              badge={it.badgeKey === "unpaid" ? unpaidCount : 0}
+              badge={badgeFor(it.badgeKey)}
             />
           ))}
         </nav>
@@ -151,7 +171,7 @@ export default function AppShell() {
             key={it.to}
             {...it}
             mobile
-            badge={it.badgeKey === "unpaid" ? unpaidCount : 0}
+            badge={badgeFor(it.badgeKey)}
           />
         ))}
       </nav>

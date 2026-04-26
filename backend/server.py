@@ -84,6 +84,7 @@ class ClientBase(BaseModel):
     invoice_number: Optional[str] = ""  # legacy (kept for backward compat)
     payments: List[Payment] = Field(default_factory=list)
     materials: List[Material] = Field(default_factory=list)
+    pending: bool = False  # True = nel backlog "Prossimi lavori", non ancora nell'Agenda
 
 
 class ClientCreate(ClientBase):
@@ -189,13 +190,43 @@ async def list_clients(
     month: Optional[str] = None,  # YYYY-MM
     user=Depends(get_current_user),
 ):
-    q: dict = {"user_id": user["uid"]}
+    # I clienti "pending" (in Prossimi lavori) sono esclusi dall'Agenda giornaliera/mensile.
+    q: dict = {"user_id": user["uid"], "$or": [{"pending": {"$exists": False}}, {"pending": False}]}
     if date:
         q["date"] = date
     elif month:
         q["date"] = {"$regex": f"^{month}"}
     docs = await db.clients.find(q, {"_id": 0}).sort("created_at", 1).to_list(2000)
     return docs
+
+
+@api.get("/clients/pending", response_model=List[Client])
+async def list_pending_clients(user=Depends(get_current_user)):
+    """Clienti nel backlog 'Prossimi lavori', ordinati per data prevista crescente."""
+    docs = await db.clients.find(
+        {"user_id": user["uid"], "pending": True}, {"_id": 0}
+    ).sort([("date", 1), ("created_at", 1)]).to_list(2000)
+    return docs
+
+
+@api.post("/clients/{client_id}/execute")
+async def execute_pending_client(
+    client_id: str,
+    date: Optional[str] = None,
+    user=Depends(get_current_user),
+):
+    """Sposta un cliente dal backlog 'Prossimi lavori' all'Agenda del giorno indicato.
+    Se date non è specificata, usa oggi (UTC). Conserva tutta la scheda compilata."""
+    target_date = date or datetime.now(timezone.utc).date().isoformat()
+    res = await db.clients.find_one_and_update(
+        {"id": client_id, "user_id": user["uid"], "pending": True},
+        {"$set": {"pending": False, "date": target_date}},
+        return_document=True,
+        projection={"_id": 0},
+    )
+    if not res:
+        raise HTTPException(404, "Cliente non trovato o già in agenda")
+    return res
 
 
 @api.get("/clients/unpaid")
@@ -208,9 +239,15 @@ async def list_unpaid_clients(user=Depends(get_current_user)):
     Esclusi:
       - Preventivi senza alcun pagamento (non sono ancora "da incassare")
       - Lavori legacy considerati saldati (payment_method o invoice_number presenti)
+      - Clienti pending (nel backlog "Prossimi lavori")
     """
     clients = await db.clients.find(
-        {"user_id": user["uid"], "amount": {"$gt": 0}}, {"_id": 0}
+        {
+            "user_id": user["uid"],
+            "amount": {"$gt": 0},
+            "$or": [{"pending": {"$exists": False}}, {"pending": False}],
+        },
+        {"_id": 0},
     ).sort("date", 1).to_list(5000)
 
     result = []
@@ -489,7 +526,12 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
     regex = {"$regex": f"^{month}"}
 
     clients = await db.clients.find(
-        {"user_id": uid, "date": regex}, {"_id": 0}
+        {
+            "user_id": uid,
+            "date": regex,
+            "$or": [{"pending": {"$exists": False}}, {"pending": False}],
+        },
+        {"_id": 0},
     ).to_list(5000)
     expenses = await db.expenses.find(
         {"user_id": uid, "date": regex}, {"_id": 0}
