@@ -284,22 +284,25 @@ export default function Agenda() {
                             ✓ Saldato
                           </span>
                         )}
-                        {payments.map((p, i) => (
-                          <span
-                            key={i}
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              p.type === "saldo"
-                                ? "bg-[#EAF3EF] text-[#2E5A47]"
-                                : p.type === "acconto"
-                                ? "bg-[#FBF1DE] text-[#7A4F0A]"
-                                : "bg-stone-100 text-stone-700"
-                            }`}
-                          >
-                            <FileText className="h-3 w-3" />
-                            {p.type === "acconto" ? "Acc." : p.type === "saldo" ? "Saldo" : "Pag."}
-                            {p.invoice_number ? ` ${p.invoice_number}` : ""} · {formatEUR(p.amount)}
-                          </span>
-                        ))}
+                        {payments.map((p, i) => {
+                          const MethodIcon = p.method === "contanti" ? Wallet : p.method === "pos" ? CreditCard : p.method === "bonifico" ? Landmark : null;
+                          return (
+                            <span
+                              key={i}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                p.type === "saldo"
+                                  ? "bg-[#EAF3EF] text-[#2E5A47]"
+                                  : p.type === "acconto"
+                                  ? "bg-[#FBF1DE] text-[#7A4F0A]"
+                                  : "bg-stone-100 text-stone-700"
+                              }`}
+                            >
+                              {MethodIcon ? <MethodIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                              {p.type === "acconto" ? "Acc." : p.type === "saldo" ? "Saldo" : "Pag."}
+                              {p.invoice_number ? ` ${p.invoice_number}` : ""} · {formatEUR(p.amount)}
+                            </span>
+                          );
+                        })}
                       </>
                     );
                   })()}
