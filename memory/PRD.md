@@ -86,6 +86,16 @@ Implemented:
 
 Testing: 56/56 pytest backend pass (15 nuovi test backlog), frontend e2e 100% — verificato create-pending → execute-today → move-to-agenda con preservazione di tutta la scheda (materiali, pagamenti, IVA, ritenuta).
 
+## Iteration 6 — 2026-04 (Feature Update — "Vista Settimanale" + WhatsApp Prossimi)
+Implemented:
+- **`GET /api/clients?from_date=&to_date=`**: nuovo filtro per range di date (inclusivo). Precedenza: `date` > `range` > `month`. Esclude pending.
+- **`WeekView.jsx`**: nuovo componente con 7 giorni (lun-dom), conteggio + valore + lista compatta clienti per giorno. Oggi evidenziato in verde, giorni vuoti mostrano "Libero". Frecce ◀ ▶ navigano tra le settimane mantenendo la vista. Click su un giorno → switch a vista Giorno; click su un cliente → apre il dialog.
+- **`Agenda.jsx`**: toggle "Giorno / Settimana" sopra il navigator. La vista Giorno è il default.
+- **`whatsapp.js`**: per i clienti `pending` mostra "🕐 Lavoro da fare" invece di "📋 Preventivo".
+- **`ProssimiLavori.jsx`**: pulsante WhatsApp per ogni card (utile per girare il lavoro a un operaio o avvisare il cliente).
+
+Testing: 62/62 pytest backend pass (6 nuovi test range), frontend e2e 100% (WA pending, toggle, oggi/libero, esclusione pending, range cross-month).
+
 ## Backlog (P1) — aggiornato
 - Export Riepilogo mensile in PDF/CSV.
 - Tap-to-maps sull'indirizzo cliente.

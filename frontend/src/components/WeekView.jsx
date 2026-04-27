@@ -14,10 +14,15 @@ const ymd = (d) => {
 };
 
 export default function WeekView({ baseDate, onPickDay, onPickClient }) {
-  const monday = useMemo(
-    () => startOfWeek(parseISO(`${baseDate}T00:00:00`), { weekStartsOn: 1 }),
-    [baseDate],
+  const [weekStart, setWeekStart] = useState(() =>
+    startOfWeek(parseISO(`${baseDate}T00:00:00`), { weekStartsOn: 1 }),
   );
+  // Aggiorna se il chiamante cambia baseDate (es. ritorno da Day view)
+  useEffect(() => {
+    setWeekStart(startOfWeek(parseISO(`${baseDate}T00:00:00`), { weekStartsOn: 1 }));
+  }, [baseDate]);
+
+  const monday = weekStart;
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(monday, i)), [monday]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +61,7 @@ export default function WeekView({ baseDate, onPickDay, onPickClient }) {
   }, 0);
 
   const shiftWeek = (delta) => {
-    onPickDay(ymd(addDays(monday, delta * 7)));
+    setWeekStart((prev) => addDays(prev, delta * 7));
   };
 
   const monthLabel = format(monday, "MMMM yyyy", { locale: it });
