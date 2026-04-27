@@ -30,7 +30,11 @@ export const buildClientMessage = (c) => {
   if (c.notes) lines.push(`📝 ${c.notes}`);
 
   lines.push("");
-  lines.push(c.status === "lavoro_eseguito" ? "✅ Lavoro eseguito" : "📋 Preventivo");
+  if (c.pending) {
+    lines.push("🕐 Lavoro da fare");
+  } else {
+    lines.push(c.status === "lavoro_eseguito" ? "✅ Lavoro eseguito" : "📋 Preventivo");
+  }
 
   const { net, vat, gross, withholding, toCollect, hasVat, hasWithholding } = computeWithVat(
     c.amount,

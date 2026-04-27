@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 7 — Week view + WhatsApp on Prossimi Lavori. Backend: 62/62 pytest pass (56 prior + new TestClientsRange with 6 tests covering single-month range, two-month spanning week (Mar 31 – Apr 6), pending exclusion, ?date= precedence over range, range precedence over month, user isolation). Frontend: WhatsApp button on ProssimiLavori cards (data-testid=whatsapp-share-pending-<id>) opens wa.me?text= URL, message starts with '🔧 *<name>*' and contains '🕐 Lavoro da fare' line — verified by intercepting window.open. Agenda Day/Settimana toggle present (view-day-button, view-week-button). Default = Day, day-only sections (DateNavigator, day totals, FAB advances) render in day view (add-advance-button visible) and disappear in week view. Switching to Settimana renders week-view with week-count=3 and week-total=450,00 € for the seeded current week (Mon 27 Apr 2026 – Sun 03 May 2026: 2 clients on Mon @200+150 + 1 on Wed @100, pending client on Thu and a next-week client correctly excluded). Today row (week-day-2026-04-27) shows the green 'Oggi' badge. Empty days show 'Libero'. Pending Apr-30 client correctly excluded → Thu row shows 'Libero' with no PendingX text.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Agenda → Settimana", "issues": ["week-prev / week-next buttons call onPickDay which sets view='day' (Agenda.jsx l.164-166), so clicking the week arrows actually exits the week view to the day view of the new Monday rather than navigating through weeks while remaining in week mode. The spec ('navigates ±7 days and updates the day shown by +7 in date state when user later switches back') is ambiguous but most users will expect arrows to keep them in week view. Recommend wiring arrows to a dedicated setBaseDate that does NOT change view."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Decide UX for week-prev/week-next: keep week view active when navigating across weeks (current implementation drops back to day view).",
+    "Optional: add data-testid='oggi-chip' to the green Oggi badge in WeekView for more deterministic assertions."
+  ],
+  "critical_code_review_comments": [
+    "server.py list_clients: precedence chain date > (from_date+to_date) > month is implemented with elif — correct. Note: if only one of from_date/to_date is supplied without the other, neither range nor month is applied (falls through to no date filter). Fine for current frontend (always sends both) but consider validating XOR with HTTP 400 to avoid silent surprises.",
+    "WeekView.jsx fetches via apiGetWithCache('/clients', {from_date, to_date}) — good cache reuse. computeClientBalance/computeWithVat reused — DRY.",
+    "Agenda.jsx grew to ~503 lines; the toggle + WeekView wiring is clean but the day-section JSX is large. Splitting Agenda day list into <DayView/> would improve readability and parallel maintenance with WeekView.",
+    "buildClientMessage in whatsapp.js correctly prioritises c.pending over c.status — verified live (pending → '🕐 Lavoro da fare', non-pending eseguito → '✅ Lavoro eseguito').",
+    "WeekView arrow buttons collapse the view back to day. See design_issues."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py (+TestClientsRange with 6 tests, file now 1469 lines)"],
+  "success_rate": {"backend": "100% (62/62)", "frontend": "100% on tested critical flows (WA pending, week toggle, week rendering, today badge, libero, pending exclusion, day-only sections conditional)"},
+  "test_credentials": "Fresh Firebase signup per run via REACT_APP_FIREBASE_API_KEY: testuser+wk<ts>@italserrande.test / TestPassword123!",
+  "seed_data_creation": "Frontend test seeded 5 clients (4 in current week, 1 next week, 1 pending) via /api/clients with the test user's idToken. Backend tests use TEST_RANGE_* names with try/finally cleanup. NOTE: frontend seed cleanup did not run because the playwright script aborted at week-next click timeout (script halted before reaching the cleanup loop) — the throwaway Firebase user is isolated so leakage is contained to that user only.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test file /app/backend/tests/backend_test.py covers iterations 1-7 (62 tests). New: TestClientsRange validates GET /api/clients?from_date=&to_date= with $gte/$lte string filter; pending excluded; precedence date > range > month. Frontend WeekView component (data-testid='week-view') renders summary cards (week-count, week-total), 7 day rows week-day-YYYY-MM-DD, each with week-day-toggle-YYYY-MM-DD (collapse), week-day-open-YYYY-MM-DD ('Apri' switches to day view), and per-client row week-client-<id>. Agenda toggle: view-day-button | view-week-button. Today row shows green 'Oggi' chip; empty days show 'Libero'. Week prev/next currently drops back to day view (see design_issues). Day-only DOM (DateNavigator, day totals, Clients section, Acconti operai section, add-advance-button) is conditional on view==='day' — verified.",
+  "rca of the issue": "N/A — no functional bugs; one UX deviation noted in design_issues (week arrows exit to day view)."
+}

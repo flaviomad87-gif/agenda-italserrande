@@ -188,12 +188,16 @@ async def create_client(payload: ClientCreate, user=Depends(get_current_user)):
 async def list_clients(
     date: Optional[str] = None,
     month: Optional[str] = None,  # YYYY-MM
+    from_date: Optional[str] = None,  # YYYY-MM-DD inclusivo
+    to_date: Optional[str] = None,    # YYYY-MM-DD inclusivo
     user=Depends(get_current_user),
 ):
     # I clienti "pending" (in Prossimi lavori) sono esclusi dall'Agenda giornaliera/mensile.
     q: dict = {"user_id": user["uid"], "$or": [{"pending": {"$exists": False}}, {"pending": False}]}
     if date:
         q["date"] = date
+    elif from_date and to_date:
+        q["date"] = {"$gte": from_date, "$lte": to_date}
     elif month:
         q["date"] = {"$regex": f"^{month}"}
     docs = await db.clients.find(q, {"_id": 0}).sort("created_at", 1).to_list(2000)

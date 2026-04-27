@@ -1349,3 +1349,121 @@ class TestProssimiLavori:
             assert all(x["id"] != c["id"] for x in r.json())
         finally:
             auth_a.delete(f"{API}/clients/{c['id']}")
+
+
+
+# ---------- Iteration 7: GET /api/clients with from_date/to_date range ----------
+
+class TestClientsRange:
+    """list_clients now accepts ?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD (inclusive).
+    Used by Agenda 'Settimana' (week view) which can span across two months."""
+
+    def _mk(self, auth, date, name, pending=False, amount=100.0):
+        r = auth.post(f"{API}/clients", json={
+            "date": date, "name": name, "address": "", "phone": "", "notes": "",
+            "status": "preventivo", "amount": amount, "pending": pending,
+        })
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    def test_range_within_single_month(self, auth_a):
+        created = []
+        try:
+            created.append(self._mk(auth_a, "2025-04-01", "TEST_RANGE_W1_A"))
+            created.append(self._mk(auth_a, "2025-04-04", "TEST_RANGE_W1_B"))
+            created.append(self._mk(auth_a, "2025-04-07", "TEST_RANGE_W1_C"))  # outside
+            r = auth_a.get(f"{API}/clients", params={"from_date": "2025-04-01", "to_date": "2025-04-06"})
+            assert r.status_code == 200
+            ids = {c["id"] for c in r.json()}
+            assert created[0]["id"] in ids
+            assert created[1]["id"] in ids
+            assert created[2]["id"] not in ids
+        finally:
+            for c in created:
+                auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_range_spanning_two_months(self, auth_a):
+        """Week Mar 31 – Apr 6 spans two months."""
+        created = []
+        try:
+            created.append(self._mk(auth_a, "2025-03-30", "TEST_RANGE_W2_BEFORE"))  # outside
+            created.append(self._mk(auth_a, "2025-03-31", "TEST_RANGE_W2_MON"))     # in
+            created.append(self._mk(auth_a, "2025-04-02", "TEST_RANGE_W2_WED"))     # in
+            created.append(self._mk(auth_a, "2025-04-06", "TEST_RANGE_W2_SUN"))     # in
+            created.append(self._mk(auth_a, "2025-04-07", "TEST_RANGE_W2_AFTER"))   # outside
+            r = auth_a.get(f"{API}/clients", params={"from_date": "2025-03-31", "to_date": "2025-04-06"})
+            assert r.status_code == 200
+            ids = {c["id"] for c in r.json()}
+            assert created[1]["id"] in ids
+            assert created[2]["id"] in ids
+            assert created[3]["id"] in ids
+            assert created[0]["id"] not in ids
+            assert created[4]["id"] not in ids
+        finally:
+            for c in created:
+                auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_range_excludes_pending(self, auth_a):
+        created = []
+        try:
+            created.append(self._mk(auth_a, "2025-05-05", "TEST_RANGE_PEND_NORMAL"))
+            created.append(self._mk(auth_a, "2025-05-06", "TEST_RANGE_PEND_BACKLOG", pending=True))
+            r = auth_a.get(f"{API}/clients", params={"from_date": "2025-05-01", "to_date": "2025-05-11"})
+            assert r.status_code == 200
+            ids = {c["id"] for c in r.json()}
+            assert created[0]["id"] in ids
+            assert created[1]["id"] not in ids
+        finally:
+            for c in created:
+                auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_date_param_takes_precedence_over_range(self, auth_a):
+        created = []
+        try:
+            created.append(self._mk(auth_a, "2025-06-02", "TEST_RANGE_PREC_A"))
+            created.append(self._mk(auth_a, "2025-06-03", "TEST_RANGE_PREC_B"))
+            # Range covers both, but ?date= should win and return only 06-03
+            r = auth_a.get(f"{API}/clients", params={
+                "date": "2025-06-03", "from_date": "2025-06-01", "to_date": "2025-06-08",
+            })
+            assert r.status_code == 200
+            ids = {c["id"] for c in r.json()}
+            assert created[1]["id"] in ids
+            assert created[0]["id"] not in ids
+        finally:
+            for c in created:
+                auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_range_takes_precedence_over_month(self, auth_a):
+        created = []
+        try:
+            created.append(self._mk(auth_a, "2025-07-15", "TEST_RANGE_VS_MONTH_IN"))
+            created.append(self._mk(auth_a, "2025-07-25", "TEST_RANGE_VS_MONTH_OUT"))
+            # month=2025-07 would return both; range narrows to 07-14..07-20
+            r = auth_a.get(f"{API}/clients", params={
+                "month": "2025-07", "from_date": "2025-07-14", "to_date": "2025-07-20",
+            })
+            assert r.status_code == 200
+            ids = {c["id"] for c in r.json()}
+            assert created[0]["id"] in ids
+            assert created[1]["id"] not in ids
+        finally:
+            for c in created:
+                auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_range_user_isolation(self, auth_a, auth_b):
+        c_a = self._mk(auth_a, "2025-08-04", "TEST_RANGE_ISO_A")
+        c_b = self._mk(auth_b, "2025-08-05", "TEST_RANGE_ISO_B")
+        try:
+            r = auth_a.get(f"{API}/clients", params={"from_date": "2025-08-01", "to_date": "2025-08-10"})
+            assert r.status_code == 200
+            ids_a = {c["id"] for c in r.json()}
+            assert c_a["id"] in ids_a
+            assert c_b["id"] not in ids_a
+            r = auth_b.get(f"{API}/clients", params={"from_date": "2025-08-01", "to_date": "2025-08-10"})
+            ids_b = {c["id"] for c in r.json()}
+            assert c_b["id"] in ids_b
+            assert c_a["id"] not in ids_b
+        finally:
+            auth_a.delete(f"{API}/clients/{c_a['id']}")
+            auth_b.delete(f"{API}/clients/{c_b['id']}")

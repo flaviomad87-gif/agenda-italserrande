@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR } from "../lib/utils";
+import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
+import WhatsAppIcon from "../components/icons/WhatsAppIcon";
 import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -201,6 +203,19 @@ export default function ProssimiLavori() {
                     <CalendarCheck className="h-3.5 w-3.5" />
                     {executingId === c.id ? "…" : "Esegui oggi"}
                     <ArrowRight className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendClientToWhatsApp(c);
+                    }}
+                    data-testid={`whatsapp-share-pending-${c.id}`}
+                    aria-label="Invia su WhatsApp"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1FB053] active:scale-95"
+                  >
+                    <WhatsAppIcon className="h-3.5 w-3.5" />
+                    WhatsApp
                   </button>
                 </div>
               </div>

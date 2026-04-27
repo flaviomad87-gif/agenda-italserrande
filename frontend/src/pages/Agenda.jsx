@@ -6,8 +6,9 @@ import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
 import AdvanceFormDialog from "../components/AdvanceFormDialog";
 import ClientSearch from "../components/ClientSearch";
+import WeekView from "../components/WeekView";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
-import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, Trash2, AlarmClock } from "lucide-react";
+import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, Trash2, AlarmClock, Calendar, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 
 const PaymentIcon = ({ method, className }) => {
@@ -49,6 +50,7 @@ const PaymentBadge = ({ method }) => {
 
 export default function Agenda() {
   const [date, setDate] = useState(isoDate());
+  const [view, setView] = useState("day"); // "day" | "week"
   const [clients, setClients] = useState([]);
   const [advances, setAdvances] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,12 +127,53 @@ export default function Agenda() {
 
       <ClientSearch
         onPick={(c) => {
+          setView("day");
           setDate(c.date);
           setEditing(c);
           setOpenClient(true);
         }}
       />
 
+      {/* View toggle: Giorno / Settimana */}
+      <div className="flex justify-center">
+        <div className="inline-flex rounded-full border border-stone-200 bg-white p-1 shadow-sm">
+          <button
+            onClick={() => setView("day")}
+            data-testid="view-day-button"
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+              view === "day" ? "bg-[#4A5D23] text-white shadow" : "text-stone-500 hover:text-stone-800"
+            }`}
+          >
+            <Calendar className="h-3.5 w-3.5" /> Giorno
+          </button>
+          <button
+            onClick={() => setView("week")}
+            data-testid="view-week-button"
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+              view === "week" ? "bg-[#4A5D23] text-white shadow" : "text-stone-500 hover:text-stone-800"
+            }`}
+          >
+            <CalendarDays className="h-3.5 w-3.5" /> Settimana
+          </button>
+        </div>
+      </div>
+
+      {view === "week" ? (
+        <WeekView
+          baseDate={date}
+          onPickDay={(d) => {
+            setDate(d);
+            setView("day");
+          }}
+          onPickClient={(c) => {
+            setDate(c.date);
+            setView("day");
+            setEditing(c);
+            setOpenClient(true);
+          }}
+        />
+      ) : (
+        <>
       <div className="rounded-3xl border border-stone-200/60 bg-white p-4 shadow-sm sm:p-5">
         <DateNavigator value={date} onChange={setDate} />
       </div>
@@ -425,6 +468,8 @@ export default function Agenda() {
           </ul>
         )}
       </section>
+        </>
+      )}
 
       {/* Mobile FAB */}
       <button
