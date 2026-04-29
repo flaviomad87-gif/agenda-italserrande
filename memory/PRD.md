@@ -96,6 +96,18 @@ Implemented:
 
 Testing: 62/62 pytest backend pass (6 nuovi test range), frontend e2e 100% (WA pending, toggle, oggi/libero, esclusione pending, range cross-month).
 
+## Iteration 7 — 2026-04 (Feature Update — "Offline Queue + Banner")
+Implemented:
+- **Idempotency key client-side**: `ClientCreate`, `ExpenseCreate`, `AdvanceCreate` accettano un `id` opzionale; il backend usa quell'id e restituisce il record esistente se già presente (idempotente). PUT handlers usano `exclude={'id'}` per non sovrascrivere l'id durante l'update.
+- **`lib/offlineQueue.js`**: coda persistita in `localStorage` (`agenda-offline-queue-v1`) per POST/PUT/DELETE falliti per assenza di rete. Drain FIFO sequenziale con replay header `X-Drain-Replay`. Scarta operazioni con errori 4xx permanenti per evitare loop infiniti.
+- **`lib/api.js`** rewritten: request interceptor inietta UUID `id` per i POST sui create routes. Response error interceptor accoda mutations su Network Error e ritorna risposta sintetica 202 (`_offline: true`). Drain automatico su `online` event e dopo auth ready.
+- **`lib/cache.js`**: nuovo helper `mutateCachedCollections()` per applicare modifiche ottimistiche alle GET cached, così la UI riflette subito lo stato offline anche navigando tra pagine.
+- **`OfflineBanner.jsx`**: banner top con 3 stati: "Offline · stai vedendo i dati salvati" (giallo), "Sincronizzazione in corso · X modifiche in coda" (azzurro spinner), "Tutto sincronizzato" (verde, lampeggia 3s).
+- **`AppShell.jsx`**: integra il banner; i badge unpaid/pending si aggiornano anche all'evento `agenda:queue-drained`.
+- **Bug post-test fix**: rimossi record orfani con `id=None` lasciati dal bug iniziale del PUT.
+
+Testing: 69/69 pytest backend pass (7 nuovi test idempotency), frontend e2e 100% — verificato POST/PUT/DELETE offline → optimistic UI → riconnessione → drain → backend con stessi id senza duplicati.
+
 ## Backlog (P1) — aggiornato
 - Export Riepilogo mensile in PDF/CSV.
 - Tap-to-maps sull'indirizzo cliente.
