@@ -334,7 +334,7 @@ async def search_clients(q: str, user=Depends(get_current_user)):
 async def update_client(client_id: str, payload: ClientCreate, user=Depends(get_current_user)):
     res = await db.clients.find_one_and_update(
         {"id": client_id, "user_id": user["uid"]},
-        {"$set": payload.model_dump()},
+        {"$set": payload.model_dump(exclude={"id"})},
         return_document=True,
         projection={"_id": 0},
     )
@@ -384,7 +384,7 @@ async def list_expenses(
 async def update_expense(expense_id: str, payload: ExpenseCreate, user=Depends(get_current_user)):
     res = await db.expenses.find_one_and_update(
         {"id": expense_id, "user_id": user["uid"]},
-        {"$set": payload.model_dump()},
+        {"$set": payload.model_dump(exclude={"id"})},
         return_document=True,
         projection={"_id": 0},
     )
