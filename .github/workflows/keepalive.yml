@@ -1,0 +1,31 @@
+name: Keep Render backend awake
+
+# Pinga il backend FastAPI ogni ~13 minuti per evitare lo sleep del piano
+# free di Render (che parte dopo ~15 min di inattività).
+# Free tier limit: GitHub Actions su public repo = unlimited; su private repo = 2.000 min/mese.
+# Una run dura ~10s, quindi ~110 runs/giorno → ~5500 min/mese: ATTENZIONE su private repo.
+
+on:
+  schedule:
+    - cron: "*/13 * * * *"  # ogni 13 minuti
+  workflow_dispatch:           # permette lancio manuale
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API
+        run: |
+          set -e
+          URL="https://agenda-italserrande-api.onrender.com/api/"
+          echo "Pinging $URL"
+          # max-time 90s per coprire il cold-start di Render (può prendere 30-60s)
+          STATUS=$(curl -s -o /tmp/body.txt -w "%{http_code}" --max-time 90 "$URL")
+          BODY=$(cat /tmp/body.txt)
+          echo "Status: $STATUS"
+          echo "Body:   $BODY"
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Ping fallito"
+            exit 1
+          fi
+          echo "✅ Backend sveglio"
