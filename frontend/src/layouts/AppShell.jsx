@@ -4,6 +4,7 @@ import { Calendar, Receipt, PieChart, User, Hammer, Wallet, Clock } from "lucide
 import { cn } from "../lib/utils";
 import { api, apiGetWithCache } from "../lib/api";
 import { auth } from "../lib/firebase";
+import OfflineBanner from "../components/OfflineBanner";
 
 const navItems = [
   { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
@@ -90,12 +91,17 @@ export default function AppShell() {
       if (auth.currentUser) refresh();
     };
     window.addEventListener("focus", onFocus);
+    const onDrained = () => {
+      if (auth.currentUser) refresh();
+    };
+    window.addEventListener("agenda:queue-drained", onDrained);
 
     return () => {
       cancelled = true;
       unsub && unsub();
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("agenda:queue-drained", onDrained);
     };
   }, []);
 
@@ -131,6 +137,7 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F6]">
+      <OfflineBanner />
       {/* Desktop sidebar */}
       <aside className="fixed left-0 top-0 hidden h-screen w-64 flex-col border-r border-stone-200/60 bg-[#F3F2F0] p-6 md:flex">
         <div className="mb-10 flex items-center gap-2">

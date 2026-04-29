@@ -1467,3 +1467,152 @@ class TestClientsRange:
         finally:
             auth_a.delete(f"{API}/clients/{c_a['id']}")
             auth_b.delete(f"{API}/clients/{c_b['id']}")
+
+
+
+# ---------- Iteration 8: Idempotency keys for offline queue ----------
+
+class TestIdempotency:
+    """POST /api/clients|/expenses|/advances now accept Optional[str] id (idempotency key
+    from the offline queue). Re-posting the same id for the same user must NOT create a
+    duplicate; must return the existing record. Cross-user scope must be enforced."""
+
+    def test_client_post_with_explicit_id_uses_that_id(self, auth_a):
+        idem = str(uuid.uuid4())
+        payload = {
+            "id": idem, "date": TODAY, "name": "TEST_IDEMPO_C1",
+            "status": "preventivo", "amount": 100.0,
+        }
+        try:
+            r = auth_a.post(f"{API}/clients", json=payload)
+            assert r.status_code == 200, r.text
+            c = r.json()
+            assert c["id"] == idem
+            assert c["name"] == "TEST_IDEMPO_C1"
+        finally:
+            auth_a.delete(f"{API}/clients/{idem}")
+
+    def test_client_post_without_id_still_generates_uuid(self, auth_a):
+        payload = {"date": TODAY, "name": "TEST_IDEMPO_NOID",
+                   "status": "preventivo", "amount": 0.0}
+        r = auth_a.post(f"{API}/clients", json=payload)
+        assert r.status_code == 200
+        c = r.json()
+        try:
+            assert isinstance(c["id"], str) and len(c["id"]) >= 32
+        finally:
+            auth_a.delete(f"{API}/clients/{c['id']}")
+
+    def test_client_repeat_post_same_id_idempotent(self, auth_a):
+        idem = str(uuid.uuid4())
+        payload = {
+            "id": idem, "date": TODAY, "name": "TEST_IDEMPO_REPEAT",
+            "status": "preventivo", "amount": 250.0,
+        }
+        try:
+            r1 = auth_a.post(f"{API}/clients", json=payload)
+            assert r1.status_code == 200
+            # Second post with SAME id but different body → must return existing, not create new
+            payload2 = dict(payload, name="TEST_IDEMPO_REPEAT_CHANGED", amount=999.0)
+            r2 = auth_a.post(f"{API}/clients", json=payload2)
+            assert r2.status_code == 200
+            c2 = r2.json()
+            # Idempotency: returns the original (not the modified payload)
+            assert c2["id"] == idem
+            assert c2["name"] == "TEST_IDEMPO_REPEAT"
+            assert c2["amount"] == 250.0
+            # Verify only ONE document exists for that date with that id
+            r3 = auth_a.get(f"{API}/clients", params={"date": TODAY})
+            assert r3.status_code == 200
+            matches = [x for x in r3.json() if x["id"] == idem]
+            assert len(matches) == 1
+        finally:
+            auth_a.delete(f"{API}/clients/{idem}")
+
+    def test_expense_post_idempotent(self, auth_a):
+        idem = str(uuid.uuid4())
+        payload = {
+            "id": idem, "date": TODAY, "category": "TEST_IDEMPO_EXP",
+            "amount": 42.5, "source": "contanti",
+        }
+        try:
+            r1 = auth_a.post(f"{API}/expenses", json=payload)
+            assert r1.status_code == 200
+            assert r1.json()["id"] == idem
+            # Repeat
+            r2 = auth_a.post(f"{API}/expenses", json=dict(payload, amount=999.0))
+            assert r2.status_code == 200
+            assert r2.json()["id"] == idem
+            assert r2.json()["amount"] == 42.5  # original preserved
+            # Confirm only one
+            r3 = auth_a.get(f"{API}/expenses", params={"month": MONTH})
+            matches = [x for x in r3.json() if x["id"] == idem]
+            assert len(matches) == 1
+        finally:
+            auth_a.delete(f"{API}/expenses/{idem}")
+
+    def test_advance_post_idempotent(self, auth_a):
+        idem = str(uuid.uuid4())
+        payload = {
+            "id": idem, "date": TODAY, "worker_name": "TEST_IDEMPO_ADV",
+            "amount": 75.0,
+        }
+        try:
+            r1 = auth_a.post(f"{API}/advances", json=payload)
+            assert r1.status_code == 200
+            assert r1.json()["id"] == idem
+            # Repeat
+            r2 = auth_a.post(f"{API}/advances", json=dict(payload, amount=999.0))
+            assert r2.status_code == 200
+            assert r2.json()["id"] == idem
+            assert r2.json()["amount"] == 75.0
+            # Only one
+            r3 = auth_a.get(f"{API}/advances", params={"date": TODAY})
+            matches = [x for x in r3.json() if x["id"] == idem]
+            assert len(matches) == 1
+        finally:
+            auth_a.delete(f"{API}/advances/{idem}")
+
+    def test_idempotency_scoped_per_user(self, auth_a, auth_b):
+        """User B posting the same id used by A must create a NEW record for B,
+        not return A's. Idempotency check is scoped per user_id."""
+        idem = str(uuid.uuid4())
+        try:
+            r_a = auth_a.post(f"{API}/clients", json={
+                "id": idem, "date": TODAY, "name": "TEST_IDEMPO_SCOPE_A",
+                "status": "preventivo", "amount": 100.0,
+            })
+            assert r_a.status_code == 200
+            assert r_a.json()["name"] == "TEST_IDEMPO_SCOPE_A"
+
+            r_b = auth_b.post(f"{API}/clients", json={
+                "id": idem, "date": TODAY, "name": "TEST_IDEMPO_SCOPE_B",
+                "status": "preventivo", "amount": 200.0,
+            })
+            assert r_b.status_code == 200
+            # B's response is B's own client (NOT A's hijacked)
+            assert r_b.json()["name"] == "TEST_IDEMPO_SCOPE_B"
+            assert r_b.json()["id"] == idem  # they share id but isolated by user_id
+            # User A still sees its original client
+            r_a_get = auth_a.get(f"{API}/clients", params={"date": TODAY})
+            a_match = [x for x in r_a_get.json() if x["id"] == idem]
+            assert len(a_match) == 1
+            assert a_match[0]["name"] == "TEST_IDEMPO_SCOPE_A"
+        finally:
+            auth_a.delete(f"{API}/clients/{idem}")
+            auth_b.delete(f"{API}/clients/{idem}")
+
+    def test_drain_replay_header_accepted(self, auth_a):
+        """Backend must accept X-Drain-Replay: 1 header without rejecting."""
+        idem = str(uuid.uuid4())
+        try:
+            r = auth_a.post(
+                f"{API}/clients",
+                json={"id": idem, "date": TODAY, "name": "TEST_IDEMPO_DRAIN",
+                      "status": "preventivo", "amount": 0.0},
+                headers={"X-Drain-Replay": "1"},
+            )
+            assert r.status_code == 200, r.text
+            assert r.json()["id"] == idem
+        finally:
+            auth_a.delete(f"{API}/clients/{idem}")

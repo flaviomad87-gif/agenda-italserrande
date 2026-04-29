@@ -88,7 +88,7 @@ class ClientBase(BaseModel):
 
 
 class ClientCreate(ClientBase):
-    pass
+    id: Optional[str] = None  # opzionale: idempotency key dal client (offline queue)
 
 
 class Client(ClientBase):
@@ -109,7 +109,7 @@ class ExpenseBase(BaseModel):
 
 
 class ExpenseCreate(ExpenseBase):
-    pass
+    id: Optional[str] = None  # idempotency key opzionale
 
 
 class Expense(ExpenseBase):
@@ -147,7 +147,7 @@ class AdvanceBase(BaseModel):
 
 
 class AdvanceCreate(AdvanceBase):
-    pass
+    id: Optional[str] = None  # idempotency key opzionale
 
 
 class Advance(AdvanceBase):
@@ -179,7 +179,16 @@ async def me(user=Depends(get_current_user)):
 
 @api.post("/clients", response_model=Client)
 async def create_client(payload: ClientCreate, user=Depends(get_current_user)):
-    obj = Client(**payload.model_dump(), user_id=user["uid"])
+    data = payload.model_dump()
+    provided_id = data.pop("id", None)
+    # Idempotency: se il client ha già fornito l'id (offline queue) e l'oggetto esiste, ritorna quello.
+    if provided_id:
+        existing = await db.clients.find_one({"id": provided_id, "user_id": user["uid"]}, {"_id": 0})
+        if existing:
+            return existing
+    obj = Client(**data, user_id=user["uid"])
+    if provided_id:
+        obj.id = provided_id
     await db.clients.insert_one(obj.model_dump())
     return obj
 
@@ -346,7 +355,15 @@ async def delete_client(client_id: str, user=Depends(get_current_user)):
 
 @api.post("/expenses", response_model=Expense)
 async def create_expense(payload: ExpenseCreate, user=Depends(get_current_user)):
-    obj = Expense(**payload.model_dump(), user_id=user["uid"])
+    data = payload.model_dump()
+    provided_id = data.pop("id", None)
+    if provided_id:
+        existing = await db.expenses.find_one({"id": provided_id, "user_id": user["uid"]}, {"_id": 0})
+        if existing:
+            return existing
+    obj = Expense(**data, user_id=user["uid"])
+    if provided_id:
+        obj.id = provided_id
     await db.expenses.insert_one(obj.model_dump())
     return obj
 
@@ -462,7 +479,15 @@ async def apply_recurring(month: str, user=Depends(get_current_user)):
 
 @api.post("/advances", response_model=Advance)
 async def create_advance(payload: AdvanceCreate, user=Depends(get_current_user)):
-    obj = Advance(**payload.model_dump(), user_id=user["uid"])
+    data = payload.model_dump()
+    provided_id = data.pop("id", None)
+    if provided_id:
+        existing = await db.advances.find_one({"id": provided_id, "user_id": user["uid"]}, {"_id": 0})
+        if existing:
+            return existing
+    obj = Advance(**data, user_id=user["uid"])
+    if provided_id:
+        obj.id = provided_id
     await db.advances.insert_one(obj.model_dump())
     return obj
 

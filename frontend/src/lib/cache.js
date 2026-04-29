@@ -65,3 +65,31 @@ export const clearAllCache = () => {
     // ignore
   }
 };
+
+/** Aggiorna in modo ottimistico tutte le voci cached il cui path inizia con `pathPrefix`.
+ * `mutator(arrayData) => newArray` viene applicato ad ogni cache che matcha. */
+export const mutateCachedCollections = (pathPrefix, mutator) => {
+  if (!safeStorage) return;
+  const fullPrefix = PREFIX + pathPrefix;
+  try {
+    for (let i = 0; i < safeStorage.length; i++) {
+      const k = safeStorage.key(i);
+      if (!k || !k.startsWith(fullPrefix)) continue;
+      const raw = safeStorage.getItem(k);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.data)) {
+          const next = mutator(parsed.data);
+          if (next !== parsed.data) {
+            safeStorage.setItem(k, JSON.stringify({ t: parsed.t, data: next }));
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore
+  }
+};
