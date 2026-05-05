@@ -108,6 +108,17 @@ Implemented:
 
 Testing: 69/69 pytest backend pass (7 nuovi test idempotency), frontend e2e 100% — verificato POST/PUT/DELETE offline → optimistic UI → riconnessione → drain → backend con stessi id senza duplicati.
 
+## Iteration 8 — 2026-05 (Feature Update — "Tap-to-Maps + Tabs Riepilogo + Vista Anno")
+Implemented:
+- **Tap-to-Maps**: indirizzo cliente cliccabile → apre Google Maps in nuovo tab/app. Su Agenda, Incassi, Prossimi lavori, e link "Apri in Maps →" nel `ClientFormDialog`. `target="_blank"` + `stopPropagation` per non aprire il dialog.
+- **Helper `googleMapsUrl(address)`**, **`previousMonthKey()`**, **`formatMonthLabel(yyyymm)`** in `lib/utils.js`.
+- **Refactor backend**: estratto `_compute_summary(uid, month)` come helper condiviso, riusato da `/summary` e dal nuovo endpoint annuale.
+- **`GET /api/summary/year?year=YYYY`**: 12 mesi (gen-dic) con balance, totali annuali, `best_month`/`worst_month` (solo tra i mesi con attività).
+- **`Riepilogo` con 3 tabs** (segmented control in cima): "In corso" (default, già esistente), "Mese chiuso" (snapshot del mese precedente, navigator nascosto, header cambiato), "Anno" (nuova vista).
+- **`YearlyView.jsx`**: header con selettore anno (next disabled quando year > current+1), card P&L annuale con totali, pills best/worst mese, lista 12 mesi con barre orizzontali proporzionali al |balance| (max-clamp per evitare div/0 su anno vuoto), mesi vuoti dimmed e mostrano "—".
+
+Testing: 75/75 pytest backend pass (6 nuovi test yearly), frontend e2e 14/14 — verificato tap-to-maps su Agenda+Incassi+Dialog, tabs switch, snapshot Mese chiuso, YearlyView con best/worst, year nav, anno vuoto safe.
+
 ## Backlog (P1) — aggiornato
 - Export Riepilogo mensile in PDF/CSV.
 - Tap-to-maps sull'indirizzo cliente.
