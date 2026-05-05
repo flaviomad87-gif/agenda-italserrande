@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
-import { formatEUR, isoMonth } from "../lib/utils";
-import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, Package, ChevronRight as Chev } from "lucide-react";
+import { formatEUR, isoMonth, previousMonthKey, formatMonthLabel } from "../lib/utils";
+import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, Package, ChevronRight as Chev, Calendar, Archive, BarChart3 } from "lucide-react";
 import { format, parseISO, addMonths, subMonths } from "date-fns";
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
 import WorkerAdvancesDialog from "../components/WorkerAdvancesDialog";
+import YearlyView from "../components/YearlyView";
 
 const PAY_META = {
   contanti: { label: "Contanti", icon: Wallet, bg: "bg-[#EAF3EF]", text: "text-[#2E5A47]" },
@@ -14,19 +15,25 @@ const PAY_META = {
 };
 
 export default function Riepilogo() {
+  const [view, setView] = useState("current"); // "current" | "closed" | "year"
   const [month, setMonth] = useState(isoMonth());
   const [data, setData] = useState(null);
   const [byWorker, setByWorker] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorker, setSelectedWorker] = useState(null);
 
+  // Mese visibile in base alla tab (closed = sempre il mese precedente al corrente)
+  const visibleMonth = view === "closed" ? previousMonthKey() : month;
+  const isLocked = view === "closed";
+
   const reloadByWorker = (m) =>
     api.get(`/advances/by-worker`, { params: { month: m } }).then((r) => setByWorker(r.data));
 
   useEffect(() => {
+    if (view === "year") return; // YearlyView gestisce le sue chiamate
     let cancelled = false;
-    const cSum = apiGetWithCache(`/summary`, { month });
-    const cWk = apiGetWithCache(`/advances/by-worker`, { month });
+    const cSum = apiGetWithCache(`/summary`, { month: visibleMonth });
+    const cWk = apiGetWithCache(`/advances/by-worker`, { month: visibleMonth });
     if (cSum.cached) setData(cSum.cached);
     if (cWk.cached) setByWorker(cWk.cached);
     setLoading(!(cSum.cached && cWk.cached));
@@ -45,22 +52,55 @@ export default function Riepilogo() {
     return () => {
       cancelled = true;
     };
-  }, [month]);
+  }, [visibleMonth, view]);
 
-  const monthLabel = format(parseISO(`${month}-01`), "MMMM yyyy", { locale: it });
+  const monthLabel = format(parseISO(`${visibleMonth}-01`), "MMMM yyyy", { locale: it });
   const shiftMonth = (delta) => {
+    if (isLocked) return;
     const d = parseISO(`${month}-01`);
     const next = delta > 0 ? addMonths(d, 1) : subMonths(d, 1);
     setMonth(format(next, "yyyy-MM"));
   };
 
+  const Tab = ({ value, label, icon: Icon, testId }) => (
+    <button
+      onClick={() => setView(value)}
+      data-testid={testId}
+      className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+        view === value ? "bg-[#4A5D23] text-white shadow" : "text-stone-500 hover:text-stone-800"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      <span className="whitespace-nowrap">{label}</span>
+    </button>
+  );
+
   return (
     <div className="space-y-6 fade-in">
+      {/* Tabs */}
+      <div className="flex w-full rounded-full border border-stone-200 bg-white p-1 shadow-sm" data-testid="riepilogo-tabs">
+        <Tab value="current" label="In corso" icon={Calendar} testId="riepilogo-tab-current" />
+        <Tab value="closed" label="Mese chiuso" icon={Archive} testId="riepilogo-tab-closed" />
+        <Tab value="year" label="Anno" icon={BarChart3} testId="riepilogo-tab-year" />
+      </div>
+
+      {view === "year" ? (
+        <YearlyView />
+      ) : (
+      <>
       <header className="flex items-end justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Riepilogo mensile</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+            {view === "closed" ? "Mese chiuso · snapshot" : "Riepilogo mensile"}
+          </div>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl capitalize">{monthLabel}</h1>
+          {view === "closed" && (
+            <p className="mt-1 text-xs text-stone-500">
+              Sempre il mese appena finito. Si aggiorna automaticamente al cambio di mese.
+            </p>
+          )}
         </div>
+        {!isLocked && (
         <div className="flex items-center gap-2">
           <button
             onClick={() => shiftMonth(-1)}
@@ -79,6 +119,7 @@ export default function Riepilogo() {
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
+        )}
       </header>
 
       {loading || !data ? (
@@ -326,13 +367,15 @@ export default function Riepilogo() {
           </section>
         </>
       )}
+      </>
+      )}
 
       <WorkerAdvancesDialog
         open={Boolean(selectedWorker)}
         onOpenChange={(o) => !o && setSelectedWorker(null)}
         worker={selectedWorker}
-        month={month}
-        onDeleted={() => reloadByWorker(month)}
+        month={visibleMonth}
+        onDeleted={() => reloadByWorker(visibleMonth)}
       />
     </div>
   );

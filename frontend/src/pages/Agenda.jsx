@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
-import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat, computeClientBalance, computeClientMargin } from "../lib/utils";
+import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat, computeClientBalance, computeClientMargin, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import DateNavigator from "../components/DateNavigator";
 import ClientFormDialog from "../components/ClientFormDialog";
@@ -238,9 +238,16 @@ export default function Agenda() {
                     <div className="font-display text-lg font-bold tracking-tight">{c.name}</div>
                     <div className="mt-1 flex flex-col gap-1 text-sm text-stone-600">
                       {c.address && (
-                        <span className="inline-flex items-center gap-1.5">
+                        <a
+                          href={googleMapsUrl(c.address)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`maps-link-${c.id}`}
+                          className="inline-flex w-fit items-center gap-1.5 hover:text-[#4A5D23]"
+                        >
                           <MapPin className="h-3.5 w-3.5 text-stone-400" /> {c.address}
-                        </span>
+                        </a>
                       )}
                       {c.phone && (
                         <a

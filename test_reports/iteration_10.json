@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 10 - Tested 3 new features: tap-to-maps links, Riepilogo segmented tabs, and yearly view. Backend: 75/75 tests pass (added 6 new TestYearlySummary tests, all 69 existing still green). Frontend: all flows verified end-to-end with Playwright (login → seed client w/ address → verify maps href on Agenda+Incassi+Dialog, stopPropagation, hidden-when-empty, Riepilogo 3 tabs incl. Mese chiuso snapshot view + Anno yearly view with 12 months, best/worst pills, year nav with future-disabled).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iteration_10_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_compute_summary helper extraction is clean: reused identically by /summary and /summary/year, eliminating duplicate aggregation logic.",
+    "Yearly endpoint correctly computes best/worst only over months with at least one entity (clients/expenses/advances), guarding empty-year case → null.",
+    "Frontend googleMapsUrl helper safely handles falsy address (returns ''), and ClientFormDialog conditionally renders the link only when address is truthy — matches spec.",
+    "Tap-to-maps <a> uses target='_blank' rel='noopener noreferrer' + onClick stopPropagation — verified click does NOT bubble to open client dialog.",
+    "YearlyView: bar-chart width uses Math.max(1, ...|balance|) so all-zero year does not divide-by-zero. Empty months render '—' and apply opacity-60 → matches spec.",
+    "previousMonthKey() correctly handles January boundary by setting day=1 before subtracting month (Jan 2026 → Dec 2025) — verified by reading util."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (75/75)", "frontend": "100% (all 14 spec checks PASS)"},
+  "test_credentials": "Reused user from prior register attempt: testuser+yr1777994990@italserrande.test / TestPassword123!. Initial register call this run timed out (likely Firebase rate-limit/preview latency); fell back to login with the same credentials and proceeded.",
+  "seed_data_creation": "Seeded 1 client TEST_Cliente_Maps (Via Roma 1, Milano, lavoro_eseguito, 150€) for end-to-end map-link + yearly aggregation testing. Cleanup attempted at end of script.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "75/75 backend pass after iteration 10. Yearly summary endpoint /api/summary/year is solid. Frontend tap-to-maps verified on Agenda+Incassi+ClientFormDialog (data-testid: maps-link-<id>, maps-link-incasso-<id>, maps-link-pending-<id>, client-maps-link). Riepilogo tab structure: data-testid='riepilogo-tabs' with 3 children riepilogo-tab-current/closed/year. YearlyView at data-testid='yearly-view' with year-pnl, year-balance, year-best, year-worst (only when worst != best), year-months-list, year-month-YYYY-MM (12 rows), year-prev, year-next (disabled when year >= currentYear+1). Tap-to-maps not verified on ProssimiLavori card because no pending client was seeded — but selector code path (data-testid='maps-link-pending-<id>') is identical to Agenda/Incassi pattern verified working.",
+  "rca of the issue": "N/A — no bugs found in this iteration. All three new features (tap-to-maps, Riepilogo tabs, YearlyView) are working as specified."
+}

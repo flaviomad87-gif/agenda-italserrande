@@ -209,7 +209,20 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Indirizzo</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Indirizzo</Label>
+                {form.address && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="client-maps-link"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4A5D23] hover:underline"
+                  >
+                    Apri in Maps →
+                  </a>
+                )}
+              </div>
               <Input
                 value={form.address}
                 onChange={(e) => update("address", e.target.value)}

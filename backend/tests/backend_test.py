@@ -1616,3 +1616,154 @@ class TestIdempotency:
             assert r.json()["id"] == idem
         finally:
             auth_a.delete(f"{API}/clients/{idem}")
+
+
+
+# ---------- Yearly Summary (NEW iteration 10) ----------
+
+class TestYearlySummary:
+    """Test GET /api/summary/year endpoint introduced for the Riepilogo 'Anno' tab."""
+
+    def test_year_endpoint_shape(self, auth_a):
+        """Endpoint returns expected structure with 12 month slots."""
+        year = int(MONTH.split("-")[0])
+        r = auth_a.get(f"{API}/summary/year", params={"year": year})
+        assert r.status_code == 200, r.text
+        data = r.json()
+        for k in ["year", "months", "totals", "best_month", "worst_month"]:
+            assert k in data, f"missing key {k}"
+        assert data["year"] == year
+        assert isinstance(data["months"], list)
+        assert len(data["months"]) == 12
+        # Each month entry must have monthly summary shape
+        for i, m in enumerate(data["months"], start=1):
+            assert m["month"] == f"{year:04d}-{i:02d}"
+            for key in ["incassi_by_method", "total_incassi", "total_spese",
+                        "total_advances", "total_materials", "balance", "counts"]:
+                assert key in m, f"month {m['month']} missing {key}"
+        # totals shape
+        for key in ["total_incassi", "total_spese", "total_advances",
+                    "total_materials", "balance"]:
+            assert key in data["totals"]
+
+    def test_year_empty_returns_nulls(self, auth_a):
+        """A year with no activity at all → best_month/worst_month null, totals 0."""
+        # Use a far past year unlikely to contain any user data
+        r = auth_a.get(f"{API}/summary/year", params={"year": 1990})
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["best_month"] is None
+        assert data["worst_month"] is None
+        assert data["totals"]["balance"] == 0
+        assert data["totals"]["total_incassi"] == 0
+        assert data["totals"]["total_spese"] == 0
+        for m in data["months"]:
+            assert m["balance"] == 0
+            assert m["counts"]["clients"] == 0
+            assert m["counts"]["expenses"] == 0
+            assert m["counts"]["advances"] == 0
+
+    def test_year_totals_match_sum_of_months(self, auth_a):
+        """totals.balance == sum(months[i].balance) within rounding tolerance."""
+        year_str, month_num = MONTH.split("-")
+        year = int(year_str)
+        seeded = {"clients": [], "expenses": [], "advances": []}
+        try:
+            r = auth_a.post(f"{API}/clients", json={
+                "date": TODAY, "name": "TEST_year_sum",
+                "status": "lavoro_eseguito", "payment_method": "contanti",
+                "amount": 333.33,
+            })
+            seeded["clients"].append(r.json()["id"])
+            r = auth_a.post(f"{API}/expenses", json={
+                "date": TODAY, "category": "TEST_year_sum_exp",
+                "amount": 11.11, "source": "contanti",
+            })
+            seeded["expenses"].append(r.json()["id"])
+            r = auth_a.post(f"{API}/advances", json={
+                "date": TODAY, "worker_name": "TEST_year_sum_w", "amount": 22.22,
+            })
+            seeded["advances"].append(r.json()["id"])
+
+            r = auth_a.get(f"{API}/summary/year", params={"year": year})
+            data = r.json()
+            sum_balance = sum(m["balance"] for m in data["months"])
+            assert abs(data["totals"]["balance"] - sum_balance) < 0.01
+            sum_incassi = sum(m["total_incassi"] for m in data["months"])
+            assert abs(data["totals"]["total_incassi"] - sum_incassi) < 0.01
+            sum_spese = sum(m["total_spese"] for m in data["months"])
+            assert abs(data["totals"]["total_spese"] - sum_spese) < 0.01
+            # Current month (where seeds were inserted) has activity → best/worst not null
+            current_month_key = MONTH
+            assert data["best_month"] is not None
+            assert data["worst_month"] is not None
+            # The seeded month must be one of the active months (best or worst depending on signs)
+            active_keys = [m["month"] for m in data["months"]
+                           if m["counts"]["clients"] > 0 or m["counts"]["expenses"] > 0
+                           or m["counts"]["advances"] > 0]
+            assert current_month_key in active_keys
+        finally:
+            for cid in seeded["clients"]:
+                auth_a.delete(f"{API}/clients/{cid}")
+            for eid in seeded["expenses"]:
+                auth_a.delete(f"{API}/expenses/{eid}")
+            for aid in seeded["advances"]:
+                auth_a.delete(f"{API}/advances/{aid}")
+
+    def test_year_best_worst_excludes_empty_months(self, auth_a):
+        """best_month/worst_month must be among months with at least one entity."""
+        year = int(MONTH.split("-")[0])
+        seeded = {"clients": []}
+        try:
+            r = auth_a.post(f"{API}/clients", json={
+                "date": TODAY, "name": "TEST_year_bw",
+                "status": "lavoro_eseguito", "payment_method": "contanti",
+                "amount": 99.0,
+            })
+            seeded["clients"].append(r.json()["id"])
+            r = auth_a.get(f"{API}/summary/year", params={"year": year})
+            data = r.json()
+            active_keys = [m["month"] for m in data["months"]
+                           if m["counts"]["clients"] > 0 or m["counts"]["expenses"] > 0
+                           or m["counts"]["advances"] > 0]
+            assert data["best_month"] in active_keys
+            assert data["worst_month"] in active_keys
+        finally:
+            for cid in seeded["clients"]:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_year_user_isolation(self, auth_a, auth_b):
+        """User B's year endpoint must NOT include user A's data."""
+        year = int(MONTH.split("-")[0])
+        seeded = {"clients": []}
+        try:
+            r = auth_a.post(f"{API}/clients", json={
+                "date": TODAY, "name": "TEST_year_iso_A",
+                "status": "lavoro_eseguito", "payment_method": "contanti",
+                "amount": 777.0,
+            })
+            seeded["clients"].append(r.json()["id"])
+
+            r_a = auth_a.get(f"{API}/summary/year", params={"year": year})
+            r_b = auth_b.get(f"{API}/summary/year", params={"year": year})
+            data_a = r_a.json()
+            data_b = r_b.json()
+
+            # User A's totals should include the 777 contanti
+            assert data_a["totals"]["total_incassi"] >= 777.0
+            # User B should NOT see this
+            # (B may have other data from earlier tests, but its total_incassi
+            #  should not include the 777 we just inserted for A)
+            # Safest check: B's current-month total_incassi < 777 OR the difference shows isolation
+            month_idx = int(MONTH.split("-")[1]) - 1
+            b_month_incassi = data_b["months"][month_idx]["total_incassi"]
+            a_month_incassi = data_a["months"][month_idx]["total_incassi"]
+            assert a_month_incassi - b_month_incassi >= 776.99
+        finally:
+            for cid in seeded["clients"]:
+                auth_a.delete(f"{API}/clients/{cid}")
+
+    def test_year_unauth(self):
+        """Endpoint requires authentication."""
+        r = requests.get(f"{API}/summary/year", params={"year": 2025})
+        assert r.status_code in (401, 403)

@@ -548,10 +548,8 @@ async def delete_advance(advance_id: str, user=Depends(get_current_user)):
 
 # ---------- Monthly Summary ----------
 
-@api.get("/summary")
-async def monthly_summary(month: str, user=Depends(get_current_user)):
-    """Aggregated totals for a month (YYYY-MM)."""
-    uid = user["uid"]
+async def _compute_summary(uid: str, month: str) -> dict:
+    """Calcola i totali per un mese (YYYY-MM). Logica condivisa tra summary mensile e annuale."""
     regex = {"$regex": f"^{month}"}
 
     clients = await db.clients.find(
@@ -576,7 +574,6 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
         amt = float(c.get("amount") or 0)
         payments = c.get("payments") or []
         if payments:
-            # Nuovo modello: somma i pagamenti per metodo (sempre conteggiati)
             for p in payments:
                 p_amt = float(p.get("amount") or 0)
                 method = (p.get("method") or "").strip()
@@ -584,7 +581,6 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
                     incassi[method] += p_amt
                 total_executed += p_amt
         else:
-            # Legacy: usa amount + payment_method se status = lavoro_eseguito
             if c.get("status") == "lavoro_eseguito":
                 total_executed += amt
                 pm = c.get("payment_method") or ""
@@ -597,7 +593,6 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
     for e in expenses:
         spese_by_source[e.get("source", "contanti")] += float(e.get("amount") or 0)
 
-    # Materiali / spese di fornitura legati ai clienti del mese
     materials_by_source = {"contanti": 0.0, "conto_aziendale": 0.0}
     total_materials = 0.0
     for c in clients:
@@ -616,20 +611,60 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
     return {
         "month": month,
         "incassi_by_method": incassi,
-        "total_incassi": total_incassi,
-        "total_quotes": total_quotes,
-        "total_executed": total_executed,
+        "total_incassi": round(total_incassi, 2),
+        "total_quotes": round(total_quotes, 2),
+        "total_executed": round(total_executed, 2),
         "spese_by_source": spese_by_source,
-        "total_spese": total_spese,
+        "total_spese": round(total_spese, 2),
         "materials_by_source": materials_by_source,
         "total_materials": round(total_materials, 2),
-        "total_advances": total_advances,
-        "balance": total_incassi - total_spese - total_advances - total_materials,
+        "total_advances": round(total_advances, 2),
+        "balance": round(total_incassi - total_spese - total_advances - total_materials, 2),
         "counts": {
             "clients": len(clients),
             "expenses": len(expenses),
             "advances": len(advances),
         },
+    }
+
+
+@api.get("/summary")
+async def monthly_summary(month: str, user=Depends(get_current_user)):
+    """Aggregated totals for a month (YYYY-MM)."""
+    return await _compute_summary(user["uid"], month)
+
+
+@api.get("/summary/year")
+async def yearly_summary(year: int, user=Depends(get_current_user)):
+    """Riepilogo annuale: 12 mesi (gen-dic) con guadagni/perdite + totali annuali."""
+    uid = user["uid"]
+    months_data = []
+    for m in range(1, 13):
+        key = f"{year:04d}-{m:02d}"
+        s = await _compute_summary(uid, key)
+        months_data.append(s)
+
+    totals = {
+        "total_incassi": round(sum(x["total_incassi"] for x in months_data), 2),
+        "total_executed": round(sum(x["total_executed"] for x in months_data), 2),
+        "total_quotes": round(sum(x["total_quotes"] for x in months_data), 2),
+        "total_spese": round(sum(x["total_spese"] for x in months_data), 2),
+        "total_materials": round(sum(x["total_materials"] for x in months_data), 2),
+        "total_advances": round(sum(x["total_advances"] for x in months_data), 2),
+        "balance": round(sum(x["balance"] for x in months_data), 2),
+    }
+
+    # Trova il miglior e il peggior mese (per balance) tra quelli con almeno un'attività
+    active = [m for m in months_data if m["counts"]["clients"] > 0 or m["counts"]["expenses"] > 0 or m["counts"]["advances"] > 0]
+    best_month = max(active, key=lambda m: m["balance"])["month"] if active else None
+    worst_month = min(active, key=lambda m: m["balance"])["month"] if active else None
+
+    return {
+        "year": year,
+        "months": months_data,
+        "totals": totals,
+        "best_month": best_month,
+        "worst_month": worst_month,
     }
 
 

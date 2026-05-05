@@ -128,3 +128,28 @@ export const computeClientMargin = (c) => {
   const marginPct = net > 0 ? (margin / net) * 100 : 0;
   return { net, materialsTotal, margin, marginPct };
 };
+
+/** Genera l'URL di Google Maps per un indirizzo. Apre nell'app Maps su mobile. */
+export const googleMapsUrl = (address) => {
+  if (!address) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+};
+
+/** Restituisce il mese precedente (YYYY-MM) rispetto a oggi. */
+export const previousMonthKey = () => {
+  const d = new Date();
+  d.setDate(1); // evita problemi tipo 31 marzo → 31 febbraio
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+/** Formatta YYYY-MM in italiano leggibile (es. "Gennaio 2026"). */
+export const formatMonthLabel = (yyyymm) => {
+  if (!yyyymm) return "";
+  const [y, m] = yyyymm.split("-").map(Number);
+  const months = [
+    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
+  ];
+  return `${months[(m || 1) - 1]} ${y || ""}`;
+};
