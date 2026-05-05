@@ -1,0 +1,56 @@
+{
+  "summary": "Iteration 11 — full regression / bug-sweep after 10 feature iterations. Backend: 87/87 pytest pass (75 baseline + 12 NEW edge-case tests in test_edge_cases_iter11.py). Frontend: smoke test login → all 5 tabs (agenda, incassi, prossimi-lavori, riepilogo, spese) → ClientFormDialog with special chars → ESC discard → search → PWA manifest + SW. ZERO bugs found. App is production-stable.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_edge_cases_iter11.py",
+    "/app/test_reports/pytest/iteration_11_results.xml",
+    "/app/test_reports/pytest/iteration_11_edge.xml"
+  ],
+  "action_items": [],
+  "edge_cases_verified": [
+    "Apostrophe in name (L'Officina di Rossi) — create + GET + search round-trip OK; UI input accepts it.",
+    "Double quote in name (Rossi \"il matto\") — persisted and returned correctly.",
+    "Special chars in address (Piazza S. Pietro, 1) — stored verbatim; encodeURIComponent round-trip verified.",
+    "amount=0 with materials>0 — total_materials counted, total_incassi=0, NOT in unpaid list.",
+    "payments > toCollect (eccedenza) — client correctly excluded from unpaid; incassi summed.",
+    "Pending client with materials+payments — excluded from agenda/summary/unpaid; execute() preserves materials & payments verbatim and updates date+pending=false.",
+    "Cross-month isolation — January 2026 client invisible in December 2025 summary.",
+    "GET /summary/year?year=2030 — returns 12 empty months, all totals 0, no crash.",
+    "GET /clients?from_date=2026-01-01&to_date=2025-12-31 (reverse range) — returns [] (Mongo $gte/$lte natural behavior), no crash.",
+    "Garbage Bearer token — backend returns 401/403.",
+    "End-to-end P&L formula 1000 - 50 - 200 - 100 = 650 verified in /summary response.",
+    "Search returns BOTH pending and non-pending clients (no exclusion clause)."
+  ],
+  "frontend_smoke_verified": [
+    "Firebase signup + UI login → /agenda landing with 'Accesso effettuato' toast.",
+    "Navigation Agenda → Incassi → Prossimi → Riepilogo → Spese — 0 console errors, 0 pageerrors.",
+    "ClientFormDialog accepts \"L'Officina di Rossi \\\"il matto\\\"\" name + \"Piazza S. Pietro, 1\" address + 500 amount.",
+    "'Apri in Maps →' link conditionally appears once address is filled (hidden when empty).",
+    "ESC closes dialog and discards data (no client appears in Agenda after cancel).",
+    "Search input accepts apostrophe character without crash.",
+    "PWA: /manifest.json returns 200; service worker registered.",
+    "Sidebar nav, headers, cards: contrast OK, spacing consistent, FAB '+ Aggiungi' clearly visible."
+  ],
+  "critical_code_review_comments": [
+    "_compute_summary helper is shared between /summary and /summary/year — single source of truth for monthly aggregation, no drift risk.",
+    "/clients/unpaid correctly filters: only status=lavoro_eseguito with balance>0.01, excludes pending, excludes overpaid (eccedenza), excludes amount=0 — verified by tests.",
+    "/clients/{id}/execute uses find_one_and_update with $set only on {pending,date} — preserves all other fields (materials/payments/notes/amount) atomically. Verified by TestPendingPreservation.",
+    "Search uses re.escape() on the query term → no regex-injection risk via apostrophes/parentheses, and pending clients are NOT filtered out (matches spec UX requirement).",
+    "Reverse-range query is harmless: Mongo $gte/$lte returns empty set; no 500. Could optionally short-circuit with from>to to save a DB round-trip, but not a bug.",
+    "server.py is 689 lines — under the 700-line guideline; if more endpoints are added consider splitting into routers (clients, expenses, advances, summary)."
+  ],
+  "updated_files": ["/app/backend/tests/test_edge_cases_iter11.py"],
+  "success_rate": {"backend": "100% (87/87)", "frontend": "100% (all 8 smoke checks PASS, 0 console/page errors)"},
+  "test_credentials": "Per-run Firebase signup. Backend tests: testuser+edge<ts><uuid>@italserrande.test / TestPassword123!. Frontend smoke: testuser+ui<ts>@italserrande.test / TestPassword123!.",
+  "seed_data_creation": "All test data is created with TEST_ prefix and deleted at end of each test. The module-scoped fixture also performs a best-effort sweep of /api/clients?month=2026-01 on teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After 11 iterations the app is rock-solid. 87 backend pytest tests covering: auth gates, CRUD (clients/expenses/advances/recurring), pending workflow, unpaid logic, monthly+yearly summary, materials, P&L, eccedenza, special-char persistence, cross-month isolation, future empty year, reverse range, search-includes-pending, multi-user isolation. Frontend smoke covers nav + dialog + ESC + search + PWA. New file: test_edge_cases_iter11.py (12 tests, ~340 lines). XML reports: /app/test_reports/pytest/iteration_11_results.xml and iteration_11_edge.xml. Note: PnL test uses category='altro' (Expense.category is required Pydantic field).",
+  "rca of the issue": "N/A — full regression sweep, no bugs found. Italian PWA Agenda Italserrande passes every edge case in the bug-sweep checklist."
+}
