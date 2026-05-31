@@ -1,14 +1,29 @@
 name: Keep Render backend awake
 
-# Pinga il backend FastAPI ogni ~13 minuti per evitare lo sleep del piano
-# free di Render (che parte dopo ~15 min di inattività).
-# Free tier limit: GitHub Actions su public repo = unlimited; su private repo = 2.000 min/mese.
-# Una run dura ~10s, quindi ~110 runs/giorno → ~5500 min/mese: ATTENZIONE su private repo.
+# Pinga il backend FastAPI ogni 13 minuti SOLO negli orari di lavoro
+# (Lun-Sab, 6:00-20:00 Italy time) per restare entro le 750 ore/mese
+# del piano free di Render.
+#
+# Cron note: GitHub Actions usa UTC. L'Italia è UTC+1 (inverno) o UTC+2 (estate).
+# Per coprire entrambe le stagioni in modo robusto usiamo 4:00-19:00 UTC:
+#   - In estate (CEST, UTC+2) → copre 06:00-21:00 Italy
+#   - In inverno (CET,  UTC+1) → copre 05:00-20:00 Italy
+# In entrambi i casi la finestra 06:00-20:00 richiesta è coperta.
+#
+# Consumo stimato sul piano free:
+#   - 14h × 26 giorni = ~364h/mese sul servizio principale
+#   - Restano ~386h di margine sui 750h/mese del workspace Render
+#
+# Consumo GitHub Actions:
+#   - ~5 ping/h × 15h × 26 giorni = ~1.950 run/mese × ~10s = ~325 min/mese
+#   - Sotto il limite gratuito di 2.000 min/mese anche su repo privato.
 
 on:
   schedule:
-    - cron: "*/13 * * * *"  # ogni 13 minuti
-  workflow_dispatch:           # permette lancio manuale
+    # Ogni 13 minuti, dalle 4:00 alle 19:59 UTC, da Lunedì a Sabato (1-6).
+    # Cron giorno-settimana: 0=Dom, 1=Lun, ..., 6=Sab.
+    - cron: "*/13 4-19 * * 1-6"
+  workflow_dispatch:           # permette lancio manuale dalla UI di GitHub
 
 jobs:
   ping:
