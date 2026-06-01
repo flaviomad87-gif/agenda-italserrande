@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { api } from "../lib/api";
-import { Loader2, Wallet, CreditCard, Landmark, AlertTriangle } from "lucide-react";
+import { Loader2, Wallet, CreditCard, Landmark, AlertTriangle, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { formatEUR } from "../lib/utils";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
@@ -32,10 +33,11 @@ const fmtDay = (d) => {
   }
 };
 
-export default function PaymentsBreakdownDialog({ open, onOpenChange, month, method }) {
+export default function PaymentsBreakdownDialog({ open, onOpenChange, month, method, onChanged }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     if (!open || !month || !method) return;
@@ -57,6 +59,31 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
       cancelled = true;
     };
   }, [open, month, method]);
+
+  const removePayment = async (p) => {
+    if (!p.payment_id) return;
+    if (!window.confirm(`Eliminare questo pagamento di ${formatEUR(p.amount)} di ${p.client_name}?`)) return;
+    setDeletingId(p.payment_id);
+    // Optimistic: rimuovi subito dalla lista
+    const prevData = data;
+    setData((d) => {
+      if (!d) return d;
+      const items = d.items.filter((x) => x.payment_id !== p.payment_id);
+      const total = items.reduce((s, x) => s + (x.amount || 0), 0);
+      return { ...d, items, total: Math.round(total * 100) / 100, count: items.length };
+    });
+    try {
+      await api.delete(`/clients/${p.client_id}/payments/${p.payment_id}`);
+      toast.success("Pagamento eliminato");
+      window.__refreshUnpaidBadge?.();
+      onChanged?.();
+    } catch {
+      toast.error("Errore durante l'eliminazione. Riprova.");
+      setData(prevData);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const meta = META[method] || META.contanti;
   const Icon = meta.icon;

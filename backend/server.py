@@ -351,6 +351,26 @@ async def delete_client(client_id: str, user=Depends(get_current_user)):
     return {"ok": True}
 
 
+@api.delete("/clients/{client_id}/payments/{payment_id}")
+async def delete_payment(client_id: str, payment_id: str, user=Depends(get_current_user)):
+    """Elimina un singolo pagamento dal cliente (utile per rimuovere duplicati
+    individuati nel dettaglio incassi)."""
+    client = await db.clients.find_one(
+        {"id": client_id, "user_id": user["uid"]}, {"_id": 0}
+    )
+    if not client:
+        raise HTTPException(404, "Cliente non trovato")
+    payments = client.get("payments") or []
+    new_payments = [p for p in payments if (p.get("id") or "") != payment_id]
+    if len(new_payments) == len(payments):
+        raise HTTPException(404, "Pagamento non trovato")
+    await db.clients.update_one(
+        {"id": client_id, "user_id": user["uid"]},
+        {"$set": {"payments": new_payments, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True, "remaining": len(new_payments)}
+
+
 # ---------- Expenses ----------
 
 @api.post("/expenses", response_model=Expense)

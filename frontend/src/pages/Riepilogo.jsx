@@ -31,6 +31,9 @@ export default function Riepilogo() {
   const reloadByWorker = (m) =>
     api.get(`/advances/by-worker`, { params: { month: m } }).then((r) => setByWorker(r.data));
 
+  const reloadSummary = (m) =>
+    api.get(`/summary`, { params: { month: m } }).then((r) => setData(r.data)).catch(() => {});
+
   useEffect(() => {
     if (view === "year") return; // YearlyView gestisce le sue chiamate
     let cancelled = false;
@@ -396,6 +399,7 @@ export default function Riepilogo() {
         onOpenChange={(o) => !o && setBreakdownMethod(null)}
         month={visibleMonth}
         method={breakdownMethod}
+        onChanged={() => reloadSummary(visibleMonth)}
       />
     </div>
   );
