@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { api, apiGetWithCache } from "../lib/api";
 import { formatEUR, isoMonth, previousMonthKey, formatMonthLabel } from "../lib/utils";
-import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, Package, ChevronRight as Chev, Calendar, Archive, BarChart3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, HardHat, Package, ChevronRight as Chev, Calendar, Archive, BarChart3, Search } from "lucide-react";
 import { format, parseISO, addMonths, subMonths } from "date-fns";
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
 import WorkerAdvancesDialog from "../components/WorkerAdvancesDialog";
 import YearlyView from "../components/YearlyView";
+import PaymentsBreakdownDialog from "../components/PaymentsBreakdownDialog";
 
 const PAY_META = {
   contanti: { label: "Contanti", icon: Wallet, bg: "bg-[#EAF3EF]", text: "text-[#2E5A47]" },
@@ -21,6 +22,7 @@ export default function Riepilogo() {
   const [byWorker, setByWorker] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorker, setSelectedWorker] = useState(null);
+  const [breakdownMethod, setBreakdownMethod] = useState(null);
 
   // Mese visibile in base alla tab (closed = sempre il mese precedente al corrente)
   const visibleMonth = view === "closed" ? previousMonthKey() : month;
@@ -214,22 +216,33 @@ export default function Riepilogo() {
           {/* Incassi by method */}
           <section>
             <h2 className="mb-3 font-display text-lg font-semibold">Incassi per modalità</h2>
+            <p className="-mt-2 mb-3 text-xs text-stone-500">
+              Tocca un riquadro per vedere il dettaglio giornaliero dei pagamenti.
+            </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {Object.entries(PAY_META).map(([k, m]) => {
                 const Icon = m.icon;
                 return (
-                  <div
+                  <button
                     key={k}
-                    className={`rounded-2xl border border-stone-200/60 ${m.bg} p-4 shadow-sm`}
+                    type="button"
+                    onClick={() => setBreakdownMethod(k)}
+                    className={`group rounded-2xl border border-stone-200/60 ${m.bg} p-4 text-left shadow-sm transition hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]`}
                     data-testid={`riepilogo-incasso-${k}`}
                   >
-                    <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-widest ${m.text}`}>
-                      <Icon className="h-4 w-4" /> {m.label}
+                    <div className={`flex items-center justify-between text-xs font-semibold uppercase tracking-widest ${m.text}`}>
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" /> {m.label}
+                      </span>
+                      <Search className="h-3.5 w-3.5 opacity-60 transition group-hover:opacity-100" />
                     </div>
                     <div className="mt-1 font-display text-2xl font-bold sm:text-3xl">
                       {formatEUR(data.incassi_by_method[k] || 0)}
                     </div>
-                  </div>
+                    <div className={`mt-1 text-[11px] font-medium ${m.text} opacity-70`}>
+                      Vedi dettaglio →
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -376,6 +389,13 @@ export default function Riepilogo() {
         worker={selectedWorker}
         month={visibleMonth}
         onDeleted={() => reloadByWorker(visibleMonth)}
+      />
+
+      <PaymentsBreakdownDialog
+        open={Boolean(breakdownMethod)}
+        onOpenChange={(o) => !o && setBreakdownMethod(null)}
+        month={visibleMonth}
+        method={breakdownMethod}
       />
     </div>
   );

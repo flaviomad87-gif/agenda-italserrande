@@ -634,6 +634,83 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
     return await _compute_summary(user["uid"], month)
 
 
+@api.get("/payments/by-method")
+async def payments_by_method(month: str, method: str, user=Depends(get_current_user)):
+    """Restituisce il dettaglio dei singoli pagamenti per metodo (contanti/pos/bonifico)
+    per un dato mese. Allinea con il calcolo del Riepilogo:
+    filtra i clienti per JOB DATE nel mese, poi elenca i pagamenti con quel metodo.
+
+    Per ogni pagamento espone sia la job_date (data del lavoro) sia la payment_date
+    (data effettiva del pagamento), così l'utente può verificare con il suo
+    conteggio giornaliero in cassa.
+    """
+    if method not in ("contanti", "pos", "bonifico"):
+        raise HTTPException(400, "Metodo non valido")
+    regex = {"$regex": f"^{month}"}
+    clients = await db.clients.find(
+        {
+            "user_id": user["uid"],
+            "date": regex,
+            "$or": [{"pending": {"$exists": False}}, {"pending": False}],
+        },
+        {"_id": 0},
+    ).to_list(5000)
+
+    items = []
+    legacy_total = 0.0
+    for c in clients:
+        job_date = c.get("date") or ""
+        payments = c.get("payments") or []
+        if payments:
+            for p in payments:
+                p_method = (p.get("method") or "").strip()
+                if p_method != method:
+                    continue
+                items.append({
+                    "client_id": c.get("id"),
+                    "client_name": c.get("name") or "",
+                    "client_address": c.get("address") or "",
+                    "job_date": job_date,
+                    "payment_id": p.get("id"),
+                    "payment_date": p.get("date") or job_date,
+                    "payment_type": p.get("type") or "altro",
+                    "amount": float(p.get("amount") or 0),
+                    "invoice_number": p.get("invoice_number") or "",
+                    "notes": p.get("notes") or "",
+                    "legacy": False,
+                })
+        else:
+            # Legacy: cliente senza payments[] ma con payment_method legacy
+            if c.get("status") == "lavoro_eseguito" and (c.get("payment_method") or "") == method:
+                amt = float(c.get("amount") or 0)
+                if amt > 0:
+                    items.append({
+                        "client_id": c.get("id"),
+                        "client_name": c.get("name") or "",
+                        "client_address": c.get("address") or "",
+                        "job_date": job_date,
+                        "payment_id": None,
+                        "payment_date": job_date,
+                        "payment_type": "saldo",
+                        "amount": amt,
+                        "invoice_number": c.get("invoice_number") or "",
+                        "notes": "",
+                        "legacy": True,
+                    })
+                    legacy_total += amt
+
+    # Ordina per payment_date crescente (allineato al conteggio giornaliero dell'utente)
+    items.sort(key=lambda x: (x["payment_date"] or x["job_date"], x["client_name"]))
+    total = round(sum(it["amount"] for it in items), 2)
+    return {
+        "month": month,
+        "method": method,
+        "total": total,
+        "count": len(items),
+        "items": items,
+    }
+
+
 @api.get("/summary/year")
 async def yearly_summary(year: int, user=Depends(get_current_user)):
     """Riepilogo annuale: 12 mesi (gen-dic) con guadagni/perdite + totali annuali."""
