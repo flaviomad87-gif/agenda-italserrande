@@ -503,7 +503,16 @@ export default function Agenda() {
         open={openAdvance}
         onOpenChange={setOpenAdvance}
         date={date}
-        onSaved={(item) => setAdvances((prev) => [...prev, item])}
+        onSaved={(item) =>
+          setAdvances((prev) => {
+            const idx = prev.findIndex((a) => a.id === item.id);
+            if (idx === -1) return [...prev, item];
+            const next = [...prev];
+            next[idx] = item;
+            return next;
+          })
+        }
+        onError={(id) => setAdvances((prev) => prev.filter((a) => a.id !== id))}
       />
     </div>
   );

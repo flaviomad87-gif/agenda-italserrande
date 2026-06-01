@@ -1,130 +1,58 @@
 # Agenda Italserrande — PRD
 
-## Original Problem Statement (verbatim)
-> Dobbiamo creare un app che utilizzerò da mobile e anche da pc. Deve essere collegato da mail/password con firebase. E lapp di cui ho bisogno è che replichi un agenda che utilizzerò per lavoro, ovviamente deve essere giornaliera. Dentro ogni giorno devo avere modo di scrivere il nome del cliente, l'indirizzo, il numero di telefono e altre info che lo riguardano. Segnare ad ogni cliente se sia preventivo o lavoro eseguito e di segnare la modalità di pagamento effettuato così che a fine mese quando chiudo i conti riesco facilmente a leggere. Devo aver modo di segnare se i miei operai hanno preso acconti. Poi una sezione dove scrivo le spese fisse che ho, sia in contanti che dal conto aziendale. Design pulito e poso stressante alla vista. Intanto fai la prima bozza poi procediamo con altre modifiche. Ed ovviamente devo poter scaricarlo come applicazione, quindi PWA
+## Problema originale
+App per gestire agenda lavori, clienti, spese e acconti operai di una piccola impresa italiana di serrande/serramenti. Frontend React + FastAPI backend + MongoDB, hostato su Render free tier.
 
-## User Persona
-Small-business owner (contractor / Italserrande) doing field work; needs a fast, calm tool to log clients, jobs, payments, worker advances and fixed expenses on mobile and desktop.
+## Architettura
+- Frontend: React (CRA), Tailwind, shadcn/ui, Firebase Auth
+- Backend: FastAPI + Motor (MongoDB async)
+- Hosting: Render free tier (750h/mese)
+- Auth: Firebase ID Token (verificato server-side via `firebase_auth.py`)
+- Offline-first: localStorage cache + coda offline + UUID idempotenti lato client
 
-## Architecture
-- **Frontend**: React (CRA + craco), Tailwind, shadcn/ui, Firebase Web SDK (Auth), react-router, date-fns, lucide-react. PWA (manifest + service worker + icons).
-- **Backend**: FastAPI, Motor (MongoDB async), Firebase Admin SDK for ID-token verification (Bearer auth on every /api/* route).
-- **DB**: MongoDB collections — `clients`, `expenses`, `advances`. Each doc carries `user_id` (Firebase uid).
+## Entità principali
+- **Client** (lavoro/preventivo per una data) — supporta pending (backlog "Prossimi lavori"), payments[], materials[], IVA, ritenuta
+- **Expense** (spesa fissa, mensile)
+- **Advance** (acconto operaio per giorno)
+- **RecurringExpense** (template spesa ricorrente)
 
-## Core Requirements (static)
-1. Firebase email/password auth (login, register, password reset, persistent session).
-2. Daily agenda: clients per day with name, address, phone, notes, status (preventivo / lavoro_eseguito), payment method (contanti / pos / bonifico), amount.
-3. Worker advances per day: free worker name + amount.
-4. Fixed expenses: free category, amount, source (contanti / conto_aziendale).
-5. Monthly summary: incassi by method, total spese by source, total advances, balance, total preventivi.
-6. PWA installable, mobile + desktop responsive.
-7. Italian UI, calm warm minimalist design.
+## Pagine
+- Agenda (giornaliera/settimanale)
+- Prossimi Lavori (backlog pending)
+- Incassi (clienti con saldo aperto)
+- Spese (fisse mensili)
+- Riepilogo (consuntivi mensili/annuali)
+- Profilo
 
-## Implemented (2026-02 — Initial MVP)
-- Backend: 12 endpoints under /api (clients, expenses, advances + summary) all gated by Firebase ID token, scoped per user.
-- Frontend pages: Login, Register, Agenda, Spese, Riepilogo, Profilo + AppShell with mobile bottom nav and desktop sidebar.
-- Reusable form dialogs (Client/Advance/Expense) with delete actions.
-- DateNavigator with shadcn Calendar popover.
-- PWA manifest + service worker + 192/512 icons.
-- Tested end-to-end: 100% backend, 100% frontend pass.
+## Modifiche recenti
 
-## Backlog (P1)
-- Search/filter clients by name across months.
-- Export monthly summary as PDF/CSV.
-- Client phone tap-to-call already wired; add tap-to-navigate (maps) on address.
-- Multiple workers preset + acconti history per worker.
-- Charts on Riepilogo (monthly trend).
+### Feb 2026 — Salvataggio ottimistico (CR slowness)
+**Problema:** Render free tier va in sleep dopo 15 min → primo POST/PUT impiega 30-60s. UX percepita pessima.
+**Fix:** Tutti i dialog di salvataggio (Client, Expense, Advance) ora chiudono il dialog e aggiornano la lista IMMEDIATAMENTE, poi inviano la richiesta in background. Su errore reale: toast + rollback dell'item ottimistico per le creazioni.
+- File: `frontend/src/components/ClientFormDialog.jsx`, `ExpenseFormDialog.jsx`, `AdvanceFormDialog.jsx`, `frontend/src/lib/api.js` (export `newUUID`), `frontend/src/pages/Agenda.jsx` (upsert + onError per advance)
+- Backend già idempotente (POST controlla id esistente)
 
-## P2
-- Push notifications for unpaid quotes ("preventivo aperto > 30 giorni").
-- Multi-tenant / collaboratori invite.
-- Photo attachments per cliente (object storage).
+### Feb 2026 — Keep-Alive Render ottimizzato
+**Problema:** GitHub Action pingava 24/7 + cron-job.org → 750h Render bruciate, servizi sospesi.
+**Fix:** `.github/workflows/keepalive.yml` aggiornato per pingare SOLO il main backend, Lun-Sab 6:00-20:00 IT (~364h/mese). Email backend lasciato on-demand.
+- Documentazione: `/app/DEPLOY_KEEPALIVE.md`
+- Utente deve mantenere `cron-job.org` DISABILITATO per evitare doppio ping
 
-## Test Credentials
-See `/app/memory/test_credentials.md`. Tests dynamically create Firebase users per run.
+## Backlog (P2)
+- Notifica email automatica quando il GitHub Action fallisce N volte di fila
+- Indicatore visivo "in sync..." per item ottimistici non ancora confermati dal server
+- Possibilità di retry manuale dal toast di errore
 
-## Iteration 2 — 2026-04 (Feature Update)
-Implemented:
-- **Ricerca clienti** (GET /api/clients/search): cerca per nome / indirizzo / telefono, case-insensitive, max 50 risultati, ordinati per data desc. Barra di ricerca in cima alla pagina Agenda con dropdown live (debounce 250ms). Click su un risultato → naviga al giorno del cliente e apre il dialog di modifica.
-- **Acconti per operaio** (GET /api/advances/by-worker?month=YYYY-MM): aggregazione mensile per worker_name (totale, conteggio, ultima data). Nuova sezione in Riepilogo che si "resetta" naturalmente all'inizio di ogni mese.
+## API endpoints chiave
+- `POST/PUT/DELETE /api/clients[/{id}]`
+- `GET /api/clients?date=YYYY-MM-DD` (esclude pending)
+- `GET /api/clients/pending`
+- `GET /api/clients/unpaid`
+- `POST /api/clients/{id}/execute` (sposta da pending a agenda)
+- `POST/PUT/DELETE /api/expenses[/{id}]`
+- `POST /api/advances`, `GET /api/advances?date=...&worker=...`
+- `GET /api/summary?month=YYYY-MM`
 
-Testing: 20/20 backend test pass, frontend e2e 100%.
-
-## Iteration 3 — 2026-02 (Feature Update — "Da incassare")
-Implemented:
-- **Endpoint `GET /api/clients/unpaid`**: ritorna i clienti con saldo aperto, ordinati dalla data più vecchia. Logica: include lavori eseguiti senza pagamenti, lavori con pagamenti parziali e preventivi che hanno ricevuto almeno un acconto; esclude preventivi vuoti e lavori legacy considerati saldati. Aggiunge campi calcolati `to_collect`, `paid`, `balance`.
-- **Pagina `/incassi`** (`Incassi.jsx`): elenco clienti da incassare con totale aperto, conteggio, pill "X giorni in attesa" colorata per severità (>30g warn, >60g danger), CTA "Sollecita WhatsApp", click → apre il `ClientFormDialog` per registrare il pagamento.
-- **Voce di menu "Da incassare"** in sidebar e bottom-nav con badge contatore live (refresh ogni 60s + on focus + post-save).
-- **Indicatore "giorni in attesa"** sulla card cliente in Agenda (visibile solo per saldi aperti ≥1 giorno, con stessa codifica colore).
-- Nuovi helper `daysSince` e `computeClientBalance` in `lib/utils.js` (single source of truth lato frontend).
-
-Testing: 31/31 pytest backend pass (5 nuovi test su scenari unpaid + isolamento utente), frontend e2e 100% su flow registrazione → /incassi vuota → seeding lavoro → badge/totali/pill aggiornati → click → dialog.
-
-## Iteration 4 — 2026-02 (Feature Update — "Spese fornitura per cliente")
-Implemented:
-- **Modello `Material`** + campo `materials: List[Material]` su `ClientBase` (id, description, amount, supplier, source contanti/conto_aziendale, date, notes).
-- **`GET /api/summary`** ora restituisce `total_materials`, `materials_by_source` e bilancio aggiornato: `balance = total_incassi - total_spese - total_advances - total_materials`.
-- **`GET /api/clients/unpaid`** aggiunge `materials_total` e `expected_margin` per ogni item (margine = imponibile − materiali).
-- **`MaterialsList.jsx`** componente in stile `PaymentsList`: descrizione + importo + fornitore + sorgente (contanti/conto), totale e margine atteso live.
-- **`ClientFormDialog`** integra la sezione "Spese fornitura / materiali" dopo i pagamenti.
-- **`Agenda.jsx`** card cliente: nuova riga "Margine €X (Y%)" visibile quando ci sono materiali.
-- **`Incassi.jsx`**: per ogni cliente da incassare mostra anche il margine atteso.
-- **`Riepilogo.jsx`**: riga separata "Spese fornitura clienti" nel P&L e nella sezione Uscite con breakdown per sorgente (contanti/conto). Totale uscite include i materiali.
-
-Testing: 41/41 pytest backend pass (10 nuovi test materials), frontend e2e 100% verificato (creazione, persistenza, rimozione live, badge su Agenda/Incassi/Riepilogo).
-
-## Iteration 5 — 2026-02 (Feature Update — "Prossimi lavori" / Backlog)
-Implemented:
-- **Campo `pending: bool`** su `ClientBase` (default False, retrocompatibile con clienti esistenti tramite `$or` su `$exists:false`).
-- **`GET /api/clients`**: i clienti `pending=true` sono esclusi dall'Agenda giornaliera/mensile.
-- **`GET /api/clients/pending`**: nuovo endpoint che restituisce il backlog ordinato per data prevista crescente.
-- **`POST /api/clients/{id}/execute?date=YYYY-MM-DD`**: sposta atomicamente il cliente dal backlog all'Agenda del giorno indicato (default oggi UTC).
-- **`/clients/unpaid`** e **`/summary`** ora escludono i clienti pending (non sono ancora da incassare/contabilizzare).
-- **Frontend**: nuova pagina `/prossimi-lavori` (`ProssimiLavori.jsx`) con totale, lista ordinata, FAB "Nuovo lavoro", quick action "Esegui oggi", click su card → apre `ClientFormDialog`.
-- **`ClientFormDialog`**: aggiunto Switch "Lavoro in attesa" (default ON quando si apre da Prossimi lavori). Toggle OFF + save = sposta in Agenda.
-- **`AppShell`**: nuova voce nav "Prossimi" con badge contatore live (refresh polling 60s + on focus + post-save).
-
-Testing: 56/56 pytest backend pass (15 nuovi test backlog), frontend e2e 100% — verificato create-pending → execute-today → move-to-agenda con preservazione di tutta la scheda (materiali, pagamenti, IVA, ritenuta).
-
-## Iteration 6 — 2026-04 (Feature Update — "Vista Settimanale" + WhatsApp Prossimi)
-Implemented:
-- **`GET /api/clients?from_date=&to_date=`**: nuovo filtro per range di date (inclusivo). Precedenza: `date` > `range` > `month`. Esclude pending.
-- **`WeekView.jsx`**: nuovo componente con 7 giorni (lun-dom), conteggio + valore + lista compatta clienti per giorno. Oggi evidenziato in verde, giorni vuoti mostrano "Libero". Frecce ◀ ▶ navigano tra le settimane mantenendo la vista. Click su un giorno → switch a vista Giorno; click su un cliente → apre il dialog.
-- **`Agenda.jsx`**: toggle "Giorno / Settimana" sopra il navigator. La vista Giorno è il default.
-- **`whatsapp.js`**: per i clienti `pending` mostra "🕐 Lavoro da fare" invece di "📋 Preventivo".
-- **`ProssimiLavori.jsx`**: pulsante WhatsApp per ogni card (utile per girare il lavoro a un operaio o avvisare il cliente).
-
-Testing: 62/62 pytest backend pass (6 nuovi test range), frontend e2e 100% (WA pending, toggle, oggi/libero, esclusione pending, range cross-month).
-
-## Iteration 7 — 2026-04 (Feature Update — "Offline Queue + Banner")
-Implemented:
-- **Idempotency key client-side**: `ClientCreate`, `ExpenseCreate`, `AdvanceCreate` accettano un `id` opzionale; il backend usa quell'id e restituisce il record esistente se già presente (idempotente). PUT handlers usano `exclude={'id'}` per non sovrascrivere l'id durante l'update.
-- **`lib/offlineQueue.js`**: coda persistita in `localStorage` (`agenda-offline-queue-v1`) per POST/PUT/DELETE falliti per assenza di rete. Drain FIFO sequenziale con replay header `X-Drain-Replay`. Scarta operazioni con errori 4xx permanenti per evitare loop infiniti.
-- **`lib/api.js`** rewritten: request interceptor inietta UUID `id` per i POST sui create routes. Response error interceptor accoda mutations su Network Error e ritorna risposta sintetica 202 (`_offline: true`). Drain automatico su `online` event e dopo auth ready.
-- **`lib/cache.js`**: nuovo helper `mutateCachedCollections()` per applicare modifiche ottimistiche alle GET cached, così la UI riflette subito lo stato offline anche navigando tra pagine.
-- **`OfflineBanner.jsx`**: banner top con 3 stati: "Offline · stai vedendo i dati salvati" (giallo), "Sincronizzazione in corso · X modifiche in coda" (azzurro spinner), "Tutto sincronizzato" (verde, lampeggia 3s).
-- **`AppShell.jsx`**: integra il banner; i badge unpaid/pending si aggiornano anche all'evento `agenda:queue-drained`.
-- **Bug post-test fix**: rimossi record orfani con `id=None` lasciati dal bug iniziale del PUT.
-
-Testing: 69/69 pytest backend pass (7 nuovi test idempotency), frontend e2e 100% — verificato POST/PUT/DELETE offline → optimistic UI → riconnessione → drain → backend con stessi id senza duplicati.
-
-## Iteration 8 — 2026-05 (Feature Update — "Tap-to-Maps + Tabs Riepilogo + Vista Anno")
-Implemented:
-- **Tap-to-Maps**: indirizzo cliente cliccabile → apre Google Maps in nuovo tab/app. Su Agenda, Incassi, Prossimi lavori, e link "Apri in Maps →" nel `ClientFormDialog`. `target="_blank"` + `stopPropagation` per non aprire il dialog.
-- **Helper `googleMapsUrl(address)`**, **`previousMonthKey()`**, **`formatMonthLabel(yyyymm)`** in `lib/utils.js`.
-- **Refactor backend**: estratto `_compute_summary(uid, month)` come helper condiviso, riusato da `/summary` e dal nuovo endpoint annuale.
-- **`GET /api/summary/year?year=YYYY`**: 12 mesi (gen-dic) con balance, totali annuali, `best_month`/`worst_month` (solo tra i mesi con attività).
-- **`Riepilogo` con 3 tabs** (segmented control in cima): "In corso" (default, già esistente), "Mese chiuso" (snapshot del mese precedente, navigator nascosto, header cambiato), "Anno" (nuova vista).
-- **`YearlyView.jsx`**: header con selettore anno (next disabled quando year > current+1), card P&L annuale con totali, pills best/worst mese, lista 12 mesi con barre orizzontali proporzionali al |balance| (max-clamp per evitare div/0 su anno vuoto), mesi vuoti dimmed e mostrano "—".
-
-Testing: 75/75 pytest backend pass (6 nuovi test yearly), frontend e2e 14/14 — verificato tap-to-maps su Agenda+Incassi+Dialog, tabs switch, snapshot Mese chiuso, YearlyView con best/worst, year nav, anno vuoto safe.
-
-## Backlog (P1) — aggiornato
-- Export Riepilogo mensile in PDF/CSV.
-- Tap-to-maps sull'indirizzo cliente.
-- Storico annuale per operaio (breakdown mese per mese).
-- Indicatore "vs mese precedente" (+/- %) nel dashboard P&L.
-
-## Refactoring futuro
-- Split di `server.py` (>500 righe) in `routes/clients.py`, `routes/expenses.py`, `routes/advances.py`.
-- Considerare un response model Pydantic dedicato per `/clients/unpaid`.
+## Hosting
+- Main API: `https://agenda-italserrande-api.onrender.com`
+- Bulk email: `https://bulk-email-backend-kcny.onrender.com`

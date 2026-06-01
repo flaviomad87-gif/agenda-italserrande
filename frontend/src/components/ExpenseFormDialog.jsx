@@ -5,8 +5,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
-import { api } from "../lib/api";
-import { Loader2, Trash2 } from "lucide-react";
+import { api, newUUID } from "../lib/api";
+import { Trash2 } from "lucide-react";
 import { isoMonth } from "../lib/utils";
 
 const empty = (month) => ({
@@ -20,7 +20,6 @@ const empty = (month) => ({
 export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved, onDeleted, month }) {
   const editing = Boolean(initial?.id);
   const [form, setForm] = useState(empty(month));
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) setForm(initial ? { ...empty(month), ...initial, amount: initial.amount ?? "" } : empty(month));
@@ -32,32 +31,37 @@ export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved
       toast.error("Inserisci la categoria");
       return;
     }
-    setSaving(true);
+    const id = editing ? initial.id : newUUID();
+    const payload = { ...form, id, amount: parseFloat(form.amount) || 0 };
+    // Optimistic UX: chiudi subito e aggiorna la lista
+    const optimistic = editing
+      ? { ...initial, ...payload }
+      : { ...payload, created_at: new Date().toISOString() };
+    onSaved?.(optimistic);
+    onOpenChange(false);
     try {
-      const payload = { ...form, amount: parseFloat(form.amount) || 0 };
       const res = editing
-        ? await api.put(`/expenses/${initial.id}`, payload)
+        ? await api.put(`/expenses/${id}`, payload)
         : await api.post(`/expenses`, payload);
-      toast.success(editing ? "Spesa aggiornata" : "Spesa aggiunta");
-      onSaved?.(res.data);
-      onOpenChange(false);
+      if (res?.data && !res._offline) {
+        onSaved?.(res.data);
+      }
     } catch {
-      toast.error("Errore durante il salvataggio");
-    } finally {
-      setSaving(false);
+      toast.error("Errore durante il salvataggio. Riprova.");
+      if (!editing) onDeleted?.(id);
     }
   };
 
   const remove = async () => {
     if (!editing) return;
     if (!window.confirm("Eliminare questa spesa?")) return;
+    const id = initial.id;
+    onDeleted?.(id);
+    onOpenChange(false);
     try {
-      await api.delete(`/expenses/${initial.id}`);
-      toast.success("Spesa eliminata");
-      onDeleted?.(initial.id);
-      onOpenChange(false);
+      await api.delete(`/expenses/${id}`);
     } catch {
-      toast.error("Impossibile eliminare");
+      toast.error("Impossibile eliminare. Aggiorna la pagina.");
     }
   };
 
@@ -159,11 +163,10 @@ export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved
               </Button>
               <Button
                 type="submit"
-                disabled={saving}
                 data-testid="expense-save-button"
                 className="h-12 rounded-xl bg-[#4A5D23] px-6 text-white hover:bg-[#3C4B1C]"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva"}
+                Salva
               </Button>
             </div>
           </DialogFooter>

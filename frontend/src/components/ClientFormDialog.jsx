@@ -18,8 +18,8 @@ import {
   SelectValue,
 } from "./ui/select";
 import { toast } from "sonner";
-import { api } from "../lib/api";
-import { Loader2, Trash2, Clock, CalendarCheck } from "lucide-react";
+import { api, newUUID } from "../lib/api";
+import { Trash2, Clock, CalendarCheck } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
@@ -72,7 +72,6 @@ const migrateLegacy = (data) => {
 
 export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, defaultPending = false }) {
   const [form, setForm] = useState(empty(date));
-  const [saving, setSaving] = useState(false);
   const editing = Boolean(initial?.id);
 
   useEffect(() => {
@@ -91,63 +90,78 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       toast.error("Inserisci il nome del cliente");
       return;
     }
-    setSaving(true);
+    const payments = (form.payments || [])
+      .map((p) => ({
+        ...p,
+        amount: parseFloat(p.amount) || 0,
+        date: p.date || form.date || date,
+      }))
+      .filter((p) => p.amount > 0 || p.invoice_number);
+    const materials = (form.materials || [])
+      .map((m) => ({
+        ...m,
+        amount: parseFloat(m.amount) || 0,
+        date: m.date || form.date || date,
+        source: m.source || "conto_aziendale",
+      }))
+      .filter((m) => m.amount > 0 || (m.description && m.description.trim()));
+    const id = editing ? initial.id : newUUID();
+    const payload = {
+      ...form,
+      id,
+      amount: parseFloat(form.amount) || 0,
+      vat_rate: form.vat_rate === "" || form.vat_rate === null ? null : parseFloat(form.vat_rate),
+      withholding_rate: form.withholding_rate === "" || form.withholding_rate === null ? null : parseFloat(form.withholding_rate),
+      date: form.date || date,
+      payments,
+      materials,
+      pending: !!form.pending,
+      // Reset legacy fields once we use the new payments model
+      payment_method: "",
+      invoice_number: "",
+    };
+    // Optimistic UX: chiudi subito il dialog e aggiorna la lista.
+    // La richiesta parte in background; in caso di errore reale dal server,
+    // mostriamo un toast e (per le nuove creazioni) revertiamo l'inserimento.
+    const optimistic = editing
+      ? { ...initial, ...payload }
+      : { ...payload, created_at: new Date().toISOString() };
+    onSaved?.(optimistic);
+    window.__refreshUnpaidBadge?.();
+    window.__refreshPendingBadge?.();
+    onOpenChange(false);
     try {
-      const payments = (form.payments || [])
-        .map((p) => ({
-          ...p,
-          amount: parseFloat(p.amount) || 0,
-          date: p.date || form.date || date,
-        }))
-        .filter((p) => p.amount > 0 || p.invoice_number);
-      const materials = (form.materials || [])
-        .map((m) => ({
-          ...m,
-          amount: parseFloat(m.amount) || 0,
-          date: m.date || form.date || date,
-          source: m.source || "conto_aziendale",
-        }))
-        .filter((m) => m.amount > 0 || (m.description && m.description.trim()));
-      const payload = {
-        ...form,
-        amount: parseFloat(form.amount) || 0,
-        vat_rate: form.vat_rate === "" || form.vat_rate === null ? null : parseFloat(form.vat_rate),
-        withholding_rate: form.withholding_rate === "" || form.withholding_rate === null ? null : parseFloat(form.withholding_rate),
-        date: form.date || date,
-        payments,
-        materials,
-        pending: !!form.pending,
-        // Reset legacy fields once we use the new payments model
-        payment_method: "",
-        invoice_number: "",
-      };
       const res = editing
-        ? await api.put(`/clients/${initial.id}`, payload)
+        ? await api.put(`/clients/${id}`, payload)
         : await api.post(`/clients`, payload);
-      toast.success(editing ? "Cliente aggiornato" : "Cliente aggiunto");
-      onSaved?.(res.data);
+      // Riconcilia lo state con la versione server (campi calcolati dal backend).
+      if (res?.data && !res._offline) {
+        onSaved?.(res.data);
+      }
       window.__refreshUnpaidBadge?.();
       window.__refreshPendingBadge?.();
-      onOpenChange(false);
     } catch (err) {
-      toast.error("Errore durante il salvataggio");
-    } finally {
-      setSaving(false);
+      toast.error("Errore durante il salvataggio. Riprova.");
+      if (!editing) {
+        // Rimuovi l'item aggiunto ottimisticamente
+        onDeleted?.(id);
+      }
     }
   };
 
   const remove = async () => {
     if (!editing) return;
     if (!window.confirm("Eliminare questo cliente?")) return;
+    const id = initial.id;
+    // Optimistic: rimuovi subito dall'UI e chiudi
+    onDeleted?.(id);
+    window.__refreshUnpaidBadge?.();
+    window.__refreshPendingBadge?.();
+    onOpenChange(false);
     try {
-      await api.delete(`/clients/${initial.id}`);
-      toast.success("Cliente eliminato");
-      onDeleted?.(initial.id);
-      window.__refreshUnpaidBadge?.();
-      window.__refreshPendingBadge?.();
-      onOpenChange(false);
+      await api.delete(`/clients/${id}`);
     } catch {
-      toast.error("Impossibile eliminare");
+      toast.error("Impossibile eliminare. Aggiorna la pagina.");
     }
   };
 
@@ -436,11 +450,10 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               </Button>
               <Button
                 type="submit"
-                disabled={saving}
                 data-testid="client-save-button"
                 className="h-12 rounded-xl bg-[#4A5D23] px-6 text-white hover:bg-[#3C4B1C]"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva"}
+                Salva
               </Button>
             </div>
           </DialogFooter>

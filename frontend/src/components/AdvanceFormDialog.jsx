@@ -5,14 +5,12 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
-import { api } from "../lib/api";
-import { Loader2 } from "lucide-react";
+import { api, newUUID } from "../lib/api";
 
 const empty = (date) => ({ date, worker_name: "", amount: "", notes: "" });
 
-export default function AdvanceFormDialog({ open, onOpenChange, date, onSaved }) {
+export default function AdvanceFormDialog({ open, onOpenChange, date, onSaved, onError }) {
   const [form, setForm] = useState(empty(date));
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) setForm(empty(date));
@@ -24,19 +22,25 @@ export default function AdvanceFormDialog({ open, onOpenChange, date, onSaved })
       toast.error("Inserisci il nome dell'operaio");
       return;
     }
-    setSaving(true);
+    const id = newUUID();
+    const payload = {
+      ...form,
+      id,
+      amount: parseFloat(form.amount) || 0,
+    };
+    // Optimistic: aggiungi subito e chiudi
+    const optimistic = { ...payload, created_at: new Date().toISOString() };
+    onSaved?.(optimistic);
+    onOpenChange(false);
     try {
-      const res = await api.post(`/advances`, {
-        ...form,
-        amount: parseFloat(form.amount) || 0,
-      });
-      toast.success("Acconto registrato");
-      onSaved?.(res.data);
-      onOpenChange(false);
+      const res = await api.post(`/advances`, payload);
+      if (res?.data && !res._offline) {
+        // Riconcilia con la versione server (mantiene stesso id)
+        onSaved?.(res.data, true);
+      }
     } catch {
-      toast.error("Errore durante il salvataggio");
-    } finally {
-      setSaving(false);
+      toast.error("Errore durante il salvataggio. Riprova.");
+      onError?.(id);
     }
   };
 
@@ -90,11 +94,10 @@ export default function AdvanceFormDialog({ open, onOpenChange, date, onSaved })
             </Button>
             <Button
               type="submit"
-              disabled={saving}
               data-testid="advance-save-button"
               className="h-12 flex-1 rounded-xl bg-[#4A5D23] text-white hover:bg-[#3C4B1C]"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva"}
+              Salva
             </Button>
           </DialogFooter>
         </form>
