@@ -608,6 +608,7 @@ async def _compute_summary(uid: str, month: str) -> dict:
     incassi = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
     incassi_net = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
     incassi_iva = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
+    incassi_margine = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
     total_executed = 0.0       # lordo (= imponibile + iva − ritenuta) — cash flow
     total_imponibile = 0.0     # ricavo netto IVA (vero ricavo)
     total_iva = 0.0            # IVA incassata, da versare
@@ -617,16 +618,28 @@ async def _compute_summary(uid: str, month: str) -> dict:
         amt = float(c.get("amount") or 0)
         vat = float(c.get("vat_rate") or 0) if c.get("vat_rate") is not None else 0
         wh = float(c.get("withholding_rate") or 0) if c.get("withholding_rate") is not None else 0
+        materials_total_c = sum(float(m.get("amount") or 0) for m in (c.get("materials") or []))
         payments = c.get("payments") or []
         if payments:
+            # Pre-calcola imponibile totale del cliente per distribuire i materiali pro-quota
+            client_imp_total = 0.0
+            for p in payments:
+                p_amt = float(p.get("amount") or 0)
+                imp_p, _, _ = _split(p_amt, vat, wh)
+                client_imp_total += imp_p
             for p in payments:
                 p_amt = float(p.get("amount") or 0)
                 method = (p.get("method") or "").strip()
                 imp, iva_p, rit_p = _split(p_amt, vat, wh)
+                # Quota materiali attribuita a questo pagamento (pro-rata su imponibile)
+                share = (imp / client_imp_total) if client_imp_total > 0 else 0
+                materials_share = materials_total_c * share
+                margine_p = imp - materials_share
                 if method in incassi:
                     incassi[method] += p_amt
                     incassi_net[method] += imp
                     incassi_iva[method] += iva_p
+                    incassi_margine[method] += margine_p
                 total_executed += p_amt
                 total_imponibile += imp
                 total_iva += iva_p
@@ -634,8 +647,6 @@ async def _compute_summary(uid: str, month: str) -> dict:
         else:
             if c.get("status") == "lavoro_eseguito":
                 # Legacy: nessun array payments → considera amt come imponibile
-                # (vecchio schema dove `amount` era già il netto e veniva
-                # incassato l'equivalente lordo).
                 gross = amt * (1 + (vat - wh) / 100.0)
                 iva_l = amt * vat / 100.0
                 total_executed += gross
@@ -647,6 +658,7 @@ async def _compute_summary(uid: str, month: str) -> dict:
                     incassi[pm] += gross
                     incassi_net[pm] += amt
                     incassi_iva[pm] += iva_l
+                    incassi_margine[pm] += amt - materials_total_c
             else:
                 total_quotes += amt
 
@@ -677,6 +689,7 @@ async def _compute_summary(uid: str, month: str) -> dict:
         "incassi_by_method": incassi,
         "incassi_net_by_method": {k: round(v, 2) for k, v in incassi_net.items()},
         "incassi_iva_by_method": {k: round(v, 2) for k, v in incassi_iva.items()},
+        "incassi_margine_by_method": {k: round(v, 2) for k, v in incassi_margine.items()},
         "total_incassi": round(total_incassi, 2),
         "total_quotes": round(total_quotes, 2),
         "total_executed": round(total_executed, 2),
@@ -739,14 +752,24 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
         job_date = c.get("date") or ""
         vat = float(c.get("vat_rate") or 0) if c.get("vat_rate") is not None else 0
         wh = float(c.get("withholding_rate") or 0) if c.get("withholding_rate") is not None else 0
+        materials_total_c = sum(float(m.get("amount") or 0) for m in (c.get("materials") or []))
         payments = c.get("payments") or []
         if payments:
+            # Pre-calcola imponibile totale cliente per distribuire materiali pro-quota
+            client_imp_total = 0.0
+            for p in payments:
+                p_amt = float(p.get("amount") or 0)
+                imp_p, _, _ = _split(p_amt, vat, wh)
+                client_imp_total += imp_p
             for p in payments:
                 p_method = (p.get("method") or "").strip()
                 if p_method != method:
                     continue
                 amt = float(p.get("amount") or 0)
                 imp, iva, _ = _split(amt, vat, wh)
+                share = (imp / client_imp_total) if client_imp_total > 0 else 0
+                mat_share = materials_total_c * share
+                margin = imp - mat_share
                 items.append({
                     "client_id": c.get("id"),
                     "client_name": c.get("name") or "",
@@ -758,6 +781,8 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
                     "amount": round(amt, 2),
                     "imponibile": round(imp, 2),
                     "iva": round(iva, 2),
+                    "materials_share": round(mat_share, 2),
+                    "margin": round(margin, 2),
                     "vat_rate": vat,
                     "invoice_number": p.get("invoice_number") or "",
                     "notes": p.get("notes") or "",
@@ -779,6 +804,8 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
                         "amount": round(gross, 2),
                         "imponibile": round(amt, 2),
                         "iva": round(amt * vat / 100.0, 2),
+                        "materials_share": round(materials_total_c, 2),
+                        "margin": round(amt - materials_total_c, 2),
                         "vat_rate": vat,
                         "invoice_number": c.get("invoice_number") or "",
                         "notes": "",
@@ -789,6 +816,8 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
     total_gross = round(sum(it["amount"] for it in items), 2)
     total_imponibile = round(sum(it["imponibile"] for it in items), 2)
     total_iva = round(sum(it["iva"] for it in items), 2)
+    total_margin = round(sum(it["margin"] for it in items), 2)
+    total_materials = round(sum(it["materials_share"] for it in items), 2)
     return {
         "month": month,
         "method": method,
@@ -796,6 +825,8 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
         "total_gross": total_gross,
         "total_imponibile": total_imponibile,
         "total_iva": total_iva,
+        "total_margin": total_margin,
+        "total_materials": total_materials,
         "count": len(items),
         "items": items,
     }

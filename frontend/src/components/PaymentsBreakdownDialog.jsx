@@ -72,6 +72,8 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
       const total_gross = items.reduce((s, x) => s + (x.amount || 0), 0);
       const total_imponibile = items.reduce((s, x) => s + (x.imponibile || 0), 0);
       const total_iva = items.reduce((s, x) => s + (x.iva || 0), 0);
+      const total_margin = items.reduce((s, x) => s + (x.margin || 0), 0);
+      const total_materials = items.reduce((s, x) => s + (x.materials_share || 0), 0);
       return {
         ...d,
         items,
@@ -79,6 +81,8 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
         total_gross: Math.round(total_gross * 100) / 100,
         total_imponibile: Math.round(total_imponibile * 100) / 100,
         total_iva: Math.round(total_iva * 100) / 100,
+        total_margin: Math.round(total_margin * 100) / 100,
+        total_materials: Math.round(total_materials * 100) / 100,
         count: items.length,
       };
     });
@@ -110,6 +114,7 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
     return Array.from(map.entries()).map(([day, items]) => ({
       day,
       items,
+      total_margin: items.reduce((s, x) => s + (x.margin ?? x.imponibile ?? 0), 0),
       total_net: items.reduce((s, x) => s + (x.imponibile || 0), 0),
       total_gross: items.reduce((s, x) => s + (x.amount || 0), 0),
     }));
@@ -153,21 +158,19 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
                 <div className="text-sm font-semibold text-stone-700">
                   Totale {meta.label} · {data.count} pagament{data.count === 1 ? "o" : "i"}
                 </div>
-                {(data.total_iva || 0) > 0 && (
-                  <div className="mt-0.5 text-[11px] text-stone-500">
-                    Lordo {formatEUR(data.total_gross || data.total)} · IVA {formatEUR(data.total_iva)}
-                  </div>
-                )}
+                <div className="mt-0.5 text-[11px] text-stone-500">
+                  Lordo {formatEUR(data.total_gross || data.total)}
+                  {(data.total_iva || 0) > 0 && <> · IVA {formatEUR(data.total_iva)}</>}
+                  {(data.total_materials || 0) > 0 && <> · Materiali {formatEUR(data.total_materials)}</>}
+                </div>
               </div>
               <div className="text-right">
-                <div className={`font-display text-xl font-bold ${meta.color}`} data-testid="payments-breakdown-total-net">
-                  {formatEUR(data.total_imponibile ?? data.total)}
+                <div className={`font-display text-xl font-bold ${meta.color}`} data-testid="payments-breakdown-total-margin">
+                  {formatEUR(data.total_margin ?? data.total_imponibile ?? data.total)}
                 </div>
-                {(data.total_iva || 0) > 0 && (
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
-                    Netto IVA
-                  </div>
-                )}
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+                  Margine
+                </div>
               </div>
             </div>
 
@@ -178,9 +181,9 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
                     <div className="text-sm font-semibold capitalize text-stone-800">{fmtDay(g.day)}</div>
                     <div className="text-right">
                       <div className="font-display text-base font-bold tabular-nums">
-                        {formatEUR(g.total_net)}
+                        {formatEUR(g.total_margin)}
                       </div>
-                      {Math.abs(g.total_gross - g.total_net) > 0.01 && (
+                      {Math.abs(g.total_gross - g.total_margin) > 0.01 && (
                         <div className="text-[10px] text-stone-400">
                           lordo {formatEUR(g.total_gross)}
                         </div>
@@ -190,7 +193,8 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
                   <ul className="space-y-2">
                     {g.items.map((p, idx) => {
                       const mismatch = p.payment_date && p.job_date && p.payment_date !== p.job_date;
-                      const showVat = Math.abs((p.amount || 0) - (p.imponibile || 0)) > 0.01;
+                      const margin = p.margin ?? p.imponibile ?? p.amount;
+                      const showDetails = Math.abs((p.amount || 0) - margin) > 0.01;
                       return (
                         <li
                           key={(p.payment_id || `${p.client_id}-${idx}`)}
@@ -224,11 +228,14 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
                           <div className="flex shrink-0 items-start gap-2">
                             <div className="text-right">
                               <div className="font-display text-sm font-bold tabular-nums">
-                                {formatEUR(p.imponibile ?? p.amount)}
+                                {formatEUR(margin)}
                               </div>
-                              {showVat && (
+                              {showDetails && (
                                 <div className="text-[10px] text-stone-400">
                                   lordo {formatEUR(p.amount)}
+                                  {(p.materials_share || 0) > 0 && (
+                                    <> · mat. {formatEUR(p.materials_share)}</>
+                                  )}
                                 </div>
                               )}
                             </div>
