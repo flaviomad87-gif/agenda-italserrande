@@ -709,9 +709,11 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
     per un dato mese. Allinea con il calcolo del Riepilogo:
     filtra i clienti per JOB DATE nel mese, poi elenca i pagamenti con quel metodo.
 
-    Per ogni pagamento espone sia la job_date (data del lavoro) sia la payment_date
-    (data effettiva del pagamento), così l'utente può verificare con il suo
-    conteggio giornaliero in cassa.
+    Per ogni pagamento espone:
+      - amount (lordo, IVA inclusa, già al netto di eventuale ritenuta)
+      - imponibile (netto IVA = "margine" mostrato in Riepilogo)
+      - iva (IVA incassata, da versare)
+      - job_date / payment_date
     """
     if method not in ("contanti", "pos", "bonifico"):
         raise HTTPException(400, "Metodo non valido")
@@ -725,16 +727,26 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
         {"_id": 0},
     ).to_list(5000)
 
+    def _split(amount: float, vat: float, wh: float) -> tuple[float, float, float]:
+        divisor = 1 + (vat - wh) / 100.0
+        if divisor <= 0:
+            divisor = 1.0
+        imp = amount / divisor
+        return imp, imp * vat / 100.0, imp * wh / 100.0
+
     items = []
-    legacy_total = 0.0
     for c in clients:
         job_date = c.get("date") or ""
+        vat = float(c.get("vat_rate") or 0) if c.get("vat_rate") is not None else 0
+        wh = float(c.get("withholding_rate") or 0) if c.get("withholding_rate") is not None else 0
         payments = c.get("payments") or []
         if payments:
             for p in payments:
                 p_method = (p.get("method") or "").strip()
                 if p_method != method:
                     continue
+                amt = float(p.get("amount") or 0)
+                imp, iva, _ = _split(amt, vat, wh)
                 items.append({
                     "client_id": c.get("id"),
                     "client_name": c.get("name") or "",
@@ -743,16 +755,19 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
                     "payment_id": p.get("id"),
                     "payment_date": p.get("date") or job_date,
                     "payment_type": p.get("type") or "altro",
-                    "amount": float(p.get("amount") or 0),
+                    "amount": round(amt, 2),
+                    "imponibile": round(imp, 2),
+                    "iva": round(iva, 2),
+                    "vat_rate": vat,
                     "invoice_number": p.get("invoice_number") or "",
                     "notes": p.get("notes") or "",
                     "legacy": False,
                 })
         else:
-            # Legacy: cliente senza payments[] ma con payment_method legacy
             if c.get("status") == "lavoro_eseguito" and (c.get("payment_method") or "") == method:
                 amt = float(c.get("amount") or 0)
                 if amt > 0:
+                    gross = amt * (1 + (vat - wh) / 100.0)
                     items.append({
                         "client_id": c.get("id"),
                         "client_name": c.get("name") or "",
@@ -761,20 +776,26 @@ async def payments_by_method(month: str, method: str, user=Depends(get_current_u
                         "payment_id": None,
                         "payment_date": job_date,
                         "payment_type": "saldo",
-                        "amount": amt,
+                        "amount": round(gross, 2),
+                        "imponibile": round(amt, 2),
+                        "iva": round(amt * vat / 100.0, 2),
+                        "vat_rate": vat,
                         "invoice_number": c.get("invoice_number") or "",
                         "notes": "",
                         "legacy": True,
                     })
-                    legacy_total += amt
 
-    # Ordina per payment_date crescente (allineato al conteggio giornaliero dell'utente)
     items.sort(key=lambda x: (x["payment_date"] or x["job_date"], x["client_name"]))
-    total = round(sum(it["amount"] for it in items), 2)
+    total_gross = round(sum(it["amount"] for it in items), 2)
+    total_imponibile = round(sum(it["imponibile"] for it in items), 2)
+    total_iva = round(sum(it["iva"] for it in items), 2)
     return {
         "month": month,
         "method": method,
-        "total": total,
+        "total": total_gross,                   # retro-compat
+        "total_gross": total_gross,
+        "total_imponibile": total_imponibile,
+        "total_iva": total_iva,
         "count": len(items),
         "items": items,
     }

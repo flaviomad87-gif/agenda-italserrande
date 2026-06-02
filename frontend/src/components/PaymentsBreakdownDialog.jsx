@@ -69,8 +69,18 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
     setData((d) => {
       if (!d) return d;
       const items = d.items.filter((x) => x.payment_id !== p.payment_id);
-      const total = items.reduce((s, x) => s + (x.amount || 0), 0);
-      return { ...d, items, total: Math.round(total * 100) / 100, count: items.length };
+      const total_gross = items.reduce((s, x) => s + (x.amount || 0), 0);
+      const total_imponibile = items.reduce((s, x) => s + (x.imponibile || 0), 0);
+      const total_iva = items.reduce((s, x) => s + (x.iva || 0), 0);
+      return {
+        ...d,
+        items,
+        total: Math.round(total_gross * 100) / 100,
+        total_gross: Math.round(total_gross * 100) / 100,
+        total_imponibile: Math.round(total_imponibile * 100) / 100,
+        total_iva: Math.round(total_iva * 100) / 100,
+        count: items.length,
+      };
     });
     try {
       await api.delete(`/clients/${p.client_id}/payments/${p.payment_id}`);
@@ -100,7 +110,8 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
     return Array.from(map.entries()).map(([day, items]) => ({
       day,
       items,
-      total: items.reduce((s, x) => s + (x.amount || 0), 0),
+      total_net: items.reduce((s, x) => s + (x.imponibile || 0), 0),
+      total_gross: items.reduce((s, x) => s + (x.amount || 0), 0),
     }));
   })();
 
@@ -138,12 +149,26 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
         ) : (
           <>
             <div className={`flex items-center justify-between rounded-2xl ${meta.bg} px-4 py-3`}>
-              <span className="text-sm font-semibold text-stone-700">
-                Totale {meta.label} · {data.count} pagament{data.count === 1 ? "o" : "i"}
-              </span>
-              <span className={`font-display text-xl font-bold ${meta.color}`}>
-                {formatEUR(data.total)}
-              </span>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-stone-700">
+                  Totale {meta.label} · {data.count} pagament{data.count === 1 ? "o" : "i"}
+                </div>
+                {(data.total_iva || 0) > 0 && (
+                  <div className="mt-0.5 text-[11px] text-stone-500">
+                    Lordo {formatEUR(data.total_gross || data.total)} · IVA {formatEUR(data.total_iva)}
+                  </div>
+                )}
+              </div>
+              <div className="text-right">
+                <div className={`font-display text-xl font-bold ${meta.color}`} data-testid="payments-breakdown-total-net">
+                  {formatEUR(data.total_imponibile ?? data.total)}
+                </div>
+                {(data.total_iva || 0) > 0 && (
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+                    Netto IVA
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-4 space-y-4" data-testid="payments-breakdown-list">
@@ -151,20 +176,28 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
                 <div key={g.day} className="rounded-2xl border border-stone-200/60 bg-white p-3 shadow-sm">
                   <div className="mb-2 flex items-baseline justify-between border-b border-stone-100 pb-2">
                     <div className="text-sm font-semibold capitalize text-stone-800">{fmtDay(g.day)}</div>
-                    <div className="font-display text-base font-bold tabular-nums">
-                      {formatEUR(g.total)}
+                    <div className="text-right">
+                      <div className="font-display text-base font-bold tabular-nums">
+                        {formatEUR(g.total_net)}
+                      </div>
+                      {Math.abs(g.total_gross - g.total_net) > 0.01 && (
+                        <div className="text-[10px] text-stone-400">
+                          lordo {formatEUR(g.total_gross)}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <ul className="space-y-2">
                     {g.items.map((p, idx) => {
                       const mismatch = p.payment_date && p.job_date && p.payment_date !== p.job_date;
+                      const showVat = Math.abs((p.amount || 0) - (p.imponibile || 0)) > 0.01;
                       return (
                         <li
                           key={(p.payment_id || `${p.client_id}-${idx}`)}
                           className="flex items-start justify-between gap-3"
                           data-testid={`payment-item-${idx}`}
                         >
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-semibold text-stone-800">
                               {p.client_name}
                             </div>
@@ -188,8 +221,40 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
                               )}
                             </div>
                           </div>
-                          <div className="shrink-0 font-display text-sm font-bold tabular-nums">
-                            {formatEUR(p.amount)}
+                          <div className="flex shrink-0 items-start gap-2">
+                            <div className="text-right">
+                              <div className="font-display text-sm font-bold tabular-nums">
+                                {formatEUR(p.imponibile ?? p.amount)}
+                              </div>
+                              {showVat && (
+                                <div className="text-[10px] text-stone-400">
+                                  lordo {formatEUR(p.amount)}
+                                </div>
+                              )}
+                            </div>
+                            {p.payment_id ? (
+                              <button
+                                type="button"
+                                onClick={() => removePayment(p)}
+                                disabled={deletingId === p.payment_id}
+                                className="rounded-full p-1.5 text-stone-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                title="Elimina pagamento"
+                                data-testid={`payment-delete-${idx}`}
+                              >
+                                {deletingId === p.payment_id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </button>
+                            ) : (
+                              <div
+                                className="rounded-full p-1.5 text-stone-300"
+                                title="Pagamento legacy: modifica dal cliente"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </div>
+                            )}
                           </div>
                         </li>
                       );
@@ -200,9 +265,7 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
             </div>
 
             <div className="mt-4 rounded-xl bg-stone-50 p-3 text-xs text-stone-600">
-              <b>Come leggere:</b> il dettaglio raggruppa i pagamenti per la loro data di incasso effettiva.
-              Se vedi il riquadro arancione <i>"Lavoro del …"</i> vuol dire che la data del pagamento è diversa
-              dalla data del lavoro: utile per spiegare differenze rispetto al conteggio giornaliero della cassa.
+              <b>Come leggere:</b> le cifre principali sono il <b>margine netto IVA</b>. Il "lordo" sotto in piccolo è quanto hai effettivamente preso in cassa. Se vedi il badge arancione <i>"Lavoro del …"</i>, la data del pagamento è diversa da quella del lavoro.
             </div>
           </>
         )}
