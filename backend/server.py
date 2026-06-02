@@ -569,7 +569,17 @@ async def delete_advance(advance_id: str, user=Depends(get_current_user)):
 # ---------- Monthly Summary ----------
 
 async def _compute_summary(uid: str, month: str) -> dict:
-    """Calcola i totali per un mese (YYYY-MM). Logica condivisa tra summary mensile e annuale."""
+    """Calcola i totali per un mese (YYYY-MM). Logica condivisa tra summary mensile e annuale.
+
+    Per i pagamenti incassati scorpora IVA e ritenuta d'acconto in base al
+    `vat_rate` e `withholding_rate` del cliente. Formula:
+        divisor   = 1 + (vat - withholding) / 100
+        imponibile = amount / divisor
+        iva        = imponibile * vat / 100
+        ritenuta   = imponibile * withholding / 100
+    L'IVA incassata e la ritenuta NON contano nel "guadagno del mese": l'IVA va
+    versata allo Stato, la ritenuta è acconto IRPEF già trattenuto.
+    """
     regex = {"$regex": f"^{month}"}
 
     clients = await db.clients.find(
@@ -587,11 +597,24 @@ async def _compute_summary(uid: str, month: str) -> dict:
         {"user_id": uid, "date": regex}, {"_id": 0}
     ).to_list(5000)
 
+    def _split(amount: float, vat: float, wh: float) -> tuple[float, float, float]:
+        """Scorpora amount in (imponibile, iva, ritenuta)."""
+        divisor = 1 + (vat - wh) / 100.0
+        if divisor <= 0:
+            divisor = 1.0
+        imp = amount / divisor
+        return imp, imp * vat / 100.0, imp * wh / 100.0
+
     incassi = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
-    total_executed = 0.0
+    total_executed = 0.0       # lordo (= imponibile + iva − ritenuta) — cash flow
+    total_imponibile = 0.0     # ricavo netto IVA (vero ricavo)
+    total_iva = 0.0            # IVA incassata, da versare
+    total_ritenuta = 0.0       # ritenuta d'acconto trattenuta dal cliente
     total_quotes = 0.0
     for c in clients:
         amt = float(c.get("amount") or 0)
+        vat = float(c.get("vat_rate") or 0) if c.get("vat_rate") is not None else 0
+        wh = float(c.get("withholding_rate") or 0) if c.get("withholding_rate") is not None else 0
         payments = c.get("payments") or []
         if payments:
             for p in payments:
@@ -600,12 +623,23 @@ async def _compute_summary(uid: str, month: str) -> dict:
                 if method in incassi:
                     incassi[method] += p_amt
                 total_executed += p_amt
+                imp, iva_p, rit_p = _split(p_amt, vat, wh)
+                total_imponibile += imp
+                total_iva += iva_p
+                total_ritenuta += rit_p
         else:
             if c.get("status") == "lavoro_eseguito":
-                total_executed += amt
+                # Legacy: nessun array payments → considera amt come imponibile
+                # (vecchio schema dove `amount` era già il netto e veniva
+                # incassato l'equivalente lordo).
+                gross = amt * (1 + (vat - wh) / 100.0)
+                total_executed += gross
+                total_imponibile += amt
+                total_iva += amt * vat / 100.0
+                total_ritenuta += amt * wh / 100.0
                 pm = c.get("payment_method") or ""
                 if pm in incassi:
-                    incassi[pm] += amt
+                    incassi[pm] += gross
             else:
                 total_quotes += amt
 
@@ -628,18 +662,24 @@ async def _compute_summary(uid: str, month: str) -> dict:
     total_incassi = sum(incassi.values())
     total_spese = sum(spese_by_source.values())
 
+    # Guadagno reale = imponibile − spese − materiali − acconti
+    balance = total_imponibile - total_spese - total_advances - total_materials
+
     return {
         "month": month,
         "incassi_by_method": incassi,
         "total_incassi": round(total_incassi, 2),
         "total_quotes": round(total_quotes, 2),
         "total_executed": round(total_executed, 2),
+        "total_imponibile": round(total_imponibile, 2),
+        "total_iva": round(total_iva, 2),
+        "total_ritenuta": round(total_ritenuta, 2),
         "spese_by_source": spese_by_source,
         "total_spese": round(total_spese, 2),
         "materials_by_source": materials_by_source,
         "total_materials": round(total_materials, 2),
         "total_advances": round(total_advances, 2),
-        "balance": round(total_incassi - total_spese - total_advances - total_materials, 2),
+        "balance": round(balance, 2),
         "counts": {
             "clients": len(clients),
             "expenses": len(expenses),
@@ -743,6 +783,9 @@ async def yearly_summary(year: int, user=Depends(get_current_user)):
 
     totals = {
         "total_incassi": round(sum(x["total_incassi"] for x in months_data), 2),
+        "total_imponibile": round(sum(x["total_imponibile"] for x in months_data), 2),
+        "total_iva": round(sum(x["total_iva"] for x in months_data), 2),
+        "total_ritenuta": round(sum(x["total_ritenuta"] for x in months_data), 2),
         "total_executed": round(sum(x["total_executed"] for x in months_data), 2),
         "total_quotes": round(sum(x["total_quotes"] for x in months_data), 2),
         "total_spese": round(sum(x["total_spese"] for x in months_data), 2),

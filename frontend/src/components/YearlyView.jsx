@@ -98,8 +98,13 @@ export default function YearlyView() {
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Incassi</div>
-              <div className="font-display text-lg font-bold tabular-nums">{formatEUR(totals.total_incassi)}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Imponibile</div>
+              <div className="font-display text-lg font-bold tabular-nums">{formatEUR(totals.total_imponibile || 0)}</div>
+              {(totals.total_iva || 0) > 0 && (
+                <div className="mt-0.5 text-[10px] text-stone-400">
+                  IVA: {formatEUR(totals.total_iva)}
+                </div>
+              )}
             </div>
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Spese fisse</div>
@@ -187,7 +192,7 @@ export default function YearlyView() {
                     </div>
                     <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-stone-500">
                       <div className="inline-flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3 text-[#2E5A47]" /> {formatEUR(m.total_incassi)}
+                        <TrendingUp className="h-3 w-3 text-[#2E5A47]" /> {formatEUR(m.total_imponibile || 0)}
                       </div>
                       <div className="inline-flex items-center gap-1">
                         <TrendingDown className="h-3 w-3 text-red-500" /> {formatEUR(m.total_spese + m.total_materials + m.total_advances)}

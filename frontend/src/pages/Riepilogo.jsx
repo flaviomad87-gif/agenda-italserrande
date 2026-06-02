@@ -166,12 +166,34 @@ export default function Riepilogo() {
               <div className="mt-5 space-y-2 rounded-2xl bg-white/80 p-4 backdrop-blur">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1.5 font-semibold text-[#2E5A47]">
-                    <TrendingUp className="h-4 w-4" /> Ricavi (lavori eseguiti)
+                    <TrendingUp className="h-4 w-4" /> Imponibile incassato
                   </span>
                   <span className="font-display text-base font-bold tabular-nums">
-                    + {formatEUR(data.total_incassi)}
+                    + {formatEUR(data.total_imponibile || 0)}
                   </span>
                 </div>
+                {(data.total_iva || 0) > 0 && (
+                  <div className="flex items-center justify-between text-xs text-stone-500" data-testid="riepilogo-iva">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-stone-400" />
+                      di cui IVA incassata (da versare)
+                    </span>
+                    <span className="font-display tabular-nums">
+                      ({formatEUR(data.total_iva)})
+                    </span>
+                  </div>
+                )}
+                {(data.total_ritenuta || 0) > 0 && (
+                  <div className="flex items-center justify-between text-xs text-stone-500" data-testid="riepilogo-ritenuta">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-stone-400" />
+                      Ritenuta d'acconto (anticipo IRPEF)
+                    </span>
+                    <span className="font-display tabular-nums">
+                      ({formatEUR(data.total_ritenuta)})
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1.5 font-semibold text-stone-700">
                     <TrendingDown className="h-4 w-4 text-red-600" /> Spese fisse
@@ -218,9 +240,9 @@ export default function Riepilogo() {
 
           {/* Incassi by method */}
           <section>
-            <h2 className="mb-3 font-display text-lg font-semibold">Incassi per modalità</h2>
-            <p className="-mt-2 mb-3 text-xs text-stone-500">
-              Tocca un riquadro per vedere il dettaglio giornaliero dei pagamenti.
+            <h2 className="mb-1 font-display text-lg font-semibold">Incassi per modalità</h2>
+            <p className="mb-3 text-xs text-stone-500">
+              Cifre <b>lorde</b> (cash flow reale, IVA inclusa). Tocca per il dettaglio giornaliero.
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {Object.entries(PAY_META).map(([k, m]) => {
