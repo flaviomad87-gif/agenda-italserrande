@@ -242,11 +242,14 @@ export default function Riepilogo() {
           <section>
             <h2 className="mb-1 font-display text-lg font-semibold">Incassi per modalità</h2>
             <p className="mb-3 text-xs text-stone-500">
-              Cifre <b>lorde</b> (cash flow reale, IVA inclusa). Tocca per il dettaglio giornaliero.
+              Cifre <b>al netto IVA</b> (margine reale). Tocca per il dettaglio giornaliero.
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {Object.entries(PAY_META).map(([k, m]) => {
                 const Icon = m.icon;
+                const net = (data.incassi_net_by_method && data.incassi_net_by_method[k]) || 0;
+                const gross = (data.incassi_by_method && data.incassi_by_method[k]) || 0;
+                const iva = (data.incassi_iva_by_method && data.incassi_iva_by_method[k]) || 0;
                 return (
                   <button
                     key={k}
@@ -261,8 +264,12 @@ export default function Riepilogo() {
                       </span>
                       <Search className="h-3.5 w-3.5 opacity-60 transition group-hover:opacity-100" />
                     </div>
-                    <div className="mt-1 font-display text-2xl font-bold sm:text-3xl">
-                      {formatEUR(data.incassi_by_method[k] || 0)}
+                    <div className="mt-1 font-display text-2xl font-bold sm:text-3xl" data-testid={`riepilogo-incasso-${k}-net`}>
+                      {formatEUR(net)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-stone-500">
+                      Lordo {formatEUR(gross)}
+                      {iva > 0 && <> · IVA {formatEUR(iva)}</>}
                     </div>
                     <div className={`mt-1 text-[11px] font-medium ${m.text} opacity-70`}>
                       Vedi dettaglio →
@@ -274,9 +281,15 @@ export default function Riepilogo() {
             <div className="mt-3 rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[#2E5A47]">
-                  <TrendingUp className="h-4 w-4" /> Totale incassi
+                  <TrendingUp className="h-4 w-4" /> Totale margine (netto IVA)
                 </div>
-                <div className="font-display text-xl font-bold">{formatEUR(data.total_incassi)}</div>
+                <div className="font-display text-xl font-bold" data-testid="riepilogo-total-margine">
+                  {formatEUR(data.total_imponibile || 0)}
+                </div>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-stone-500">
+                <span>Lordo incassato</span>
+                <span className="tabular-nums">{formatEUR(data.total_incassi)}</span>
               </div>
             </div>
           </section>

@@ -606,6 +606,8 @@ async def _compute_summary(uid: str, month: str) -> dict:
         return imp, imp * vat / 100.0, imp * wh / 100.0
 
     incassi = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
+    incassi_net = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
+    incassi_iva = {"contanti": 0.0, "pos": 0.0, "bonifico": 0.0}
     total_executed = 0.0       # lordo (= imponibile + iva − ritenuta) — cash flow
     total_imponibile = 0.0     # ricavo netto IVA (vero ricavo)
     total_iva = 0.0            # IVA incassata, da versare
@@ -620,10 +622,12 @@ async def _compute_summary(uid: str, month: str) -> dict:
             for p in payments:
                 p_amt = float(p.get("amount") or 0)
                 method = (p.get("method") or "").strip()
+                imp, iva_p, rit_p = _split(p_amt, vat, wh)
                 if method in incassi:
                     incassi[method] += p_amt
+                    incassi_net[method] += imp
+                    incassi_iva[method] += iva_p
                 total_executed += p_amt
-                imp, iva_p, rit_p = _split(p_amt, vat, wh)
                 total_imponibile += imp
                 total_iva += iva_p
                 total_ritenuta += rit_p
@@ -633,13 +637,16 @@ async def _compute_summary(uid: str, month: str) -> dict:
                 # (vecchio schema dove `amount` era già il netto e veniva
                 # incassato l'equivalente lordo).
                 gross = amt * (1 + (vat - wh) / 100.0)
+                iva_l = amt * vat / 100.0
                 total_executed += gross
                 total_imponibile += amt
-                total_iva += amt * vat / 100.0
+                total_iva += iva_l
                 total_ritenuta += amt * wh / 100.0
                 pm = c.get("payment_method") or ""
                 if pm in incassi:
                     incassi[pm] += gross
+                    incassi_net[pm] += amt
+                    incassi_iva[pm] += iva_l
             else:
                 total_quotes += amt
 
@@ -668,6 +675,8 @@ async def _compute_summary(uid: str, month: str) -> dict:
     return {
         "month": month,
         "incassi_by_method": incassi,
+        "incassi_net_by_method": {k: round(v, 2) for k, v in incassi_net.items()},
+        "incassi_iva_by_method": {k: round(v, 2) for k, v in incassi_iva.items()},
         "total_incassi": round(total_incassi, 2),
         "total_quotes": round(total_quotes, 2),
         "total_executed": round(total_executed, 2),
