@@ -97,3 +97,50 @@ button,
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }
+
+
+/* ============================================================
+   Stampa: nasconde nav, banner, pulsanti azione e mostra solo
+   la lista. Layout pulito per A4. Usata da Prossimi/InAttesa.
+   ============================================================ */
+@media print {
+  body, html {
+    background: #fff !important;
+  }
+  /* Nasconde shell e tutti gli elementi marcati no-print */
+  nav, aside, .no-print, [data-no-print="true"] {
+    display: none !important;
+  }
+  /* Reset main padding */
+  main {
+    margin-left: 0 !important;
+  }
+  main > div {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  /* Disabilita animazioni in stampa */
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  /* Card più compatte e niente ombre */
+  .print-card {
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+    page-break-inside: avoid;
+    margin-bottom: 8px !important;
+  }
+  /* Mostra l'header di stampa altrimenti nascosto */
+  .print-only {
+    display: block !important;
+  }
+  /* Forza colori scuri per leggibilità */
+  h1, h2, h3, p, span, div {
+    color: #000 !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

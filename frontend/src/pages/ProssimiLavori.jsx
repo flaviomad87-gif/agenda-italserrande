@@ -4,7 +4,7 @@ import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
-import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
@@ -141,7 +141,14 @@ export default function ProssimiLavori() {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2 no-print">
+        <button
+          onClick={() => window.print()}
+          data-testid="print-pending-button"
+          className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50"
+        >
+          <Printer className="h-4 w-4" /> Stampa
+        </button>
         <button
           onClick={() => {
             setEditing(null);
@@ -152,6 +159,15 @@ export default function ProssimiLavori() {
         >
           <Plus className="h-4 w-4" /> Nuovo lavoro
         </button>
+      </div>
+
+      {/* Header per la versione stampata */}
+      <div className="print-only mb-4 border-b border-stone-300 pb-3">
+        <h2 className="font-display text-xl font-bold">Italserrande — Prossimi lavori</h2>
+        <p className="text-xs text-stone-600">
+          Stampato il {new Date().toLocaleString("it-IT", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+          {" · "}{items.length} lavor{items.length === 1 ? "o" : "i"} · valore totale {formatEUR(totalValore)}
+        </p>
       </div>
 
       {loading ? (
@@ -177,7 +193,7 @@ export default function ProssimiLavori() {
                 setOpenClient(true);
               }}
               data-testid={`pending-card-${c.id}`}
-              className="group cursor-pointer rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm transition hover:border-stone-300 hover:shadow-md sm:p-5"
+              className="group cursor-pointer rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm transition hover:border-stone-300 hover:shadow-md sm:p-5 print-card"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -213,9 +229,14 @@ export default function ProssimiLavori() {
                         <span className="line-clamp-2">{c.notes}</span>
                       </span>
                     )}
+                    {c.amount > 0 && (
+                      <span className="print-only mt-1 font-semibold text-stone-800">
+                        Importo previsto: {formatEUR(c.amount)}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-col items-end gap-2 no-print">
                   {c.amount > 0 && (
                     <div className="font-display text-lg font-bold tracking-tight">
                       {formatEUR(c.amount)}

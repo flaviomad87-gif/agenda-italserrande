@@ -56,7 +56,7 @@ export default function OfflineBanner() {
   return (
     <div
       data-testid={testId}
-      className={`fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold ${cls}`}
+      className={`fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold no-print ${cls}`}
     >
       <Icon className={`h-3.5 w-3.5 ${pending > 0 && online ? "animate-spin" : ""}`} />
       <span>{label}</span>
