@@ -217,7 +217,7 @@ async def list_clients(
 
 @api.get("/clients/pending", response_model=List[Client])
 async def list_pending_clients(user=Depends(get_current_user)):
-    """Clienti nel backlog 'Prossimi lavori', ordinati per data prevista crescente.
+    """Clienti nel backlog 'Prossimi lavori', ordinati per sort_order (manuale) poi data prevista.
     Esclude quelli in stato 'In attesa materiali' (mostrati nella pagina dedicata)."""
     docs = await db.clients.find(
         {
@@ -226,7 +226,7 @@ async def list_pending_clients(user=Depends(get_current_user)):
             "$or": [{"awaiting_materials": {"$exists": False}}, {"awaiting_materials": False}],
         },
         {"_id": 0},
-    ).sort([("date", 1), ("created_at", 1)]).to_list(2000)
+    ).sort([("sort_order", 1), ("date", 1), ("created_at", 1)]).to_list(2000)
     return docs
 
 
@@ -247,6 +247,18 @@ class ReorderRequest(BaseModel):
 @api.put("/clients/awaiting/reorder")
 async def reorder_awaiting_clients(req: ReorderRequest, user=Depends(get_current_user)):
     """Aggiorna l'ordinamento manuale dei lavori 'In attesa'.
+    Riceve la lista di id nell'ordine desiderato e assegna sort_order=indice."""
+    for idx, cid in enumerate(req.ids):
+        await db.clients.update_one(
+            {"id": cid, "user_id": user["uid"]},
+            {"$set": {"sort_order": idx}},
+        )
+    return {"ok": True, "count": len(req.ids)}
+
+
+@api.put("/clients/pending/reorder")
+async def reorder_pending_clients(req: ReorderRequest, user=Depends(get_current_user)):
+    """Aggiorna l'ordinamento manuale dei lavori 'Prossimi lavori'.
     Riceve la lista di id nell'ordine desiderato e assegna sort_order=indice."""
     for idx, cid in enumerate(req.ids):
         await db.clients.update_one(

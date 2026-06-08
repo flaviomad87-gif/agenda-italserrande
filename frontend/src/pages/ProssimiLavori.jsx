@@ -4,7 +4,7 @@ import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
-import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight } from "lucide-react";
+import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
@@ -51,6 +51,7 @@ export default function ProssimiLavori() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line
     load();
   }, []);
 
@@ -89,6 +90,26 @@ export default function ProssimiLavori() {
     }
   };
 
+  const persistOrder = async (next) => {
+    try {
+      await api.put(`/clients/pending/reorder`, { ids: next.map((x) => x.id) });
+    } catch {
+      toast.error("Impossibile salvare l'ordine. Riprova.");
+      load();
+    }
+  };
+
+  const move = (idx, dir) => {
+    setItems((prev) => {
+      const target = dir === "up" ? idx - 1 : idx + 1;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      persistOrder(next);
+      return next;
+    });
+  };
+
   const totalValore = items.reduce((s, c) => s + (Number(c.amount) || 0), 0);
 
   return (
@@ -101,7 +122,7 @@ export default function ProssimiLavori() {
           Prossimi lavori
         </h1>
         <p className="mt-1 text-sm text-stone-500">
-          Tutti i lavori da fare. Quando li esegui, vanno automaticamente nell'agenda del giorno con la scheda compilata.
+          Tutti i lavori da fare. Usa ↑ ↓ per ordinarli come preferisci. Quando li esegui, vanno automaticamente nell&apos;agenda del giorno con la scheda compilata.
         </p>
       </header>
 
@@ -147,7 +168,7 @@ export default function ProssimiLavori() {
         </div>
       ) : (
         <ul className="space-y-3 stagger">
-          {items.map((c) => (
+          {items.map((c, idx) => (
             <li
               key={c.id}
               role="button"
@@ -200,6 +221,34 @@ export default function ProssimiLavori() {
                       {formatEUR(c.amount)}
                     </div>
                   )}
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        move(idx, "up");
+                      }}
+                      disabled={idx === 0}
+                      data-testid={`pending-move-up-${c.id}`}
+                      aria-label="Sposta su"
+                      className="rounded-full bg-stone-100 p-1.5 text-stone-600 transition hover:bg-stone-200 active:scale-90 disabled:opacity-30"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        move(idx, "down");
+                      }}
+                      disabled={idx === items.length - 1}
+                      data-testid={`pending-move-down-${c.id}`}
+                      aria-label="Sposta giù"
+                      className="rounded-full bg-stone-100 p-1.5 text-stone-600 transition hover:bg-stone-200 active:scale-90 disabled:opacity-30"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={(e) => executeToday(e, c)}
