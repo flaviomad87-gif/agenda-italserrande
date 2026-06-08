@@ -56,7 +56,7 @@ function App() {
                   </Protected>
                 }
               >
-                <Route path="/" element={<Navigate to="/agenda" replace />} />
+                <Route path="/" element={<Navigate to="/prossimi-lavori" replace />} />
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/prossimi-lavori" element={<ProssimiLavori />} />
                 <Route path="/in-attesa" element={<InAttesa />} />
@@ -65,7 +65,7 @@ function App() {
                 <Route path="/riepilogo" element={<Riepilogo />} />
                 <Route path="/profilo" element={<Profilo />} />
               </Route>
-              <Route path="*" element={<Navigate to="/agenda" replace />} />
+              <Route path="*" element={<Navigate to="/prossimi-lavori" replace />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
