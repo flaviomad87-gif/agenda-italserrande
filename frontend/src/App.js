@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 const AppShell = lazy(() => import("./layouts/AppShell"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const ProssimiLavori = lazy(() => import("./pages/ProssimiLavori"));
+const InAttesa = lazy(() => import("./pages/InAttesa"));
 const Incassi = lazy(() => import("./pages/Incassi"));
 const Spese = lazy(() => import("./pages/Spese"));
 const Riepilogo = lazy(() => import("./pages/Riepilogo"));
@@ -58,6 +59,7 @@ function App() {
                 <Route path="/" element={<Navigate to="/agenda" replace />} />
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/prossimi-lavori" element={<ProssimiLavori />} />
+                <Route path="/in-attesa" element={<InAttesa />} />
                 <Route path="/incassi" element={<Incassi />} />
                 <Route path="/spese" element={<Spese />} />
                 <Route path="/riepilogo" element={<Riepilogo />} />

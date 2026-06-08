@@ -85,6 +85,8 @@ class ClientBase(BaseModel):
     payments: List[Payment] = Field(default_factory=list)
     materials: List[Material] = Field(default_factory=list)
     pending: bool = False  # True = nel backlog "Prossimi lavori", non ancora nell'Agenda
+    awaiting_materials: bool = False  # True = "In attesa" (sotto-stato di pending: aspetta materiali)
+    sort_order: int = 0  # ordinamento manuale nella pagina "In attesa"
 
 
 class ClientCreate(ClientBase):
@@ -215,11 +217,43 @@ async def list_clients(
 
 @api.get("/clients/pending", response_model=List[Client])
 async def list_pending_clients(user=Depends(get_current_user)):
-    """Clienti nel backlog 'Prossimi lavori', ordinati per data prevista crescente."""
+    """Clienti nel backlog 'Prossimi lavori', ordinati per data prevista crescente.
+    Esclude quelli in stato 'In attesa materiali' (mostrati nella pagina dedicata)."""
     docs = await db.clients.find(
-        {"user_id": user["uid"], "pending": True}, {"_id": 0}
+        {
+            "user_id": user["uid"],
+            "pending": True,
+            "$or": [{"awaiting_materials": {"$exists": False}}, {"awaiting_materials": False}],
+        },
+        {"_id": 0},
     ).sort([("date", 1), ("created_at", 1)]).to_list(2000)
     return docs
+
+
+@api.get("/clients/awaiting", response_model=List[Client])
+async def list_awaiting_clients(user=Depends(get_current_user)):
+    """Clienti 'in attesa materiali', ordinati per sort_order (manuale) e poi creazione."""
+    docs = await db.clients.find(
+        {"user_id": user["uid"], "pending": True, "awaiting_materials": True},
+        {"_id": 0},
+    ).sort([("sort_order", 1), ("created_at", 1)]).to_list(2000)
+    return docs
+
+
+class ReorderRequest(BaseModel):
+    ids: List[str]
+
+
+@api.put("/clients/awaiting/reorder")
+async def reorder_awaiting_clients(req: ReorderRequest, user=Depends(get_current_user)):
+    """Aggiorna l'ordinamento manuale dei lavori 'In attesa'.
+    Riceve la lista di id nell'ordine desiderato e assegna sort_order=indice."""
+    for idx, cid in enumerate(req.ids):
+        await db.clients.update_one(
+            {"id": cid, "user_id": user["uid"]},
+            {"$set": {"sort_order": idx}},
+        )
+    return {"ok": True, "count": len(req.ids)}
 
 
 @api.post("/clients/{client_id}/execute")
@@ -229,16 +263,18 @@ async def execute_pending_client(
     user=Depends(get_current_user),
 ):
     """Sposta un cliente dal backlog 'Prossimi lavori' all'Agenda del giorno indicato.
-    Se date non è specificata, usa oggi (UTC). Conserva tutta la scheda compilata."""
+    Se date non è specificata, usa oggi (UTC). Conserva tutta la scheda compilata.
+    Pulisce anche il flag 'in attesa materiali' (il lavoro è ora schedulato)."""
     target_date = date or datetime.now(timezone.utc).date().isoformat()
     res = await db.clients.find_one_and_update(
         {"id": client_id, "user_id": user["uid"], "pending": True},
-        {"$set": {"pending": False, "date": target_date}},
+        {"$set": {"pending": False, "awaiting_materials": False, "date": target_date}},
         return_document=True,
         projection={"_id": 0},
     )
     if not res:
         raise HTTPException(404, "Cliente non trovato o già in agenda")
+    res.pop("_id", None)
     return res
 
 
@@ -340,6 +376,7 @@ async def update_client(client_id: str, payload: ClientCreate, user=Depends(get_
     )
     if not res:
         raise HTTPException(404, "Cliente non trovato")
+    res.pop("_id", None)
     return res
 
 
@@ -410,6 +447,7 @@ async def update_expense(expense_id: str, payload: ExpenseCreate, user=Depends(g
     )
     if not res:
         raise HTTPException(404, "Spesa non trovata")
+    res.pop("_id", None)
     return res
 
 
@@ -448,6 +486,7 @@ async def update_recurring(rid: str, payload: RecurringExpenseCreate, user=Depen
     )
     if not res:
         raise HTTPException(404, "Spesa ricorrente non trovata")
+    res.pop("_id", None)
     return res
 
 

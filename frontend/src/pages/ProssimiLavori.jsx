@@ -57,12 +57,13 @@ export default function ProssimiLavori() {
   const refreshAll = async () => {
     await load();
     window.__refreshPendingBadge?.();
+    window.__refreshAwaitingBadge?.();
     window.__refreshUnpaidBadge?.();
   };
 
   const onClientSaved = async (item) => {
-    if (item && !item.pending) {
-      // Promosso in Agenda → rimuovilo dalla lista
+    if (item && (!item.pending || item.awaiting_materials)) {
+      // Promosso in Agenda o spostato in 'In attesa' → rimuovilo dalla lista Prossimi
       setItems((prev) => prev.filter((p) => p.id !== item.id));
     }
     await refreshAll();

@@ -19,7 +19,7 @@ import {
 } from "./ui/select";
 import { toast } from "sonner";
 import { api, newUUID } from "../lib/api";
-import { Trash2, Clock, CalendarCheck } from "lucide-react";
+import { Trash2, Clock, CalendarCheck, Hourglass } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
@@ -39,6 +39,7 @@ const empty = (date) => ({
   payments: [],
   materials: [],
   pending: false,
+  awaiting_materials: false,
 });
 
 /** Migra i campi legacy (payment_method, invoice_number) in un singolo payment, una sola volta. */
@@ -70,7 +71,7 @@ const migrateLegacy = (data) => {
   return data;
 };
 
-export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, defaultPending = false }) {
+export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, defaultPending = false, defaultAwaiting = false }) {
   const [form, setForm] = useState(empty(date));
   const editing = Boolean(initial?.id);
 
@@ -78,9 +79,13 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
     if (open) {
       const base = empty(date);
       if (defaultPending && !initial) base.pending = true;
+      if (defaultAwaiting && !initial) {
+        base.pending = true;
+        base.awaiting_materials = true;
+      }
       setForm(initial ? { ...base, ...initial, amount: initial.amount ?? "" } : base);
     }
-  }, [open, initial, date, defaultPending]);
+  }, [open, initial, date, defaultPending, defaultAwaiting]);
 
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -116,6 +121,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       payments,
       materials,
       pending: !!form.pending,
+      awaiting_materials: !!form.awaiting_materials,
       // Reset legacy fields once we use the new payments model
       payment_method: "",
       invoice_number: "",
@@ -209,6 +215,36 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               aria-label="Lavoro in attesa"
             />
           </div>
+          {/* Toggle "In attesa materiali" — sotto-stato di pending */}
+          {form.pending && (
+            <div
+              className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
+                form.awaiting_materials
+                  ? "border-amber-400/40 bg-amber-50"
+                  : "border-stone-200/70 bg-stone-50"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                <Hourglass className={`mt-0.5 h-4 w-4 ${form.awaiting_materials ? "text-amber-600" : "text-stone-500"}`} />
+                <div>
+                  <div className="text-sm font-semibold text-stone-800">
+                    In attesa materiali
+                  </div>
+                  <div className="text-xs text-stone-500">
+                    {form.awaiting_materials
+                      ? "Compare nella pagina 'In attesa', riordinabile a mano."
+                      : "Attiva se aspetti l'arrivo dei materiali prima di schedularlo."}
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={!!form.awaiting_materials}
+                onCheckedChange={(v) => update("awaiting_materials", v)}
+                data-testid="client-awaiting-switch"
+                aria-label="In attesa materiali"
+              />
+            </div>
+          )}
           <div>
             <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Nome / Ragione sociale</Label>
             <Input
@@ -337,7 +373,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
 
           <div>
             <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-              Ritenuta d'acconto
+              Ritenuta d&apos;acconto
             </Label>
             <Select
               value={

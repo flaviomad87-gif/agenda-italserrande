@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Calendar, Receipt, PieChart, User, Hammer, Wallet, Clock } from "lucide-react";
+import { Calendar, Receipt, PieChart, User, Hammer, Wallet, Clock, Hourglass } from "lucide-react";
 import { cn } from "../lib/utils";
 import { api, apiGetWithCache } from "../lib/api";
 import { auth } from "../lib/firebase";
@@ -9,6 +9,7 @@ import OfflineBanner from "../components/OfflineBanner";
 const navItems = [
   { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
   { to: "/prossimi-lavori", label: "Prossimi", icon: Clock, testId: "nav-prossimi", badgeKey: "pending" },
+  { to: "/in-attesa", label: "In attesa", icon: Hourglass, testId: "nav-in-attesa", badgeKey: "awaiting" },
   { to: "/incassi", label: "Incassi", icon: Wallet, testId: "nav-incassi", badgeKey: "unpaid" },
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
   { to: "/riepilogo", label: "Riepilogo", icon: PieChart, testId: "nav-riepilogo" },
@@ -60,6 +61,7 @@ const NavItem = ({ to, label, icon: Icon, testId, mobile, badge }) => (
 export default function AppShell() {
   const [unpaidCount, setUnpaidCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
+  const [awaitingCount, setAwaitingCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,13 +69,16 @@ export default function AppShell() {
       // Cache-first per badge istantaneo
       const cu = apiGetWithCache(`/clients/unpaid`);
       const cp = apiGetWithCache(`/clients/pending`);
+      const ca = apiGetWithCache(`/clients/awaiting`);
       if (cu.cached && !cancelled) setUnpaidCount(cu.cached.length || 0);
       if (cp.cached && !cancelled) setPendingCount(cp.cached.length || 0);
+      if (ca.cached && !cancelled) setAwaitingCount(ca.cached.length || 0);
       try {
-        const [u, p] = await Promise.all([cu.fresh, cp.fresh]);
+        const [u, p, a] = await Promise.all([cu.fresh, cp.fresh, ca.fresh]);
         if (!cancelled) {
           setUnpaidCount((u || []).length);
           setPendingCount((p || []).length);
+          setAwaitingCount((a || []).length);
         }
       } catch {
         // silenzioso
@@ -123,15 +128,25 @@ export default function AppShell() {
         // ignore
       }
     };
+    window.__refreshAwaitingBadge = async () => {
+      try {
+        const data = await api.get("/clients/awaiting").then((r) => r.data);
+        setAwaitingCount((data || []).length);
+      } catch {
+        // ignore
+      }
+    };
     return () => {
       delete window.__refreshUnpaidBadge;
       delete window.__refreshPendingBadge;
+      delete window.__refreshAwaitingBadge;
     };
   }, []);
 
   const badgeFor = (key) => {
     if (key === "unpaid") return unpaidCount;
     if (key === "pending") return pendingCount;
+    if (key === "awaiting") return awaitingCount;
     return 0;
   };
 
