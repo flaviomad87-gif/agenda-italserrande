@@ -9,8 +9,8 @@ import OfflineBanner from "../components/OfflineBanner";
 const navItems = [
   { to: "/prossimi-lavori", label: "Prossimi", icon: Clock, testId: "nav-prossimi", badgeKey: "pending" },
   { to: "/in-attesa", label: "In attesa", icon: Hourglass, testId: "nav-in-attesa", badgeKey: "awaiting" },
-  { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
   { to: "/incassi", label: "Incassi", icon: Wallet, testId: "nav-incassi", badgeKey: "unpaid" },
+  { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
   { to: "/riepilogo", label: "Riepilogo", icon: PieChart, testId: "nav-riepilogo" },
   { to: "/profilo", label: "Profilo", icon: User, testId: "nav-profilo" },
