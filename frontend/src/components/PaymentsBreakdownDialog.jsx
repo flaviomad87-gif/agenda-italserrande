@@ -272,7 +272,7 @@ export default function PaymentsBreakdownDialog({ open, onOpenChange, month, met
             </div>
 
             <div className="mt-4 rounded-xl bg-stone-50 p-3 text-xs text-stone-600">
-              <b>Come leggere:</b> le cifre principali sono il <b>margine netto IVA</b>. Il "lordo" sotto in piccolo è quanto hai effettivamente preso in cassa. Se vedi il badge arancione <i>"Lavoro del …"</i>, la data del pagamento è diversa da quella del lavoro.
+              <b>Come leggere:</b> le cifre principali sono il <b>margine netto IVA</b>. Il &quot;lordo&quot; sotto in piccolo è quanto hai effettivamente preso in cassa. Se vedi il badge arancione <i>&quot;Lavoro del …&quot;</i>, la data del pagamento è diversa da quella del lavoro.
             </div>
           </>
         )}

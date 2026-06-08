@@ -1,0 +1,50 @@
+{
+  "summary": "Iteration 12 backend-only testing — focused on the new 'In attesa' (awaiting materials) feature, manual reorder endpoints, IVA scorporo with margine, /payments/by-method breakdown, single-payment delete, and route-ordering safety. Created /app/backend/tests/test_iter12_awaiting_iva.py with 21 new tests (10 classes). All 21 PASS. Full regression (backend_test.py + test_iva_split.py + test_edge_cases_iter11.py + iter12) = 91/91 PASS in 65s. No bugs found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter12_awaiting_iva.py",
+    "/app/test_reports/pytest/iteration_12_results.xml"
+  ],
+  "action_items": [],
+  "tests_verified": [
+    "Auth gates: GET /clients/awaiting, /clients/pending, PUT /clients/{awaiting,pending}/reorder, /summary, /payments/by-method all return 401/403 without token (HTTPBearer auto_error=True returns 403).",
+    "GET /clients/awaiting returns ONLY clients with pending=true AND awaiting_materials=true; excludes pending-only and agenda clients.",
+    "GET /clients/pending returns clients with pending=true and EXCLUDES awaiting_materials=true.",
+    "PUT /clients/awaiting/reorder accepts {ids:[...]} and persists sort_order=index; subsequent GET returns items in the new order with correct sort_order values.",
+    "PUT /clients/pending/reorder behaves identically and persists ordering.",
+    "POST /clients/{id}/execute?date=... sets pending=false AND awaiting_materials=false AND updates date; client disappears from /pending and /awaiting and appears in /clients?date=.",
+    "POST /clients accepts awaiting_materials and sort_order; PUT /clients/{id} persists awaiting_materials toggle.",
+    "GET /summary?month=YYYY-MM exposes total_imponibile, total_iva, total_ritenuta, incassi_net_by_method, incassi_iva_by_method, incassi_margine_by_method.",
+    "Summary 'balance' is computed from total_imponibile (not gross): adding a 1220€ payment with 22% VAT increases balance by ~1000€, not 1220€.",
+    "IVA scorporo formula imponibile = amount / (1 + (vat-wh)/100) verified for: forfettario (no vat/wh), IVA 22% no withholding, IVA 22% with withholding 20% (divisor 1.02).",
+    "GET /payments/by-method?month=&method= items include amount, imponibile, iva, materials_share, margin, vat_rate, payment_date, etc. Totals coherent: total_imponibile + total_iva ≈ total_gross (tolerance < 1€).",
+    "Invalid method (e.g. 'carta') returns 400.",
+    "Materials pro-rata: client with 100€ materials and two payments (300 contanti + 700 pos) -> materials_share = 30 / 70 respectively; margin = imponibile - share.",
+    "DELETE /api/clients/{cid}/payments/{pid} removes ONLY the target payment, leaves p1 and p3 intact, returns remaining count. 404 on unknown payment_id, 404 on unknown client_id.",
+    "Route ordering: GET /clients/awaiting and /clients/pending NOT shadowed by /clients/{client_id} (return lists, not 404)."
+  ],
+  "critical_code_review_comments": [
+    "execute_pending_client correctly uses $set with both pending=false AND awaiting_materials=false in a single atomic update, preserving payments/materials.",
+    "Pending/awaiting reorder endpoints loop awaits update_one sequentially — fine for small lists (~hundreds) but could be batched with bulk_write if list grows large. Not a bug.",
+    "_compute_summary and payments_by_method share an identical _split helper duplicated in two places (lines 651-657 and 794-799). Minor DRY: extract module-level helper. Not blocking.",
+    "Backend file server.py is 942 lines — exceeds the 700-line guideline. Suggest splitting into routers/{clients,expenses,advances,summary}.py before adding more endpoints. Not a functional bug.",
+    "HTTPBearer(auto_error=True) returns 403 (not 401) for missing token; spec says '403 without authentication' which matches actual behavior. Tests assert in (401,403) for safety.",
+    "_strip_id helper defined but never used in current code — dead code (cosmetic).",
+    "incassi_by_method values are not rounded in summary (only the *_net/_iva/_margine variants are). Inconsistent but not a bug; FE rounds for display."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter12_awaiting_iva.py"],
+  "success_rate": {"backend": "100% (91/91 across all suites)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Per-run Firebase signup via REST signUp/signIn (key from REACT_APP_FIREBASE_API_KEY). Pattern: testuser+iter12<ts><uuid>@italserrande.test / TestPassword123!. /app/memory/test_credentials.md does NOT exist — flagged.",
+  "seed_data_creation": "All clients created with TEST_ prefixed names in isolated month 2027-03; autouse fixture sweeps /clients?month=2027-03, /clients/pending and /clients/awaiting after each test and DELETEs any TEST_ entries.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 12 added 21 tests in /app/backend/tests/test_iter12_awaiting_iva.py covering the awaiting-materials feature, reorder endpoints, IVA scorporo with margine, materials pro-rata, /payments/by-method breakdown, single-payment delete and route ordering. Combined backend regression now 91 tests, ~65s. Frontend was NOT tested this iteration (explicit backend-only request). All endpoints listed in the review request are validated and working as specified."
+}
