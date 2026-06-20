@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR, PAYMENT_LABEL, computeWithVat, computeClientBalance, computeClientMargin, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
@@ -49,6 +50,7 @@ const PaymentBadge = ({ method }) => {
 };
 
 export default function Agenda() {
+  const navigate = useNavigate();
   const [date, setDate] = useState(isoDate());
   const [view, setView] = useState("day"); // "day" | "week"
   const [clients, setClients] = useState([]);
@@ -498,6 +500,9 @@ export default function Agenda() {
         initial={editing}
         onSaved={onClientSaved}
         onDeleted={onClientDeleted}
+        onDuplicate={(prefill) => {
+          navigate("/prossimi-lavori", { state: { prefill } });
+        }}
       />
       <AdvanceFormDialog
         open={openAdvance}

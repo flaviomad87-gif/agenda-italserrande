@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
@@ -20,6 +21,7 @@ import {
 import { toast } from "sonner";
 
 export default function InAttesa() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openClient, setOpenClient] = useState(false);
@@ -350,6 +352,9 @@ export default function InAttesa() {
         defaultAwaiting
         onSaved={onClientSaved}
         onDeleted={onClientDeleted}
+        onDuplicate={(prefill) => {
+          navigate("/prossimi-lavori", { state: { prefill } });
+        }}
       />
     </div>
   );

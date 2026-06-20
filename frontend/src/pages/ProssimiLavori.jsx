@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
@@ -35,6 +36,18 @@ export default function ProssimiLavori() {
   const [openClient, setOpenClient] = useState(false);
   const [editing, setEditing] = useState(null);
   const [executingId, setExecutingId] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Se arriviamo qui con prefill dalla "Duplica" di un altro lavoro, apriamo subito il dialog
+  useEffect(() => {
+    if (location.state?.prefill) {
+      setEditing({ ...location.state.prefill, date: isoDate() });
+      setOpenClient(true);
+      // Pulisce lo state per evitare riapertura su back/forward
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const load = async () => {
     const c = apiGetWithCache(`/clients/pending`);
@@ -306,10 +319,15 @@ export default function ProssimiLavori() {
         open={openClient}
         onOpenChange={setOpenClient}
         date={editing?.date || isoDate()}
-        initial={editing}
+        initial={editing && editing.id ? editing : null}
         defaultPending
         onSaved={onClientSaved}
         onDeleted={onClientDeleted}
+        onDuplicate={(prefill) => {
+          // Resta in questa pagina: apri subito il dialog con i dati copiati
+          setEditing({ ...prefill, date: isoDate() });
+          setOpenClient(true);
+        }}
       />
     </div>
   );

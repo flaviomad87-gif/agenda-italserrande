@@ -19,7 +19,7 @@ import {
 } from "./ui/select";
 import { toast } from "sonner";
 import { api, newUUID } from "../lib/api";
-import { Trash2, Clock, CalendarCheck, Hourglass } from "lucide-react";
+import { Trash2, Clock, CalendarCheck, Hourglass, Copy } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
@@ -71,7 +71,7 @@ const migrateLegacy = (data) => {
   return data;
 };
 
-export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, defaultPending = false, defaultAwaiting = false }) {
+export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, onDuplicate, defaultPending = false, defaultAwaiting = false }) {
   const [form, setForm] = useState(empty(date));
   const editing = Boolean(initial?.id);
 
@@ -463,15 +463,39 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
 
           <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             {editing ? (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={remove}
-                data-testid="client-delete-button"
-                className="h-12 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <Trash2 className="mr-2 h-4 w-4" /> Elimina
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={remove}
+                  data-testid="client-delete-button"
+                  className="h-12 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Elimina
+                </Button>
+                {onDuplicate && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      const prefill = {
+                        name: form.name || "",
+                        address: form.address || "",
+                        phone: form.phone || "",
+                        pending: true,
+                        awaiting_materials: false,
+                      };
+                      onOpenChange(false);
+                      // Piccolo delay per permettere la chiusura prima della riapertura
+                      setTimeout(() => onDuplicate(prefill), 220);
+                    }}
+                    data-testid="client-duplicate-button"
+                    className="h-12 rounded-xl text-[#B8683D] hover:bg-amber-50 hover:text-[#9F5630]"
+                  >
+                    <Copy className="mr-2 h-4 w-4" /> Duplica
+                  </Button>
+                )}
+              </div>
             ) : (
               <span />
             )}

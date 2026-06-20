@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, apiGetWithCache } from "../lib/api";
 import { formatEUR, daysSince, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
@@ -33,6 +34,7 @@ const SeverityPill = ({ days }) => {
 };
 
 export default function Incassi() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openClient, setOpenClient] = useState(false);
@@ -219,6 +221,9 @@ export default function Incassi() {
         initial={editing}
         onSaved={onClientSaved}
         onDeleted={onClientDeleted}
+        onDuplicate={(prefill) => {
+          navigate("/prossimi-lavori", { state: { prefill } });
+        }}
       />
     </div>
   );
