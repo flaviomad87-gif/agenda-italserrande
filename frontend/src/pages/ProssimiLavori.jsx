@@ -319,7 +319,7 @@ export default function ProssimiLavori() {
         open={openClient}
         onOpenChange={setOpenClient}
         date={editing?.date || isoDate()}
-        initial={editing && editing.id ? editing : null}
+        initial={editing}
         defaultPending
         onSaved={onClientSaved}
         onDeleted={onClientDeleted}

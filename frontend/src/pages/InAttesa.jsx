@@ -347,7 +347,7 @@ export default function InAttesa() {
         open={openClient}
         onOpenChange={setOpenClient}
         date={editing?.date || isoDate()}
-        initial={editing && editing.id ? editing : null}
+        initial={editing}
         defaultPending
         defaultAwaiting
         onSaved={onClientSaved}
