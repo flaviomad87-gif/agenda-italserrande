@@ -153,3 +153,20 @@ export const formatMonthLabel = (yyyymm) => {
   ];
   return `${months[(m || 1) - 1]} ${y || ""}`;
 };
+
+
+/** Formatta un appointment_at (ISO datetime) in badge breve tipo "Ven 6 giu · 10:00".
+ * Restituisce null se la data non è valida o è vuota. */
+export const formatAppointmentBadge = (isoDatetime) => {
+  if (!isoDatetime) return null;
+  const d = new Date(isoDatetime);
+  if (isNaN(d.getTime())) return null;
+  const days = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
+  const months = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+  const dayName = days[d.getDay()];
+  const dayNum = d.getDate();
+  const monthName = months[d.getMonth()];
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${dayName} ${dayNum} ${monthName} · ${hh}:${mm}`;
+};

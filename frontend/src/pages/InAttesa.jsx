@@ -5,6 +5,7 @@ import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
+import AppointmentBadge from "../components/AppointmentBadge";
 import {
   Plus,
   MapPin,
@@ -43,7 +44,6 @@ export default function InAttesa() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line
     load();
   }, []);
 
@@ -263,6 +263,7 @@ export default function InAttesa() {
                         Importo previsto: {formatEUR(c.amount)}
                       </span>
                     )}
+                    <AppointmentBadge client={c} testId={`appointment-awaiting-${c.id}`} />
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 no-print">

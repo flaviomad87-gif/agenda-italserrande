@@ -19,7 +19,7 @@ import {
 } from "./ui/select";
 import { toast } from "sonner";
 import { api, newUUID } from "../lib/api";
-import { Trash2, Clock, CalendarCheck, Hourglass, Copy } from "lucide-react";
+import { Trash2, Clock, CalendarCheck, Hourglass, Copy, CalendarClock } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
@@ -40,6 +40,8 @@ const empty = (date) => ({
   materials: [],
   pending: false,
   awaiting_materials: false,
+  appointment_at: "",
+  appointment_note: "",
 });
 
 /** Migra i campi legacy (payment_method, invoice_number) in un singolo payment, una sola volta. */
@@ -122,6 +124,8 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       materials,
       pending: !!form.pending,
       awaiting_materials: !!form.awaiting_materials,
+      appointment_at: form.appointment_at || null,
+      appointment_note: (form.appointment_note || "").trim(),
       // Reset legacy fields once we use the new payments model
       payment_method: "",
       invoice_number: "",
@@ -303,6 +307,52 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               className="mt-2 rounded-xl"
               data-testid="client-notes-input"
             />
+          </div>
+
+          {/* Appuntamento con il cliente (opzionale). Mostrato in evidenza sulle card. */}
+          <div className="rounded-2xl border border-[#2E5A47]/20 bg-[#EAF3EF]/50 p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[#2E5A47]">
+              <CalendarClock className="h-4 w-4" /> Appuntamento (opzionale)
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
+                  Data e ora
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={form.appointment_at || ""}
+                  onChange={(e) => update("appointment_at", e.target.value)}
+                  className="mt-2 h-12 rounded-xl"
+                  data-testid="client-appointment-at"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
+                  Nota (es. &quot;pomeriggio&quot;)
+                </Label>
+                <Input
+                  value={form.appointment_note || ""}
+                  onChange={(e) => update("appointment_note", e.target.value)}
+                  placeholder="Facoltativa"
+                  className="mt-2 h-12 rounded-xl"
+                  data-testid="client-appointment-note"
+                />
+              </div>
+            </div>
+            {(form.appointment_at || (form.appointment_note || "").trim()) && (
+              <button
+                type="button"
+                onClick={() => {
+                  update("appointment_at", "");
+                  update("appointment_note", "");
+                }}
+                className="mt-2 text-xs font-semibold text-stone-500 underline-offset-2 hover:text-stone-700 hover:underline"
+                data-testid="client-appointment-clear"
+              >
+                Rimuovi appuntamento
+              </button>
+            )}
           </div>
 
           <div>

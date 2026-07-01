@@ -5,6 +5,7 @@ import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
+import AppointmentBadge from "../components/AppointmentBadge";
 import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -64,7 +65,6 @@ export default function ProssimiLavori() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line
     load();
   }, []);
 
@@ -247,6 +247,7 @@ export default function ProssimiLavori() {
                         Importo previsto: {formatEUR(c.amount)}
                       </span>
                     )}
+                    <AppointmentBadge client={c} testId={`appointment-pending-${c.id}`} />
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 no-print">

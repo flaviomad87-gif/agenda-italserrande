@@ -9,6 +9,7 @@ import AdvanceFormDialog from "../components/AdvanceFormDialog";
 import ClientSearch from "../components/ClientSearch";
 import WeekView from "../components/WeekView";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
+import AppointmentBadge from "../components/AppointmentBadge";
 import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, Trash2, AlarmClock, Calendar, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 
@@ -266,6 +267,7 @@ export default function Agenda() {
                           <span className="line-clamp-2">{c.notes}</span>
                         </span>
                       )}
+                      <AppointmentBadge client={c} testId={`appointment-agenda-${c.id}`} />
                     </div>
                   </div>
                   <div className="text-right">

@@ -87,6 +87,8 @@ class ClientBase(BaseModel):
     pending: bool = False  # True = nel backlog "Prossimi lavori", non ancora nell'Agenda
     awaiting_materials: bool = False  # True = "In attesa" (sotto-stato di pending: aspetta materiali)
     sort_order: int = 0  # ordinamento manuale nella pagina "In attesa"
+    appointment_at: Optional[str] = None  # ISO datetime YYYY-MM-DDTHH:MM (appuntamento con cliente)
+    appointment_note: Optional[str] = ""  # nota libera es. "pomeriggio dopo pranzo"
 
 
 class ClientCreate(ClientBase):
