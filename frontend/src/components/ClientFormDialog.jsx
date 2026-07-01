@@ -17,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
 import { toast } from "sonner";
 import { api, newUUID } from "../lib/api";
 import { Trash2, Clock, CalendarCheck, Hourglass, Copy, CalendarClock } from "lucide-react";
@@ -24,6 +26,8 @@ import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
 import { Switch } from "./ui/switch";
+import { it } from "date-fns/locale";
+import { format as formatDate } from "date-fns";
 
 const empty = (date) => ({
   date,
@@ -319,13 +323,69 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
                 <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
                   Data e ora
                 </Label>
-                <Input
-                  type="datetime-local"
-                  value={form.appointment_at || ""}
-                  onChange={(e) => update("appointment_at", e.target.value)}
-                  className="mt-2 h-12 rounded-xl"
-                  data-testid="client-appointment-at"
-                />
+                {(() => {
+                  const raw = form.appointment_at || "";
+                  const parsed = raw ? new Date(raw) : null;
+                  const validDate = parsed && !isNaN(parsed.getTime()) ? parsed : null;
+                  const timeStr = validDate
+                    ? `${String(validDate.getHours()).padStart(2, "0")}:${String(validDate.getMinutes()).padStart(2, "0")}`
+                    : "";
+                  const dateBtnLabel = validDate
+                    ? formatDate(validDate, "EEEE d MMMM yyyy", { locale: it })
+                    : "Scegli giorno";
+                  const setDatePart = (d) => {
+                    if (!d) return;
+                    const [hh, mm] = (timeStr || "09:00").split(":");
+                    const next = new Date(d);
+                    next.setHours(parseInt(hh || "9", 10), parseInt(mm || "0", 10), 0, 0);
+                    // ISO senza timezone (yyyy-MM-ddTHH:mm) compatibile con datetime-local
+                    const iso = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}T${String(next.getHours()).padStart(2, "0")}:${String(next.getMinutes()).padStart(2, "0")}`;
+                    update("appointment_at", iso);
+                  };
+                  const setTimePart = (t) => {
+                    if (!t) return;
+                    const base = validDate || new Date();
+                    const [hh, mm] = t.split(":");
+                    base.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
+                    const iso = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}T${String(base.getHours()).padStart(2, "0")}:${String(base.getMinutes()).padStart(2, "0")}`;
+                    update("appointment_at", iso);
+                  };
+                  return (
+                    <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_110px]">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            data-testid="client-appointment-date-btn"
+                            className="flex h-12 items-center justify-start rounded-xl border border-stone-200 bg-white px-3 text-left text-sm font-medium capitalize text-stone-700 hover:bg-stone-50"
+                          >
+                            <CalendarClock className="mr-2 h-4 w-4 text-[#2E5A47]" />
+                            {dateBtnLabel}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={validDate || undefined}
+                            onSelect={setDatePart}
+                            locale={it}
+                            weekStartsOn={1}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Input
+                        type="time"
+                        value={timeStr}
+                        onChange={(e) => setTimePart(e.target.value)}
+                        className="h-12 rounded-xl"
+                        data-testid="client-appointment-time"
+                        disabled={!validDate}
+                        placeholder="09:00"
+                      />
+                    </div>
+                  );
+                })()}
                 {form.appointment_at && (() => {
                   const d = new Date(form.appointment_at);
                   if (isNaN(d.getTime())) return null;
