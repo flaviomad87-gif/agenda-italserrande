@@ -326,6 +326,25 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
                   className="mt-2 h-12 rounded-xl"
                   data-testid="client-appointment-at"
                 />
+                {form.appointment_at && (() => {
+                  const d = new Date(form.appointment_at);
+                  if (isNaN(d.getTime())) return null;
+                  const label = d.toLocaleDateString("it-IT", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  });
+                  const time = d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+                  return (
+                    <div
+                      className="mt-1.5 text-xs font-semibold capitalize text-[#2E5A47]"
+                      data-testid="client-appointment-preview"
+                    >
+                      {label} · ore {time}
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
