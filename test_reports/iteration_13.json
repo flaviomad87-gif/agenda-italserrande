@@ -1,0 +1,64 @@
+{
+  "summary": "Iteration 13 backend-only regression — deep audit for the recently applied accounting fix (balance no longer subtracts operai advances) and search for other double-counting bugs. Created /app/backend/tests/test_iter13_balance_no_advances.py with 20 targeted tests covering: (1) CRITICAL new balance formula (imponibile - spese - materials), (2) yearly summary uses same formula, (3) total_advances still exposed as reminder, (4) IVA scorporo with/without ritenuta and vat=null, (5) incassi_margine_by_method with materials pro-quota across multiple payments, (6) /payments/by-method fields (margin/materials_share/imponibile/iva), (7) auth gates (403), (8) pending vs awaiting split, (9) reorder persistence, (10) execute clears both pending+awaiting, (11) DELETE single payment leaves others, (12) appointment_at/appointment_note round-trip via POST+PUT, (13) /clients/unpaid.expected_margin = imponibile - materials, (14) materials by source separate from expenses (no double counting), (15) preventivo without payments goes to total_quotes not incassi. Full regression 132/132 PASS in 116s. NO OTHER double-counting bugs found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter13_balance_no_advances.py",
+    "/app/test_reports/pytest/iteration_13_results.xml",
+    "/app/test_reports/pytest/iteration_13_full.xml"
+  ],
+  "action_items": [],
+  "tests_verified": [
+    "REGRESSION balance formula: 1 client imponibile 1000 IVA 22% + 1 spesa 200 + 1 acconto 100 + 1 materiale 50 → balance = 750 (NOT 650). total_advances=100 exposed but NOT subtracted.",
+    "balance = -300 when only expenses (300) + advances (500) — advances excluded.",
+    "balance = 0 when only advances (250) — no negative impact on P&L.",
+    "Yearly /summary/year?year=2027 sums monthly balances with new formula; test month has balance 750 and totals.balance = 750.",
+    "IVA scorporo: amount 1220 vat 22 → imponibile 1000, iva 220, incassi 1220.",
+    "IVA + ritenuta: amount 1020 vat 22 wh 20 → imponibile 1000, iva 220, ritenuta 200.",
+    "vat_rate=null + withholding_rate=null (forfettario) → imponibile = amount, iva = 0.",
+    "incassi_margine_by_method.contanti = 800 for imponibile 1000 vat 22 materials 200 paid full in contanti (not 1220 nor 1000).",
+    "Materials pro-quota: imponibile 1000, materials 100, payments 300+700 contanti → per-payment margin 270 / 630, sum = 900 = 1000-100.",
+    "/payments/by-method items expose amount, imponibile, iva, materials_share, margin (verified 1000/220/100/900 for a 1220€ contanti payment).",
+    "AUTH: /summary, /summary/year, /clients/unpaid, /clients/pending, /clients/awaiting, /payments/by-method, /expenses, /advances all return 403 without token.",
+    "PENDING vs AWAITING: client pending=true + awaiting_materials=true appears in /awaiting NOT /pending; pending=true + awaiting_materials=false in /pending NOT /awaiting.",
+    "REORDER /clients/awaiting/reorder and /clients/pending/reorder set sort_order = index for each id; verified via subsequent GET.",
+    "DELETE /clients/{id}/payments/{pid}: removes only that payment (p2), leaves p1+p3 intact.",
+    "EXECUTE /clients/{id}/execute?date=… clears BOTH pending=false AND awaiting_materials=false.",
+    "APPOINTMENT: POST accepts appointment_at + appointment_note; PUT updates; GET (via list) returns updated values.",
+    "UNPAID /clients/unpaid: expected_margin = imponibile - materials (imponibile 500 - materiali 100 = 400).",
+    "MATERIALS by source vs expenses: materials contanti 100 + conto_aziendale 50 + expense contanti 200 → total_materials=150 (separate), total_spese=200 (separate). NO double counting.",
+    "PREVENTIVO senza payments: contributes to total_quotes, non compare in total_incassi/total_imponibile.",
+    "Legacy backend_test.py and test_edge_cases_iter11.py assertions updated to reflect the NEW balance formula (previously encoded the OLD one)."
+  ],
+  "critical_code_review_comments": [
+    "server.py _compute_summary line 743: balance = total_imponibile - total_spese - total_materials — CORRECT. total_advances exposed at line 761 only as reminder. Confirmed no other place adds/subtracts advances into balance.",
+    "yearly_summary correctly reuses _compute_summary output for each month and simply sums monthly balances — no separate advance handling. Safe.",
+    "_split helper still duplicated between _compute_summary (line 653) and payments_by_method (~line 794-799) — DRY violation flagged in iter12, still present. Not a bug but recommend extraction to a module-level function.",
+    "server.py is now 949 lines — still exceeds the 700-line guideline. Recommend splitting into routers/{clients,expenses,advances,summary,payments}.py before further growth.",
+    "In list_unpaid_clients (line 321): gross = amt * (1 + vat_rate / 100.0), withholding = amt * (wh_rate / 100.0), to_collect = gross - withholding. For imponibile 500 vat 22 wh 20: to_collect = 500*1.22 - 500*0.20 = 610 - 100 = 510. But payment amount for the client to pay is imponibile + iva - ritenuta = 500 + 110 - 100 = 510 — coherent with new IVA logic. expected_margin=amt-materials=400 (independent from ritenuta). No bug.",
+    "In _compute_summary legacy branch (payments empty + status lavoro_eseguito, line 700-714): computes gross = amt * (1 + (vat-wh)/100). This encodes the client paying imponibile + iva - ritenuta, which matches the scorporo logic. Coherent.",
+    "materials_by_source keys are 'contanti' and 'conto_aziendale' (line 722). Any other source string is coerced to 'conto_aziendale' (line 727-729). Safe fallback.",
+    "No hidden double-counting found between expenses/advances/materials/payments — all four are tracked in separate collections/fields and only expenses+materials are subtracted from balance.",
+    "advances_by_worker aggregation (line 586-611) uses $match on date regex; used for worker summary only — does NOT feed balance. Safe.",
+    "GET /clients/{id} endpoint does not exist (only list /clients?month=…, /clients/unpaid, /clients/pending, /clients/awaiting, /clients/search). Might be worth adding for FE convenience but not blocking; tests fetch via list.",
+    "incassi_by_method values in summary are NOT rounded (line 747 raw dict) while _net/_iva/_margine variants are rounded (line 748-750). Inconsistent but non-blocking (FE rounds for display)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter13_balance_no_advances.py (new, 20 tests)",
+    "/app/backend/tests/test_edge_cases_iter11.py (updated 1 assertion to new formula: balance=850 instead of 650)",
+    "/app/backend/tests/backend_test.py (updated 1 assertion: balance = imponibile - spese - materials instead of incassi - spese - advances)"
+  ],
+  "success_rate": {"backend": "100% (132/132 across all suites incl. iter13)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Per-run Firebase signup via REST signUp (key from REACT_APP_FIREBASE_API_KEY). Pattern: testuser+iter13<ts><uuid>@italserrande.test / TestPassword123!.",
+  "seed_data_creation": "All TEST_ prefixed clients/expenses/advances in isolated month 2027-04; autouse fixture sweeps before AND after each test to prevent cross-test pollution.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 13 added 20 tests in test_iter13_balance_no_advances.py verifying the CRITICAL accounting fix (balance = imponibile - spese - materials, NO advances). Also updated 2 stale assertions in backend_test.py and test_edge_cases_iter11.py that still encoded the old formula. Combined regression: 132 tests, ~116s, 100% pass. Frontend NOT tested. No other double-counting bugs discovered — the fix is clean and isolated to server.py:743. total_advances still exposed for FE display as reminder."
+}

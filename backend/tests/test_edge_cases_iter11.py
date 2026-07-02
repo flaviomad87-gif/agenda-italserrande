@@ -353,7 +353,10 @@ class TestPnLFormula:
         assert s["total_spese"] == 50.0, s
         assert s["total_advances"] == 200.0, s
         assert s["total_materials"] == 100.0, s
-        assert s["balance"] == 650.0, f"P&L formula broken: {s['balance']}"
+        # NEW FORMULA (iter13): balance = imponibile - spese - materials
+        # (advances no longer subtracted - stipendio already in fixed expenses)
+        # 1000 - 50 - 100 = 850
+        assert s["balance"] == 850.0, f"P&L formula broken: {s['balance']}"
         # cleanup
         auth.delete(f"{API}/clients/{cid}")
         auth.delete(f"{API}/expenses/{eid}")

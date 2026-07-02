@@ -254,8 +254,9 @@ class TestSummary:
             assert s["total_quotes"] >= 500.0
             assert s["spese_by_source"]["contanti"] >= 30.0
             assert s["total_advances"] >= 40.0
-            # balance = incassi - spese - advances
-            assert abs(s["balance"] - (s["total_incassi"] - s["total_spese"] - s["total_advances"])) < 0.01
+            # NEW FORMULA (iter13): balance = imponibile - spese - materials
+            # (advances no longer subtracted; stipendio già in spese fisse)
+            assert abs(s["balance"] - (s["total_imponibile"] - s["total_spese"] - s["total_materials"])) < 0.01
         finally:
             for cid in seeded_ids["clients"]:
                 auth_a.delete(f"{API}/clients/{cid}")
