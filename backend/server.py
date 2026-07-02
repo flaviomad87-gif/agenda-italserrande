@@ -734,8 +734,13 @@ async def _compute_summary(uid: str, month: str) -> dict:
     total_incassi = sum(incassi.values())
     total_spese = sum(spese_by_source.values())
 
-    # Guadagno reale = imponibile − spese − materiali − acconti
-    balance = total_imponibile - total_spese - total_advances - total_materials
+    # Guadagno reale = imponibile − spese fisse − materiali.
+    # NOTA: gli acconti operaio NON si sottraggono qui perché lo stipendio
+    # è già contabilizzato nelle spese fisse mensili. L'acconto è solo un
+    # promemoria: quando l'utente fa il bonifico dello stipendio a fine mese,
+    # sottrae l'acconto già dato in contanti (fuori app). Sottrarlo qui
+    # provocherebbe una doppia contabilizzazione.
+    balance = total_imponibile - total_spese - total_materials
 
     return {
         "month": month,

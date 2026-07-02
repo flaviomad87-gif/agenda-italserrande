@@ -187,7 +187,7 @@ export default function Riepilogo() {
                   <div className="flex items-center justify-between text-xs text-stone-500" data-testid="riepilogo-ritenuta">
                     <span className="flex items-center gap-1.5">
                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-stone-400" />
-                      Ritenuta d'acconto (anticipo IRPEF)
+                      Ritenuta d&apos;acconto (anticipo IRPEF)
                     </span>
                     <span className="font-display tabular-nums">
                       ({formatEUR(data.total_ritenuta)})
@@ -213,12 +213,13 @@ export default function Riepilogo() {
                     − {formatEUR(data.total_materials || 0)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 font-semibold text-stone-700">
-                    <TrendingDown className="h-4 w-4 text-red-600" /> Acconti operai
+                <div className="flex items-center justify-between text-xs text-stone-500" data-testid="riepilogo-advances-memo">
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-stone-400" />
+                    Acconti operai <span className="text-[10px]">(promemoria, già in spese)</span>
                   </span>
-                  <span className="font-display text-base font-bold tabular-nums text-red-600">
-                    − {formatEUR(data.total_advances)}
+                  <span className="font-display tabular-nums">
+                    ({formatEUR(data.total_advances)})
                   </span>
                 </div>
                 <div className="my-2 h-px bg-stone-200" />
@@ -327,7 +328,10 @@ export default function Riepilogo() {
                   <div className="flex items-center gap-2 text-sm font-semibold text-stone-700">
                     <HardHat className="h-4 w-4" /> Acconti operai
                   </div>
-                  <div className="font-display text-lg font-bold">{formatEUR(data.total_advances)}</div>
+                  <div className="font-display text-lg font-bold text-stone-500">{formatEUR(data.total_advances)}</div>
+                </div>
+                <div className="mt-1 text-[11px] text-stone-500">
+                  Promemoria: da scalare dallo stipendio a fine mese (non entra nel guadagno perché lo stipendio è già in spese).
                 </div>
               </div>
               <div className="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
@@ -358,7 +362,7 @@ export default function Riepilogo() {
                     <TrendingDown className="h-4 w-4" /> Totale uscite
                   </div>
                   <div className="font-display text-xl font-bold">
-                    {formatEUR((data.total_spese || 0) + (data.total_advances || 0) + (data.total_materials || 0))}
+                    {formatEUR((data.total_spese || 0) + (data.total_materials || 0))}
                   </div>
                 </div>
               </div>

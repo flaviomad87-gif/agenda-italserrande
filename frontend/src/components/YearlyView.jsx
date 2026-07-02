@@ -115,8 +115,9 @@ export default function YearlyView() {
               <div className="font-display text-lg font-bold tabular-nums">{formatEUR(totals.total_materials)}</div>
             </div>
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Acconti operai</div>
-              <div className="font-display text-lg font-bold tabular-nums">{formatEUR(totals.total_advances)}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Acconti (promemoria)</div>
+              <div className="font-display text-lg font-bold tabular-nums text-stone-500">{formatEUR(totals.total_advances)}</div>
+              <div className="mt-0.5 text-[10px] text-stone-400">già in spese</div>
             </div>
           </div>
         </div>
@@ -195,7 +196,7 @@ export default function YearlyView() {
                         <TrendingUp className="h-3 w-3 text-[#2E5A47]" /> {formatEUR(m.total_imponibile || 0)}
                       </div>
                       <div className="inline-flex items-center gap-1">
-                        <TrendingDown className="h-3 w-3 text-red-500" /> {formatEUR(m.total_spese + m.total_materials + m.total_advances)}
+                        <TrendingDown className="h-3 w-3 text-red-500" /> {formatEUR(m.total_spese + m.total_materials)}
                       </div>
                       <div className="text-right text-stone-400">{formatEUR(m.total_materials)} mat.</div>
                     </div>
