@@ -29,6 +29,21 @@ export const buildClientMessage = (c) => {
   if (c.phone) lines.push(`📞 ${c.phone}`);
   if (c.notes) lines.push(`📝 ${c.notes}`);
 
+  // Appuntamento fissato con il cliente (data+ora e/o nota libera)
+  if (c.appointment_at) {
+    try {
+      const d = parseISO(c.appointment_at);
+      const dayLabel = format(d, "EEEE d MMMM", { locale: it });
+      const timeLabel = format(d, "HH:mm", { locale: it });
+      lines.push(`⏰ *Appuntamento: ${dayLabel} · ore ${timeLabel}*`);
+    } catch {
+      /* ignore invalid appointment format */
+    }
+  }
+  if ((c.appointment_note || "").trim()) {
+    lines.push(`🗒️ ${c.appointment_note.trim()}`);
+  }
+
   lines.push("");
   if (c.pending) {
     lines.push("🕐 Lavoro da fare");
