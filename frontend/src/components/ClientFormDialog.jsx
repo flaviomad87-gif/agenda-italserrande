@@ -21,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { toast } from "sonner";
 import { api, newUUID } from "../lib/api";
-import { Trash2, Clock, CalendarCheck, Hourglass, Copy, CalendarClock } from "lucide-react";
+import { Trash2, Clock, CalendarCheck, Hourglass, Copy, CalendarClock, FileText, Receipt } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
@@ -44,6 +44,8 @@ const empty = (date) => ({
   materials: [],
   pending: false,
   awaiting_materials: false,
+  to_quote: false,
+  to_invoice: false,
   appointment_at: "",
   appointment_note: "",
 });
@@ -128,6 +130,8 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       materials,
       pending: !!form.pending,
       awaiting_materials: !!form.awaiting_materials,
+      to_quote: !!form.to_quote,
+      to_invoice: !!form.to_invoice,
       appointment_at: form.appointment_at || null,
       appointment_note: (form.appointment_note || "").trim(),
       // Reset legacy fields once we use the new payments model
@@ -223,6 +227,39 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               aria-label="Lavoro in attesa"
             />
           </div>
+          {/* Toggle "Da preventivare" — sotto-stato di pending, mutuamente esclusivo con "In attesa materiali" */}
+          {form.pending && (
+            <div
+              className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
+                form.to_quote
+                  ? "border-blue-400/40 bg-blue-50"
+                  : "border-stone-200/70 bg-stone-50"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                <FileText className={`mt-0.5 h-4 w-4 ${form.to_quote ? "text-blue-600" : "text-stone-500"}`} />
+                <div>
+                  <div className="text-sm font-semibold text-stone-800">
+                    Da preventivare
+                  </div>
+                  <div className="text-xs text-stone-500">
+                    {form.to_quote
+                      ? "Compare nella pagina 'Da preventivare' finché non fai il preventivo."
+                      : "Attiva dopo un sopralluogo, quando devi ancora preparare il preventivo."}
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={!!form.to_quote}
+                onCheckedChange={(v) => {
+                  update("to_quote", v);
+                  if (v) update("awaiting_materials", false);
+                }}
+                data-testid="client-to-quote-switch"
+                aria-label="Da preventivare"
+              />
+            </div>
+          )}
           {/* Toggle "In attesa materiali" — sotto-stato di pending */}
           {form.pending && (
             <div
@@ -247,9 +284,42 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               </div>
               <Switch
                 checked={!!form.awaiting_materials}
-                onCheckedChange={(v) => update("awaiting_materials", v)}
+                onCheckedChange={(v) => {
+                  update("awaiting_materials", v);
+                  if (v) update("to_quote", false);
+                }}
                 data-testid="client-awaiting-switch"
                 aria-label="In attesa materiali"
+              />
+            </div>
+          )}
+          {/* Toggle "Da fatturare" — indipendente da pending, spuntabile su lavori eseguiti */}
+          {!form.pending && (
+            <div
+              className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
+                form.to_invoice
+                  ? "border-purple-400/40 bg-purple-50"
+                  : "border-stone-200/70 bg-stone-50"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                <Receipt className={`mt-0.5 h-4 w-4 ${form.to_invoice ? "text-purple-600" : "text-stone-500"}`} />
+                <div>
+                  <div className="text-sm font-semibold text-stone-800">
+                    Da fatturare
+                  </div>
+                  <div className="text-xs text-stone-500">
+                    {form.to_invoice
+                      ? "Compare nella pagina 'Da fatturare' finché non emetti la fattura."
+                      : "Spunta se devi ancora emettere la fattura per questo lavoro."}
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={!!form.to_invoice}
+                onCheckedChange={(v) => update("to_invoice", v)}
+                data-testid="client-to-invoice-switch"
+                aria-label="Da fatturare"
               />
             </div>
           )}

@@ -86,7 +86,9 @@ class ClientBase(BaseModel):
     materials: List[Material] = Field(default_factory=list)
     pending: bool = False  # True = nel backlog "Prossimi lavori", non ancora nell'Agenda
     awaiting_materials: bool = False  # True = "In attesa" (sotto-stato di pending: aspetta materiali)
-    sort_order: int = 0  # ordinamento manuale nella pagina "In attesa"
+    to_quote: bool = False  # True = "Da preventivare" (sotto-stato di pending: da preparare preventivo)
+    to_invoice: bool = False  # True = "Da fatturare" (per lavori eseguiti che serve fatturare)
+    sort_order: int = 0  # ordinamento manuale nelle pagine backlog
     appointment_at: Optional[str] = None  # ISO datetime YYYY-MM-DDTHH:MM (appuntamento con cliente)
     appointment_note: Optional[str] = ""  # nota libera es. "pomeriggio dopo pranzo"
 
@@ -220,12 +222,15 @@ async def list_clients(
 @api.get("/clients/pending", response_model=List[Client])
 async def list_pending_clients(user=Depends(get_current_user)):
     """Clienti nel backlog 'Prossimi lavori', ordinati per sort_order (manuale) poi data prevista.
-    Esclude quelli in stato 'In attesa materiali' (mostrati nella pagina dedicata)."""
+    Esclude quelli in stato 'In attesa materiali' o 'Da preventivare' (mostrati nelle pagine dedicate)."""
     docs = await db.clients.find(
         {
             "user_id": user["uid"],
             "pending": True,
             "$or": [{"awaiting_materials": {"$exists": False}}, {"awaiting_materials": False}],
+            "$and": [
+                {"$or": [{"to_quote": {"$exists": False}}, {"to_quote": False}]},
+            ],
         },
         {"_id": 0},
     ).sort([("sort_order", 1), ("date", 1), ("created_at", 1)]).to_list(2000)
@@ -242,14 +247,33 @@ async def list_awaiting_clients(user=Depends(get_current_user)):
     return docs
 
 
+@api.get("/clients/to-quote", response_model=List[Client])
+async def list_to_quote_clients(user=Depends(get_current_user)):
+    """Clienti 'da preventivare', ordinati per sort_order (manuale) e poi creazione."""
+    docs = await db.clients.find(
+        {"user_id": user["uid"], "pending": True, "to_quote": True},
+        {"_id": 0},
+    ).sort([("sort_order", 1), ("created_at", 1)]).to_list(2000)
+    return docs
+
+
+@api.get("/clients/to-invoice", response_model=List[Client])
+async def list_to_invoice_clients(user=Depends(get_current_user)):
+    """Clienti 'da fatturare' (spunta manuale dall'utente)."""
+    docs = await db.clients.find(
+        {"user_id": user["uid"], "to_invoice": True},
+        {"_id": 0},
+    ).sort([("sort_order", 1), ("date", -1), ("created_at", -1)]).to_list(2000)
+    return docs
+
+
 class ReorderRequest(BaseModel):
     ids: List[str]
 
 
 @api.put("/clients/awaiting/reorder")
 async def reorder_awaiting_clients(req: ReorderRequest, user=Depends(get_current_user)):
-    """Aggiorna l'ordinamento manuale dei lavori 'In attesa'.
-    Riceve la lista di id nell'ordine desiderato e assegna sort_order=indice."""
+    """Aggiorna l'ordinamento manuale dei lavori 'In attesa'."""
     for idx, cid in enumerate(req.ids):
         await db.clients.update_one(
             {"id": cid, "user_id": user["uid"]},
@@ -260,8 +284,29 @@ async def reorder_awaiting_clients(req: ReorderRequest, user=Depends(get_current
 
 @api.put("/clients/pending/reorder")
 async def reorder_pending_clients(req: ReorderRequest, user=Depends(get_current_user)):
-    """Aggiorna l'ordinamento manuale dei lavori 'Prossimi lavori'.
-    Riceve la lista di id nell'ordine desiderato e assegna sort_order=indice."""
+    """Aggiorna l'ordinamento manuale dei lavori 'Prossimi lavori'."""
+    for idx, cid in enumerate(req.ids):
+        await db.clients.update_one(
+            {"id": cid, "user_id": user["uid"]},
+            {"$set": {"sort_order": idx}},
+        )
+    return {"ok": True, "count": len(req.ids)}
+
+
+@api.put("/clients/to-quote/reorder")
+async def reorder_to_quote_clients(req: ReorderRequest, user=Depends(get_current_user)):
+    """Aggiorna l'ordinamento manuale dei lavori 'Da preventivare'."""
+    for idx, cid in enumerate(req.ids):
+        await db.clients.update_one(
+            {"id": cid, "user_id": user["uid"]},
+            {"$set": {"sort_order": idx}},
+        )
+    return {"ok": True, "count": len(req.ids)}
+
+
+@api.put("/clients/to-invoice/reorder")
+async def reorder_to_invoice_clients(req: ReorderRequest, user=Depends(get_current_user)):
+    """Aggiorna l'ordinamento manuale dei lavori 'Da fatturare'."""
     for idx, cid in enumerate(req.ids):
         await db.clients.update_one(
             {"id": cid, "user_id": user["uid"]},
@@ -282,7 +327,7 @@ async def execute_pending_client(
     target_date = date or datetime.now(timezone.utc).date().isoformat()
     res = await db.clients.find_one_and_update(
         {"id": client_id, "user_id": user["uid"], "pending": True},
-        {"$set": {"pending": False, "awaiting_materials": False, "date": target_date}},
+        {"$set": {"pending": False, "awaiting_materials": False, "to_quote": False, "date": target_date}},
         return_document=True,
         projection={"_id": 0},
     )

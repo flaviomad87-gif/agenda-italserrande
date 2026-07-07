@@ -11,6 +11,8 @@ const AppShell = lazy(() => import("./layouts/AppShell"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const ProssimiLavori = lazy(() => import("./pages/ProssimiLavori"));
 const InAttesa = lazy(() => import("./pages/InAttesa"));
+const DaPreventivare = lazy(() => import("./pages/DaPreventivare"));
+const DaFatturare = lazy(() => import("./pages/DaFatturare"));
 const Incassi = lazy(() => import("./pages/Incassi"));
 const Spese = lazy(() => import("./pages/Spese"));
 const Riepilogo = lazy(() => import("./pages/Riepilogo"));
@@ -36,7 +38,7 @@ const Protected = ({ children }) => {
 const PublicOnly = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/agenda" replace />;
+  if (user) return <Navigate to="/prossimi-lavori" replace />;
   return children;
 };
 
@@ -59,7 +61,9 @@ function App() {
                 <Route path="/" element={<Navigate to="/prossimi-lavori" replace />} />
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/prossimi-lavori" element={<ProssimiLavori />} />
+                <Route path="/da-preventivare" element={<DaPreventivare />} />
                 <Route path="/in-attesa" element={<InAttesa />} />
+                <Route path="/da-fatturare" element={<DaFatturare />} />
                 <Route path="/incassi" element={<Incassi />} />
                 <Route path="/spese" element={<Spese />} />
                 <Route path="/riepilogo" element={<Riepilogo />} />
