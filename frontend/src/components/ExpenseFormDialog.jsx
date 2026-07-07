@@ -82,7 +82,7 @@ export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved
             <Input
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="Es. Carburante, Affitto, Materiali"
+              placeholder=""
               className="mt-2 h-12 rounded-xl"
               data-testid="expense-category-input"
               required

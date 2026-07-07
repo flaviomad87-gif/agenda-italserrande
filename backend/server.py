@@ -91,6 +91,7 @@ class ClientBase(BaseModel):
     sort_order: int = 0  # ordinamento manuale nelle pagine backlog
     appointment_at: Optional[str] = None  # ISO datetime YYYY-MM-DDTHH:MM (appuntamento con cliente)
     appointment_note: Optional[str] = ""  # nota libera es. "pomeriggio dopo pranzo"
+    estimated_materials_cost: float = 0.0  # solo per preventivi: stima costo materiali (NON conteggiato nel riepilogo)
 
 
 class ClientCreate(ClientBase):

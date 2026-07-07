@@ -48,6 +48,7 @@ const empty = (date) => ({
   to_invoice: false,
   appointment_at: "",
   appointment_note: "",
+  estimated_materials_cost: "",
 });
 
 /** Migra i campi legacy (payment_method, invoice_number) in un singolo payment, una sola volta. */
@@ -134,6 +135,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       to_invoice: !!form.to_invoice,
       appointment_at: form.appointment_at || null,
       appointment_note: (form.appointment_note || "").trim(),
+      estimated_materials_cost: parseFloat(form.estimated_materials_cost) || 0,
       // Reset legacy fields once we use the new payments model
       payment_method: "",
       invoice_number: "",
@@ -326,7 +328,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
             <Input
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
-              placeholder="Es. Mario Rossi"
+              placeholder=""
               className="mt-2 h-12 rounded-xl"
               data-testid="client-name-input"
               required
@@ -638,10 +640,49 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
             <Input
               value={form.quote_number}
               onChange={(e) => update("quote_number", e.target.value)}
-              placeholder="Es. 2026/045"
+              placeholder=""
               className="mt-2 h-12 rounded-xl"
               data-testid="client-quote-number-input"
             />
+          </div>
+
+          {/* Costo materiali STIMATO (solo per preventivi): non entra nel riepilogo mensile.
+              Serve a valutare il margine potenziale prima che il cliente accetti. */}
+          <div className="rounded-2xl border border-blue-200/50 bg-blue-50/40 p-3">
+            <Label className="text-xs font-semibold uppercase tracking-widest text-blue-700">
+              Stima costo materiali (solo per preventivo)
+            </Label>
+            <div className="relative mt-2">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={form.estimated_materials_cost}
+                onChange={(e) => update("estimated_materials_cost", e.target.value)}
+                placeholder=""
+                className="h-12 rounded-xl pr-10"
+                data-testid="client-estimated-materials-input"
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-stone-500">
+                €
+              </span>
+            </div>
+            {(() => {
+              const est = parseFloat(form.estimated_materials_cost) || 0;
+              const amt = parseFloat(form.amount) || 0;
+              if (est <= 0 || amt <= 0) return null;
+              const margin = amt - est;
+              const pct = amt > 0 ? Math.round((margin / amt) * 100) : 0;
+              return (
+                <div className="mt-2 text-xs text-blue-800">
+                  Margine potenziale: <b>{formatEUR(margin)}</b> ({pct}%)
+                </div>
+              );
+            })()}
+            <p className="mt-2 text-[11px] text-stone-500">
+              Cifra indicativa: non entra mai nel riepilogo mensile. Quando accetti il preventivo, aggiungi i materiali reali nella sezione &quot;Materiali&quot; sotto.
+            </p>
           </div>
 
           <PaymentsList

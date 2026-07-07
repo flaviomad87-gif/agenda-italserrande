@@ -59,7 +59,7 @@ export default function AdvanceFormDialog({ open, onOpenChange, date, onSaved, o
             <Input
               value={form.worker_name}
               onChange={(e) => setForm({ ...form, worker_name: e.target.value })}
-              placeholder="Es. Luca"
+              placeholder=""
               className="mt-2 h-12 rounded-xl"
               data-testid="advance-worker-input"
               required
