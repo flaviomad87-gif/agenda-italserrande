@@ -293,15 +293,14 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               />
             </div>
           )}
-          {/* Toggle "Da fatturare" — indipendente da pending, spuntabile su lavori eseguiti */}
-          {!form.pending && (
-            <div
-              className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
-                form.to_invoice
-                  ? "border-purple-400/40 bg-purple-50"
-                  : "border-stone-200/70 bg-stone-50"
-              }`}
-            >
+          {/* Toggle "Da fatturare" — indipendente da pending, spuntabile in qualsiasi momento */}
+          <div
+            className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
+              form.to_invoice
+                ? "border-purple-400/40 bg-purple-50"
+                : "border-stone-200/70 bg-stone-50"
+            }`}
+          >
               <div className="flex items-start gap-2.5">
                 <Receipt className={`mt-0.5 h-4 w-4 ${form.to_invoice ? "text-purple-600" : "text-stone-500"}`} />
                 <div>
@@ -322,7 +321,6 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
                 aria-label="Da fatturare"
               />
             </div>
-          )}
           <div>
             <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Nome / Ragione sociale</Label>
             <Input
