@@ -22,8 +22,8 @@ import OfflineBanner from "../components/OfflineBanner";
 // Voci "quotidiane" — sempre visibili nella bottom bar mobile
 const primaryNav = [
   { to: "/prossimi-lavori", label: "Prossimi", icon: Clock, testId: "nav-prossimi", badgeKey: "pending" },
-  { to: "/da-preventivare", label: "Preventivi", icon: FileText, testId: "nav-da-preventivare", badgeKey: "to_quote" },
   { to: "/in-attesa", label: "In attesa", icon: Hourglass, testId: "nav-in-attesa", badgeKey: "awaiting" },
+  { to: "/da-preventivare", label: "Preventivi", icon: FileText, testId: "nav-da-preventivare", badgeKey: "to_quote" },
   { to: "/da-fatturare", label: "Fatturare", icon: FilePlus, testId: "nav-da-fatturare", badgeKey: "to_invoice" },
   { to: "/incassi", label: "Incassi", icon: Wallet, testId: "nav-incassi", badgeKey: "unpaid" },
   { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
