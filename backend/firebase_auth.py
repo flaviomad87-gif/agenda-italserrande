@@ -5,9 +5,11 @@ Credentials are loaded with the following priority:
   2. env var ``FIREBASE_CREDENTIALS_PATH`` (file path, relative to backend dir) — used in local development
 """
 import json
+import logging
 import os
 from pathlib import Path
 
+import requests
 import firebase_admin
 from firebase_admin import auth as fb_auth
 from firebase_admin import credentials
@@ -15,6 +17,14 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 ROOT_DIR = Path(__file__).parent
+log = logging.getLogger(__name__)
+
+# URL dei certificati pubblici che Firebase Admin usa per verificare i JWT.
+# Su Render free tier la prima fetch fallisce spesso per timeout DNS.
+_FIREBASE_CERTS_URL = (
+    "https://www.googleapis.com/robot/v1/metadata/x509/"
+    "securetoken@system.gserviceaccount.com"
+)
 
 
 def _load_credentials() -> credentials.Certificate:
@@ -40,9 +50,32 @@ def _load_credentials() -> credentials.Certificate:
     return credentials.Certificate(str(full_path))
 
 
+def _prewarm_firebase_certs() -> None:
+    """Scarica i certificati Firebase all'avvio del container.
+
+    Firebase Admin SDK li recupera lazy alla prima verify_id_token. Su Render
+    free tier questa prima fetch spesso fallisce (cold DNS, ~30s timeout).
+    Fetchandoli qui in fase di startup (dove non c'è un utente in attesa)
+    li mettiamo in cache HTTP di firebase_admin, così la prima richiesta
+    utente non ci sbatte contro.
+
+    Non blocca l'avvio se fallisce: il retry runtime coprirà il caso.
+    """
+    for attempt in range(3):
+        try:
+            resp = requests.get(_FIREBASE_CERTS_URL, timeout=10)
+            if resp.status_code == 200:
+                log.info("Firebase certs pre-fetched (%d bytes)", len(resp.content))
+                return
+        except Exception as e:  # pragma: no cover - solo runtime
+            log.warning("Prewarm Firebase certs attempt %d failed: %s", attempt + 1, e)
+    log.warning("Prewarm Firebase certs skipped after retries — will retry at runtime")
+
+
 # Singleton init (avoid duplicate-app errors in hot-reload)
 if not firebase_admin._apps:
     firebase_admin.initialize_app(_load_credentials())
+    _prewarm_firebase_certs()
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
@@ -57,7 +90,7 @@ async def get_current_user(
     JWT può fallire per timeout/DNS)."""
     token = credentials.credentials
     last_err: Exception | None = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             decoded = fb_auth.verify_id_token(token)
             return {"uid": decoded["uid"], "email": decoded.get("email")}
@@ -80,10 +113,12 @@ async def get_current_user(
                 or "network" in msg
                 or "read timed out" in msg
             )
-            if not transient or attempt == 2:
+            if not transient or attempt == 4:
                 break
             import asyncio as _asyncio
-            await _asyncio.sleep(0.5 * (attempt + 1))
+            # Backoff: 0.5, 1.0, 2.0, 3.0 secondi (max ~6.5s totali)
+            wait = min(0.5 * (2 ** attempt), 3.0)
+            await _asyncio.sleep(wait)
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail=f"Servizio auth temporaneamente non disponibile. Riprova tra qualche secondo. ({last_err})",
