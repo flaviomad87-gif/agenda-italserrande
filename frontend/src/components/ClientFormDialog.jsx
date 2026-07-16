@@ -161,7 +161,18 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       window.__refreshUnpaidBadge?.();
       window.__refreshPendingBadge?.();
     } catch (err) {
-      toast.error("Errore durante il salvataggio. Riprova.");
+      const detail = err?.response?.data?.detail;
+      let msg = "Errore durante il salvataggio. Riprova.";
+      if (typeof detail === "string") msg = `Errore: ${detail}`;
+      else if (Array.isArray(detail) && detail[0]) {
+        const first = detail[0];
+        const field = (first.loc || []).filter((x) => x !== "body").join(".");
+        msg = `Errore su "${field || "campo"}": ${first.msg || "valore non valido"}`;
+      } else if (err?.response?.status) {
+        msg = `Errore server (${err.response.status}). Riprova.`;
+      }
+      toast.error(msg);
+      console.error("[ClientFormDialog] save failed", err?.response?.status, err?.response?.data);
       if (!editing) {
         // Rimuovi l'item aggiunto ottimisticamente
         onDeleted?.(id);
