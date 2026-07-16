@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Dict
 
 import jwt as pyjwt
+from cryptography import x509
+from cryptography.hazmat.primitives import serialization
 import requests
 import firebase_admin
 from firebase_admin import credentials
@@ -75,6 +77,16 @@ def _load_credentials() -> credentials.Certificate:
     return credentials.Certificate(str(full_path))
 
 
+def _cert_pem_to_public_key_pem(cert_pem: str) -> bytes:
+    """I certificati Firebase sono in formato X.509 PEM. PyJWT vuole la
+    public key PEM. Estraiamo la public key dal certificato."""
+    cert = x509.load_pem_x509_certificate(cert_pem.encode("utf-8"))
+    return cert.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+
+
 def _fetch_certs(force: bool = False) -> Dict[str, str]:
     """Scarica (o restituisce dalla cache) i certificati x509 di Firebase.
     Cache 6h. Thread-safe. Solleva se anche 3 tentativi falliscono."""
@@ -115,18 +127,20 @@ def _verify_id_token_manual(token: str) -> dict:
     if not kid:
         raise pyjwt.InvalidTokenError("Token senza kid header")
     certs = _fetch_certs()
-    pem = certs.get(kid)
-    if not pem:
+    cert_pem = certs.get(kid)
+    if not cert_pem:
         # kid non trovato → refresh forzato (rotazione chiavi Google)
         certs = _fetch_certs(force=True)
-        pem = certs.get(kid)
-        if not pem:
+        cert_pem = certs.get(kid)
+        if not cert_pem:
             raise pyjwt.InvalidTokenError(f"Chiave pubblica '{kid}' non trovata")
+    # Estrai la public key dal certificato X.509
+    public_key = _cert_pem_to_public_key_pem(cert_pem)
     if not _PROJECT_ID:
         raise RuntimeError("FIREBASE_PROJECT_ID non configurato")
     decoded = pyjwt.decode(
         token,
-        pem,
+        public_key,
         algorithms=["RS256"],
         audience=_PROJECT_ID,
         issuer=_ISSUER,
