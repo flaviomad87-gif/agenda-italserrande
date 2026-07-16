@@ -16,7 +16,7 @@ from typing import List, Literal, Optional
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
@@ -52,6 +52,26 @@ class Payment(BaseModel):
     invoice_number: Optional[str] = ""
     notes: Optional[str] = ""
 
+    @model_validator(mode="before")
+    @classmethod
+    def _clean_nones(cls, data):
+        """None → default: str→'', float→0.0, per evitare errori Pydantic sui doc legacy."""
+        if not isinstance(data, dict):
+            return data
+        for key in ("date", "invoice_number", "notes", "method", "type"):
+            if data.get(key) is None:
+                data[key] = ""
+        for key in ("amount",):
+            v = data.get(key)
+            if v is None or v == "":
+                data[key] = 0.0
+            elif isinstance(v, str):
+                try:
+                    data[key] = float(v.replace(",", "."))
+                except (ValueError, TypeError):
+                    data[key] = 0.0
+        return data
+
     @field_validator("type", mode="before")
     @classmethod
     def _coerce_type(cls, v):
@@ -62,10 +82,9 @@ class Payment(BaseModel):
     @field_validator("method", mode="before")
     @classmethod
     def _coerce_method(cls, v):
-        if v in (None,):
+        if v in (None, ""):
             return ""
-        if v not in ("contanti", "pos", "bonifico", ""):
-            # Legacy mapping: es. "carta" -> "pos"
+        if v not in ("contanti", "pos", "bonifico"):
             if isinstance(v, str) and v.strip().lower() in ("carta", "carte", "bancomat"):
                 return "pos"
             if isinstance(v, str) and v.strip().lower() in ("bonif", "banca"):
@@ -75,49 +94,42 @@ class Payment(BaseModel):
             return ""
         return v
 
-    @field_validator("amount", mode="before")
-    @classmethod
-    def _coerce_amount(cls, v):
-        if v is None or v == "":
-            return 0.0
-        if isinstance(v, str):
-            try:
-                return float(v.replace(",", "."))
-            except (ValueError, TypeError):
-                return 0.0
-        return v
-
 
 class Material(BaseModel):
-    """Spesa di fornitura/materiale legata a uno specifico cliente.
-    Permette di calcolare il margine reale del lavoro (ricavo netto - materiali)."""
+    """Spesa di fornitura/materiale legata a uno specifico cliente."""
     model_config = ConfigDict(extra="ignore")
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    description: str = ""  # es. "Tubolare 40x40", "Motore tapparella"
+    description: str = ""
     amount: float = 0.0
-    supplier: Optional[str] = ""  # es. "Ferramenta Rossi"
+    supplier: Optional[str] = ""
     source: ExpenseSource = "conto_aziendale"
-    date: str = ""  # YYYY-MM-DD (default: data del client)
+    date: str = ""
     notes: Optional[str] = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _clean_nones(cls, data):
+        if not isinstance(data, dict):
+            return data
+        for key in ("description", "supplier", "date", "notes", "source"):
+            if data.get(key) is None:
+                data[key] = ""
+        v = data.get("amount")
+        if v is None or v == "":
+            data["amount"] = 0.0
+        elif isinstance(v, str):
+            try:
+                data["amount"] = float(v.replace(",", "."))
+            except (ValueError, TypeError):
+                data["amount"] = 0.0
+        return data
 
     @field_validator("source", mode="before")
     @classmethod
     def _coerce_source(cls, v):
         if v not in ("contanti", "conto_aziendale"):
             return "conto_aziendale"
-        return v
-
-    @field_validator("amount", mode="before")
-    @classmethod
-    def _coerce_amount(cls, v):
-        if v is None or v == "":
-            return 0.0
-        if isinstance(v, str):
-            try:
-                return float(v.replace(",", "."))
-            except (ValueError, TypeError):
-                return 0.0
         return v
 
 
@@ -146,6 +158,53 @@ class ClientBase(BaseModel):
     appointment_at: Optional[str] = None  # ISO datetime YYYY-MM-DDTHH:MM (appuntamento con cliente)
     appointment_note: Optional[str] = ""  # nota libera es. "pomeriggio dopo pranzo"
     estimated_materials_cost: float = 0.0  # solo per preventivi: stima costo materiali (NON conteggiato nel riepilogo)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _clean_client_nones(cls, data):
+        """Pulisce valori legacy None/vuoti dai documenti Mongo pre-esistenti."""
+        if not isinstance(data, dict):
+            return data
+        # String fields: None → ""
+        for key in ("name", "address", "phone", "notes", "quote_number",
+                    "invoice_number", "payment_method", "status",
+                    "appointment_note"):
+            if data.get(key) is None:
+                data[key] = ""
+        # Numeric fields with default 0.0
+        for key in ("amount", "estimated_materials_cost"):
+            v = data.get(key)
+            if v is None or v == "":
+                data[key] = 0.0
+            elif isinstance(v, str):
+                try:
+                    data[key] = float(v.replace(",", "."))
+                except (ValueError, TypeError):
+                    data[key] = 0.0
+        # Optional numeric fields (aliquote): keep None or convert
+        for key in ("vat_rate", "withholding_rate"):
+            v = data.get(key)
+            if v == "":
+                data[key] = None
+            elif isinstance(v, str):
+                try:
+                    data[key] = float(v.replace(",", "."))
+                except (ValueError, TypeError):
+                    data[key] = None
+        # Bool fields
+        for key in ("pending", "awaiting_materials", "to_quote", "to_invoice"):
+            if data.get(key) is None:
+                data[key] = False
+        # sort_order
+        v = data.get("sort_order")
+        if v is None or v == "":
+            data["sort_order"] = 0
+        elif isinstance(v, str):
+            try:
+                data["sort_order"] = int(v)
+            except (ValueError, TypeError):
+                data["sort_order"] = 0
+        return data
 
     @field_validator("status", mode="before")
     @classmethod

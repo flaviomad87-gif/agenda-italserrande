@@ -96,8 +96,13 @@ export default function ProssimiLavori() {
       toast.success("Lavoro spostato in agenda");
       setItems((prev) => prev.filter((p) => p.id !== c.id));
       window.__refreshPendingBadge?.();
-    } catch {
-      toast.error("Impossibile spostare il lavoro");
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      const msg = typeof detail === "string"
+        ? `Impossibile spostare: ${detail}`
+        : `Impossibile spostare (${err?.response?.status || "err"})`;
+      toast.error(msg);
+      console.error("[executeToday]", err?.response?.status, err?.response?.data);
     } finally {
       setExecutingId(null);
     }
