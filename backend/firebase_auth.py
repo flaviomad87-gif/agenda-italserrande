@@ -50,16 +50,41 @@ bearer_scheme = HTTPBearer(auto_error=True)
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> dict:
-    """FastAPI dependency: verifies Firebase ID token and returns decoded claims."""
+    """FastAPI dependency: verifies Firebase ID token and returns decoded claims.
+
+    Retry con backoff sui fallimenti di rete verso googleapis.com (comune
+    dopo cold start di Render: la prima chiamata per scaricare i certificati
+    JWT può fallire per timeout/DNS)."""
     token = credentials.credentials
-    try:
-        decoded = fb_auth.verify_id_token(token)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token non valido: {e}",
-        )
-    return {
-        "uid": decoded["uid"],
-        "email": decoded.get("email"),
-    }
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            decoded = fb_auth.verify_id_token(token)
+            return {"uid": decoded["uid"], "email": decoded.get("email")}
+        except fb_auth.InvalidIdTokenError as e:
+            # Token davvero non valido / scaduto → non ritentare
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Token non valido: {e}",
+            )
+        except Exception as e:
+            # Errori di rete / cache certificati / cold start → retry
+            last_err = e
+            msg = str(e).lower()
+            transient = (
+                "could not fetch" in msg
+                or "certificate" in msg
+                or "timeout" in msg
+                or "connection" in msg
+                or "temporarily" in msg
+                or "network" in msg
+                or "read timed out" in msg
+            )
+            if not transient or attempt == 2:
+                break
+            import asyncio as _asyncio
+            await _asyncio.sleep(0.5 * (attempt + 1))
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=f"Servizio auth temporaneamente non disponibile. Riprova tra qualche secondo. ({last_err})",
+    )
