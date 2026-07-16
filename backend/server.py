@@ -75,6 +75,18 @@ class Payment(BaseModel):
             return ""
         return v
 
+    @field_validator("amount", mode="before")
+    @classmethod
+    def _coerce_amount(cls, v):
+        if v is None or v == "":
+            return 0.0
+        if isinstance(v, str):
+            try:
+                return float(v.replace(",", "."))
+            except (ValueError, TypeError):
+                return 0.0
+        return v
+
 
 class Material(BaseModel):
     """Spesa di fornitura/materiale legata a uno specifico cliente.
@@ -94,6 +106,18 @@ class Material(BaseModel):
     def _coerce_source(cls, v):
         if v not in ("contanti", "conto_aziendale"):
             return "conto_aziendale"
+        return v
+
+    @field_validator("amount", mode="before")
+    @classmethod
+    def _coerce_amount(cls, v):
+        if v is None or v == "":
+            return 0.0
+        if isinstance(v, str):
+            try:
+                return float(v.replace(",", "."))
+            except (ValueError, TypeError):
+                return 0.0
         return v
 
 
@@ -144,6 +168,43 @@ class ClientBase(BaseModel):
                 return "contanti"
             return ""
         return v
+
+    @field_validator("amount", "estimated_materials_cost", mode="before")
+    @classmethod
+    def _coerce_float(cls, v):
+        """Accetta stringa vuota o None: torna 0.0. Accetta stringhe con virgola."""
+        if v is None or v == "":
+            return 0.0
+        if isinstance(v, str):
+            try:
+                return float(v.replace(",", "."))
+            except (ValueError, TypeError):
+                return 0.0
+        return v
+
+    @field_validator("vat_rate", "withholding_rate", mode="before")
+    @classmethod
+    def _coerce_optional_float(cls, v):
+        """Aliquote: None/vuoto → None; stringhe con virgola → float."""
+        if v is None or v == "":
+            return None
+        if isinstance(v, str):
+            try:
+                return float(v.replace(",", "."))
+            except (ValueError, TypeError):
+                return None
+        return v
+
+    @field_validator("sort_order", mode="before")
+    @classmethod
+    def _coerce_sort(cls, v):
+        if v is None or v == "":
+            return 0
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return 0
+
 
 
 class ClientCreate(ClientBase):
