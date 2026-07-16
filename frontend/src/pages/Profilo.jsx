@@ -58,6 +58,62 @@ export default function Profilo() {
         </div>
       </div>
 
+      <div className="rounded-3xl border border-stone-200/60 bg-white p-6 shadow-sm" data-testid="theme-picker">
+        <div className="flex items-center gap-2">
+          <Palette className="h-5 w-5 text-[#4A5D23]" />
+          <h2 className="font-display text-lg font-semibold">Aspetto</h2>
+        </div>
+        <p className="mt-1 text-sm text-stone-500">
+          Scegli il tema che preferisci. La modifica è immediata.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {THEMES.map((t) => {
+            const selected = currentTheme === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  applyTheme(t.id);
+                  setCurrentTheme(t.id);
+                  toast.success(`Tema: ${t.label}`);
+                }}
+                data-testid={`theme-${t.id}`}
+                className={`group relative flex items-start gap-3 rounded-2xl border p-3 text-left transition ${
+                  selected
+                    ? "border-[#4A5D23] bg-[#EAF3EF] shadow-sm"
+                    : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm"
+                }`}
+              >
+                <div className="flex shrink-0 gap-1">
+                  {t.swatch.map((c, idx) => (
+                    <span
+                      key={idx}
+                      style={{ backgroundColor: c }}
+                      className="h-8 w-4 rounded-sm ring-1 ring-black/10"
+                    />
+                  ))}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-stone-800">
+                    {t.label}
+                    {t.isDark && (
+                      <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-white">
+                        Scuro
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-stone-500">{t.description}</div>
+                </div>
+                {selected && (
+                  <Check className="absolute right-2 top-2 h-4 w-4 text-[#4A5D23]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="rounded-3xl border border-stone-200/60 bg-white p-6 shadow-sm">
         <h2 className="font-display text-lg font-semibold">Installa come app</h2>
         <p className="mt-1 text-sm text-stone-500">
