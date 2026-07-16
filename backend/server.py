@@ -16,7 +16,7 @@ from typing import List, Literal, Optional
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
@@ -52,6 +52,29 @@ class Payment(BaseModel):
     invoice_number: Optional[str] = ""
     notes: Optional[str] = ""
 
+    @field_validator("type", mode="before")
+    @classmethod
+    def _coerce_type(cls, v):
+        if v not in ("acconto", "saldo", "altro"):
+            return "altro"
+        return v
+
+    @field_validator("method", mode="before")
+    @classmethod
+    def _coerce_method(cls, v):
+        if v in (None,):
+            return ""
+        if v not in ("contanti", "pos", "bonifico", ""):
+            # Legacy mapping: es. "carta" -> "pos"
+            if isinstance(v, str) and v.strip().lower() in ("carta", "carte", "bancomat"):
+                return "pos"
+            if isinstance(v, str) and v.strip().lower() in ("bonif", "banca"):
+                return "bonifico"
+            if isinstance(v, str) and v.strip().lower() in ("cash", "contante"):
+                return "contanti"
+            return ""
+        return v
+
 
 class Material(BaseModel):
     """Spesa di fornitura/materiale legata a uno specifico cliente.
@@ -65,6 +88,13 @@ class Material(BaseModel):
     source: ExpenseSource = "conto_aziendale"
     date: str = ""  # YYYY-MM-DD (default: data del client)
     notes: Optional[str] = ""
+
+    @field_validator("source", mode="before")
+    @classmethod
+    def _coerce_source(cls, v):
+        if v not in ("contanti", "conto_aziendale"):
+            return "conto_aziendale"
+        return v
 
 
 class ClientBase(BaseModel):
@@ -92,6 +122,28 @@ class ClientBase(BaseModel):
     appointment_at: Optional[str] = None  # ISO datetime YYYY-MM-DDTHH:MM (appuntamento con cliente)
     appointment_note: Optional[str] = ""  # nota libera es. "pomeriggio dopo pranzo"
     estimated_materials_cost: float = 0.0  # solo per preventivi: stima costo materiali (NON conteggiato nel riepilogo)
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _coerce_status(cls, v):
+        if v not in ("preventivo", "lavoro_eseguito"):
+            return "preventivo"
+        return v
+
+    @field_validator("payment_method", mode="before")
+    @classmethod
+    def _coerce_pm(cls, v):
+        if v in (None,):
+            return ""
+        if v not in ("contanti", "pos", "bonifico", ""):
+            if isinstance(v, str) and v.strip().lower() in ("carta", "carte", "bancomat"):
+                return "pos"
+            if isinstance(v, str) and v.strip().lower() in ("bonif", "banca"):
+                return "bonifico"
+            if isinstance(v, str) and v.strip().lower() in ("cash", "contante"):
+                return "contanti"
+            return ""
+        return v
 
 
 class ClientCreate(ClientBase):
