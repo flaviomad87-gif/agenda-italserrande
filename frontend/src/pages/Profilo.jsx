@@ -1,12 +1,14 @@
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
-import { LogOut, Mail, Download, Smartphone } from "lucide-react";
+import { LogOut, Mail, Download, Smartphone, Palette, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import { THEMES, getSavedTheme, applyTheme } from "../lib/themes";
 
 export default function Profilo() {
   const { user, logout } = useAuth();
   const [installEvent, setInstallEvent] = useState(null);
+  const [currentTheme, setCurrentTheme] = useState(getSavedTheme());
 
   useEffect(() => {
     const handler = (e) => {

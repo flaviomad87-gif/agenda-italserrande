@@ -144,3 +144,109 @@ input[type="number"] { -moz-appearance: textfield; }
 .print-only {
   display: none;
 }
+
+
+/* ============================================================
+   TEMI — override dei colori hardcoded per ogni tema.
+   Usa selettori di attributo su [class*="..."] per intercettare
+   le classi Tailwind arbitrarie (bg-[#4A5D23], text-[#B8683D], ecc.)
+   ============================================================ */
+
+/* NOTTE VERDE — dark theme con verde brillante */
+html[data-theme="notte-verde"] {
+  --bg-app: #141915;
+  --bg-card: #1e2620;
+  --bg-nav: #0f1411;
+  --text-primary: #e8ede4;
+  --text-secondary: #a8b4a2;
+  --brand: #8fb03f;
+  --brand-hover: #a5c853;
+  color-scheme: dark;
+}
+html[data-theme="notte-verde"] body { background: #141915; color: #e8ede4; }
+html[data-theme="notte-verde"] [class*="bg-\\[\\#4A5D23\\]"] { background-color: #8fb03f !important; color: #141915 !important; }
+html[data-theme="notte-verde"] [class*="bg-\\[\\#3C4B1C\\]"] { background-color: #a5c853 !important; }
+html[data-theme="notte-verde"] [class*="bg-\\[\\#B8683D\\]"] { background-color: #d6875c !important; }
+html[data-theme="notte-verde"] [class*="bg-\\[\\#F9F8F6\\]"],
+html[data-theme="notte-verde"] [class*="bg-\\[\\#F3F2F0\\]"] { background-color: #1e2620 !important; }
+html[data-theme="notte-verde"] [class*="bg-\\[\\#EAF3EF\\]"] { background-color: #2a3529 !important; }
+html[data-theme="notte-verde"] .bg-white { background-color: #1e2620 !important; }
+html[data-theme="notte-verde"] .bg-stone-50 { background-color: #232a25 !important; }
+html[data-theme="notte-verde"] .bg-stone-100 { background-color: #2a3529 !important; }
+html[data-theme="notte-verde"] .text-stone-500,
+html[data-theme="notte-verde"] .text-stone-600,
+html[data-theme="notte-verde"] .text-stone-700,
+html[data-theme="notte-verde"] .text-stone-800,
+html[data-theme="notte-verde"] .text-stone-900 { color: #c8d1c3 !important; }
+html[data-theme="notte-verde"] .text-black,
+html[data-theme="notte-verde"] [class*="text-\\[\\#1C1C1A\\]"] { color: #e8ede4 !important; }
+html[data-theme="notte-verde"] .border-stone-200,
+html[data-theme="notte-verde"] .border-stone-300 { border-color: #2a3529 !important; }
+
+/* NOTTE BLU — dark theme accenti azzurri */
+html[data-theme="notte-blu"] {
+  --bg-app: #0f172a;
+  --bg-card: #1e293b;
+  --bg-nav: #0b1220;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --brand: #60a5fa;
+  --brand-hover: #3b82f6;
+  color-scheme: dark;
+}
+html[data-theme="notte-blu"] body { background: #0f172a; color: #e2e8f0; }
+html[data-theme="notte-blu"] [class*="bg-\\[\\#4A5D23\\]"] { background-color: #3b82f6 !important; color: #fff !important; }
+html[data-theme="notte-blu"] [class*="bg-\\[\\#3C4B1C\\]"] { background-color: #2563eb !important; }
+html[data-theme="notte-blu"] [class*="bg-\\[\\#B8683D\\]"] { background-color: #f59e0b !important; }
+html[data-theme="notte-blu"] [class*="bg-\\[\\#F9F8F6\\]"],
+html[data-theme="notte-blu"] [class*="bg-\\[\\#F3F2F0\\]"] { background-color: #1e293b !important; }
+html[data-theme="notte-blu"] [class*="bg-\\[\\#EAF3EF\\]"] { background-color: #1e3a5f !important; }
+html[data-theme="notte-blu"] .bg-white { background-color: #1e293b !important; }
+html[data-theme="notte-blu"] .bg-stone-50 { background-color: #253247 !important; }
+html[data-theme="notte-blu"] .bg-stone-100 { background-color: #2a3853 !important; }
+html[data-theme="notte-blu"] .text-stone-500,
+html[data-theme="notte-blu"] .text-stone-600,
+html[data-theme="notte-blu"] .text-stone-700,
+html[data-theme="notte-blu"] .text-stone-800,
+html[data-theme="notte-blu"] .text-stone-900 { color: #cbd5e1 !important; }
+html[data-theme="notte-blu"] .text-black,
+html[data-theme="notte-blu"] [class*="text-\\[\\#1C1C1A\\]"] { color: #f1f5f9 !important; }
+html[data-theme="notte-blu"] .border-stone-200,
+html[data-theme="notte-blu"] .border-stone-300 { border-color: #334155 !important; }
+
+/* MODERNO — bianco/nero + arancione */
+html[data-theme="moderno"] [class*="bg-\\[\\#4A5D23\\]"] { background-color: #111827 !important; }
+html[data-theme="moderno"] [class*="bg-\\[\\#3C4B1C\\]"] { background-color: #000000 !important; }
+html[data-theme="moderno"] [class*="bg-\\[\\#B8683D\\]"] { background-color: #f97316 !important; }
+html[data-theme="moderno"] [class*="bg-\\[\\#EAF3EF\\]"] { background-color: #fff7ed !important; }
+html[data-theme="moderno"] [class*="text-\\[\\#4A5D23\\]"] { color: #111827 !important; }
+html[data-theme="moderno"] [class*="text-\\[\\#2E5A47\\]"] { color: #ea580c !important; }
+
+/* CANTIERE — giallo caschetto + nero */
+html[data-theme="cantiere"] {
+  --bg-app: #fef9e7;
+}
+html[data-theme="cantiere"] body { background: #fef9e7; }
+html[data-theme="cantiere"] [class*="bg-\\[\\#4A5D23\\]"] { background-color: #111111 !important; color: #f5c518 !important; }
+html[data-theme="cantiere"] [class*="bg-\\[\\#3C4B1C\\]"] { background-color: #000000 !important; }
+html[data-theme="cantiere"] [class*="bg-\\[\\#B8683D\\]"] { background-color: #f5c518 !important; color: #111 !important; }
+html[data-theme="cantiere"] [class*="bg-\\[\\#F9F8F6\\]"],
+html[data-theme="cantiere"] [class*="bg-\\[\\#F3F2F0\\]"] { background-color: #fef9e7 !important; }
+html[data-theme="cantiere"] [class*="bg-\\[\\#EAF3EF\\]"] { background-color: #fef3c7 !important; }
+html[data-theme="cantiere"] [class*="text-\\[\\#4A5D23\\]"],
+html[data-theme="cantiere"] [class*="text-\\[\\#2E5A47\\]"] { color: #111 !important; }
+
+/* VINTAGE — beige e marroni caldi */
+html[data-theme="vintage"] {
+  --bg-app: #f5efe3;
+}
+html[data-theme="vintage"] body { background: #f5efe3; }
+html[data-theme="vintage"] [class*="bg-\\[\\#4A5D23\\]"] { background-color: #7c4a2e !important; }
+html[data-theme="vintage"] [class*="bg-\\[\\#3C4B1C\\]"] { background-color: #5f3720 !important; }
+html[data-theme="vintage"] [class*="bg-\\[\\#B8683D\\]"] { background-color: #c08552 !important; }
+html[data-theme="vintage"] [class*="bg-\\[\\#F9F8F6\\]"],
+html[data-theme="vintage"] [class*="bg-\\[\\#F3F2F0\\]"] { background-color: #f5efe3 !important; }
+html[data-theme="vintage"] [class*="bg-\\[\\#EAF3EF\\]"] { background-color: #ebe0cc !important; }
+html[data-theme="vintage"] .bg-white { background-color: #fbf6ea !important; }
+html[data-theme="vintage"] [class*="text-\\[\\#4A5D23\\]"],
+html[data-theme="vintage"] [class*="text-\\[\\#2E5A47\\]"] { color: #7c4a2e !important; }

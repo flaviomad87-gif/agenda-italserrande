@@ -1,8 +1,9 @@
 import "@/App.css";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Toaster } from "./components/ui/sonner";
+import { initTheme } from "./lib/themes";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -43,6 +44,9 @@ const PublicOnly = ({ children }) => {
 };
 
 function App() {
+  useEffect(() => {
+    initTheme();
+  }, []);
   return (
     <div className="App">
       <AuthProvider>
