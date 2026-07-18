@@ -47,10 +47,10 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 
 ### Feb 2026 — Striscia settimana in Agenda (mini-preview)
 **Richiesta:** mini-preview della settimana in cima ad Agenda; al click su un giorno si aprono gli appuntamenti di quel giorno.
-**Fix:** aggiunto `WeekStrip` sotto l'header di Agenda con 7 caselle (Lun→Dom) che mostrano giorno, data e badge conteggio appuntamenti. Click su una casella con appuntamenti → apre `DayAppointmentsDialog` con lista dettagliata (ora, nome, indirizzo Maps, telefono, nota, importo). La striscia è nascosta automaticamente se non ci sono appuntamenti in settimana.
-- File: `frontend/src/components/WeekStrip.jsx` (nuovo), `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo)
-- Wiring: `frontend/src/pages/Agenda.jsx` → `<WeekStrip />` sotto header
-- data-testid: `week-strip`, `week-strip-day-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
+**Correzione:** l'utente ha chiarito che voleva la funzionalità NEL dialog "Vista settimana" già presente in Prossimi lavori, non in Agenda. La striscia `WeekStrip` è stata rimossa da Agenda ed eliminata.
+**Fix definitivo:** rese cliccabili le colonne giorno del `WeekAppointmentsDialog`: ogni colonna è ora un `<button>` che apre `DayAppointmentsDialog` con la lista completa degli appuntamenti di quel giorno (ora, nome, indirizzo Maps, telefono, nota, importo).
+- File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
+- data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
 
 ## Backlog (P2)

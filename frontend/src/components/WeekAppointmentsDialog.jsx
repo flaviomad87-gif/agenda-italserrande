@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { api } from "../lib/api";
-import { formatEUR, googleMapsUrl } from "../lib/utils";
+import { formatEUR } from "../lib/utils";
 import { ChevronLeft, ChevronRight, MapPin, CalendarClock, Loader2 } from "lucide-react";
 import { addWeeks, subWeeks, startOfWeek, endOfWeek, addDays, format, parseISO, isSameDay } from "date-fns";
 import { it } from "date-fns/locale";
+import DayAppointmentsDialog from "./DayAppointmentsDialog";
 
 /**
  * Dialog "Vista settimanale": mostra solo i lavori pending con appointment_at,
@@ -14,6 +15,7 @@ export default function WeekAppointmentsDialog({ open, onOpenChange }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [openDay, setOpenDay] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -116,13 +118,18 @@ export default function WeekAppointmentsDialog({ open, onOpenChange }) {
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {byDay.map(({ day, items: dayItems }) => {
               const isToday = isSameDay(day, new Date());
+              const hasItems = dayItems.length > 0;
               return (
-                <div
+                <button
                   key={day.toISOString()}
-                  className={`rounded-2xl border p-2 ${
+                  type="button"
+                  onClick={() => setOpenDay(day)}
+                  data-testid={`week-day-col-${format(day, "yyyy-MM-dd")}`}
+                  aria-label={`Vedi appuntamenti del ${format(day, "EEEE d MMMM", { locale: it })}`}
+                  className={`w-full text-left rounded-2xl border p-2 transition active:scale-[0.98] ${
                     isToday
-                      ? "border-[#4A5D23]/40 bg-[#EAF3EF]"
-                      : "border-stone-200 bg-white"
+                      ? "border-[#4A5D23]/40 bg-[#EAF3EF] hover:border-[#4A5D23]/70"
+                      : "border-stone-200 bg-white hover:border-[#B8683D]/40 hover:bg-[#FBF1DE]/40"
                   }`}
                 >
                   <div className={`mb-2 border-b pb-1 text-center ${isToday ? "border-[#4A5D23]/30" : "border-stone-100"}`}>
@@ -133,7 +140,7 @@ export default function WeekAppointmentsDialog({ open, onOpenChange }) {
                       {format(day, "d")}
                     </div>
                   </div>
-                  {dayItems.length === 0 ? (
+                  {!hasItems ? (
                     <div className="py-2 text-center text-[10px] text-stone-400">—</div>
                   ) : (
                     <ul className="space-y-1.5">
@@ -152,15 +159,9 @@ export default function WeekAppointmentsDialog({ open, onOpenChange }) {
                               {c.name}
                             </div>
                             {c.address && (
-                              <a
-                                href={googleMapsUrl(c.address)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="mt-0.5 line-clamp-1 flex items-center gap-0.5 text-[10px] text-stone-500 hover:text-[#4A5D23]"
-                              >
+                              <span className="mt-0.5 line-clamp-1 flex items-center gap-0.5 text-[10px] text-stone-500">
                                 <MapPin className="h-2.5 w-2.5" /> {c.address}
-                              </a>
+                              </span>
                             )}
                             {c.amount > 0 && (
                               <div className="mt-0.5 text-[10px] font-semibold text-stone-600">
@@ -172,16 +173,23 @@ export default function WeekAppointmentsDialog({ open, onOpenChange }) {
                       })}
                     </ul>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
         )}
 
         <div className="mt-4 rounded-xl bg-stone-50 p-3 text-xs text-stone-600">
-          Compaiono solo i lavori <b>da fare</b> (Prossimi, In attesa, Da preventivare) con appuntamento fissato.
+          Tocca un giorno per vedere il dettaglio degli appuntamenti. Compaiono solo i lavori <b>da fare</b> (Prossimi, In attesa, Da preventivare) con appuntamento fissato.
         </div>
       </DialogContent>
+
+      <DayAppointmentsDialog
+        open={!!openDay}
+        onOpenChange={(v) => { if (!v) setOpenDay(null); }}
+        day={openDay}
+        items={openDay ? byDay.find((d) => isSameDay(d.day, openDay))?.items || [] : []}
+      />
     </Dialog>
   );
 }
