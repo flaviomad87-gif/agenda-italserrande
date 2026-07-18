@@ -45,6 +45,13 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - Wiring: `frontend/src/pages/ProssimiLavori.jsx` → pulsante outline "Vista settimana" (icona `CalendarRange`) accanto a *Stampa*
 - data-testid: `open-week-view-button`, `week-appointments-dialog`, `week-prev`, `week-next`, `week-today`, `week-appt-{id}`
 
+### Feb 2026 — Striscia settimana in Agenda (mini-preview)
+**Richiesta:** mini-preview della settimana in cima ad Agenda; al click su un giorno si aprono gli appuntamenti di quel giorno.
+**Fix:** aggiunto `WeekStrip` sotto l'header di Agenda con 7 caselle (Lun→Dom) che mostrano giorno, data e badge conteggio appuntamenti. Click su una casella con appuntamenti → apre `DayAppointmentsDialog` con lista dettagliata (ora, nome, indirizzo Maps, telefono, nota, importo). La striscia è nascosta automaticamente se non ci sono appuntamenti in settimana.
+- File: `frontend/src/components/WeekStrip.jsx` (nuovo), `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo)
+- Wiring: `frontend/src/pages/Agenda.jsx` → `<WeekStrip />` sotto header
+- data-testid: `week-strip`, `week-strip-day-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
+
 
 ## Backlog (P2)
 - Notifica email automatica quando il GitHub Action fallisce N volte di fila
