@@ -38,6 +38,14 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - Documentazione: `/app/DEPLOY_KEEPALIVE.md`
 - Utente deve mantenere `cron-job.org` DISABILITATO per evitare doppio ping
 
+### Feb 2026 — Vista settimanale appuntamenti
+**Richiesta:** poter vedere "dall'alto" tutti gli appuntamenti della settimana.
+**Fix:** nuovo dialog `WeekAppointmentsDialog` con griglia 7 colonne (Lun→Dom), navigazione ← / →, bottone "Vai a oggi". Mostra solo lavori con `appointment_at` fissato, aggregando `pending + awaiting + to-quote`. Ogni card mostra ora, nome, indirizzo (link Maps), importo.
+- File: `frontend/src/components/WeekAppointmentsDialog.jsx` (nuovo)
+- Wiring: `frontend/src/pages/ProssimiLavori.jsx` → pulsante outline "Vista settimana" (icona `CalendarRange`) accanto a *Stampa*
+- data-testid: `open-week-view-button`, `week-appointments-dialog`, `week-prev`, `week-next`, `week-today`, `week-appt-{id}`
+
+
 ## Backlog (P2)
 - Notifica email automatica quando il GitHub Action fallisce N volte di fila
 - Indicatore visivo "in sync..." per item ottimistici non ancora confermati dal server

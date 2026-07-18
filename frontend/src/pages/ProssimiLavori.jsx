@@ -4,9 +4,10 @@ import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
+import WeekAppointmentsDialog from "../components/WeekAppointmentsDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
 import AppointmentBadge from "../components/AppointmentBadge";
-import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown, Printer } from "lucide-react";
+import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown, Printer, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
@@ -35,6 +36,7 @@ export default function ProssimiLavori() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openClient, setOpenClient] = useState(false);
+  const [openWeek, setOpenWeek] = useState(false);
   const [editing, setEditing] = useState(null);
   const [executingId, setExecutingId] = useState(null);
   const location = useLocation();
@@ -160,6 +162,13 @@ export default function ProssimiLavori() {
       </div>
 
       <div className="flex justify-end gap-2 no-print">
+        <button
+          onClick={() => setOpenWeek(true)}
+          data-testid="open-week-view-button"
+          className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50"
+        >
+          <CalendarRange className="h-4 w-4" /> Vista settimana
+        </button>
         <button
           onClick={() => window.print()}
           data-testid="print-pending-button"
@@ -335,6 +344,8 @@ export default function ProssimiLavori() {
           setOpenClient(true);
         }}
       />
+
+      <WeekAppointmentsDialog open={openWeek} onOpenChange={setOpenWeek} />
     </div>
   );
 }
