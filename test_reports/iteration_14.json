@@ -1,0 +1,64 @@
+{
+  "summary": "Iter14: systematic verification of ALL calculation formulas after user reported generic doubts on the Yearly Summary numbers (screenshot: -14,550.54 loss). Created /app/backend/tests/test_iter14_calculations.py with 11 targeted tests (one per case in the review request). All 11 PASS. Full regression 143/143 PASS in 135s. Conclusion: the numbers shown in the user's screenshot are ARITHMETICALLY CORRECT given the documented business rules (49729.46 - 45640.00 - 18640.00 = -14550.54, advances 300 correctly NOT subtracted).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter14_calculations.py",
+    "/app/test_reports/pytest/iteration_14_results.xml",
+    "/app/test_reports/pytest/iteration_14_full.xml"
+  ],
+  "tests_verified": [
+    "T1 amount 1220 vat 22 wh 0 -> imponibile=1000, iva=220, ritenuta=0, incassi=1220 (PASS)",
+    "T2 amount 1000 vat 22 wh 20 -> divisor=1.02, imponibile=980.39, iva=215.69, ritenuta=196.08 (PASS)",
+    "T3 amount 1000 vat 0 wh 0 -> imponibile=1000, iva=0, ritenuta=0 (PASS)",
+    "T4 2 pagamenti 600+400 no IVA + materiali 200 -> materials pro-quota 120/80, margine 480/320, contanti/bonifico (PASS)",
+    "T5 imp 2000 + spese 1100 + materiali 500 + acconto 300 -> balance=400 (acconto NON sottratto) (PASS)",
+    "T6 yearly: mesi A=+900, B=+1049.52, C=-4954.66 -> totals.balance = -3005.14 = somma esatta dei mesi (PASS)",
+    "T7 client pending=true -> escluso da summary mensile e annuale (PASS)",
+    "T8 preventivo senza payments -> in total_quotes, NON in total_imponibile né balance (PASS)",
+    "T9 mesi +500/-200/+800 -> best_month=MONTH_C, worst_month=MONTH_B (PASS)",
+    "T10 legacy: no payments array + status=lavoro_eseguito + payment_method=contanti -> pagato integralmente (PASS)",
+    "T11 incassi split: 500 contanti + 500 bonifico, materials 200 -> incassi.contanti=500, incassi.bonifico=500, margine 400/400 (PASS)"
+  ],
+  "user_screenshot_math_check": {
+    "imponibile": 49729.46,
+    "spese_fisse": 45640.00,
+    "materiali": 18640.00,
+    "acconti_reminder_only": 300,
+    "computed_balance": -14550.54,
+    "user_displayed_balance": -14550.54,
+    "match": true,
+    "note": "The screenshot totals reconcile EXACTLY with the documented formula. Advances 300 correctly excluded (avoid double-count vs stipendio nelle spese fisse). Il perimetro contabile è corretto: nessun bug di calcolo trovato."
+  },
+  "action_items": [
+    "Nessuna azione richiesta lato codice: i calcoli sono corretti. Rispondere all'utente confermando la coerenza aritmetica dei totali (49729.46 - 45640 - 18640 = -14550.54) e spiegando che l'acconto operai 300€ è un promemoria che NON viene sottratto dal balance (perché lo stipendio è già nelle spese fisse).",
+    "OPZIONALE: aggiungere un tooltip UI nel Riepilogo annuale che spieghi la formula 'Guadagno = Imponibile − Spese fisse − Materiali (l\u2019IVA è pass-through, la ritenuta è acconto IRPEF, gli acconti operai sono solo promemoria)' per prevenire dubbi futuri."
+  ],
+  "critical_code_review_comments": [
+    "server.py _compute_summary linea 961: balance = total_imponibile - total_spese - total_materials — CORRETTO e coerente col fix iter13.",
+    "_split() (linea 871): guard divisor<=0 con fallback a 1.0 è robusto per casi limite (es. wh > vat+100).",
+    "Materiali pro-quota (linea 906): share = imp / client_imp_total, distribuisce correttamente i materiali per pagamento in base all'imponibile (non al lordo) — verificato in T4.",
+    "Legacy branch (linea 918-932): quando payments è vuoto ma status=lavoro_eseguito, tratta amt come imponibile e usa payment_method — backward compat verificata in T10.",
+    "Pending clients esclusi via query filter (linea 860) — verificato in T7.",
+    "yearly_summary somma i balance mensili senza ricalcolo — verificato in T6 con arrotondamento esatto.",
+    "DRY (già flaggato iter12): _split è duplicata tra _compute_summary e payments/by-method. Non un bug ma refactor consigliato.",
+    "server.py 1167 righe — superata la soglia 700. Refactor in routers/* consigliato ma non bloccante."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter14_calculations.py (new, 11 tests, 100% pass)"
+  ],
+  "success_rate": {"backend": "100% (143/143 across all suites incl. iter14)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Per-run Firebase signUp via REST con REACT_APP_FIREBASE_API_KEY. Pattern: testuser+iter14<ts><uuid>@italserrande.test / TestPassword123!.",
+  "seed_data_creation": "TEST_ prefixed data in mesi isolati 2027-05/06/07/08; autouse fixture sweep pre e post ogni test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter14 verifica sistematica dei calcoli richiesta dall'utente. NESSUN bug trovato. Le 11 formule chiave (scorporo IVA, ritenuta, materiali pro-quota, balance senza acconti, yearly sum, best/worst month, pending exclusion, preventivo in quotes, legacy backward compat, incassi_by_method split) sono tutte corrette. L'apparente 'perdita' vista dallo screenshot dell'utente è aritmeticamente giusta: 49729.46 imponibile - 45640 spese - 18640 materiali = -14550.54. Il main agent dovrebbe rispondere all'utente in italiano spiegando la formula, non modificare il codice.",
+  "rca_of_the_issue": "L'utente ha segnalato 'controllare se i calcoli siano corretti' senza indicare un errore specifico. Verifica sistematica su 11 casi: TUTTI passano. La 'perdita' -14550.54 nello screenshot è matematicamente corretta secondo le regole di business documentate (Margine = Imponibile − Spese − Materiali, con acconti operai esclusi dal balance perché lo stipendio è già in spese fisse). Non è un bug ma una legittima perdita di gestione. Suggerimento: aggiungere un help/tooltip nel Riepilogo annuale che spieghi la formula, così l'utente capisce perché il numero è quello."
+}
