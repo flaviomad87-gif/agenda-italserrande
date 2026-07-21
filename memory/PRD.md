@@ -53,14 +53,13 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
 ### Feb 2026 — Verifica calcoli Riepilogo (utente ha segnalato dubbio generico)
-**Richiesta:** "Devi controllare se i calcoli che esegue l'app siano corretti" (screenshot Riepilogo annuale, perdita -14550,54).
-**Verifica:** testing agent ha eseguito 11 test mirati + full regression 143/143 PASS. Formule tutte corrette:
-- balance = total_imponibile − total_spese − total_materials ✓
-- Scorporo IVA/ritenuta: divisor = 1 + (vat − wh)/100 ✓
-- Acconti operai NON sottratti dal balance (sono promemoria) ✓
-- Materiali distribuiti pro-quota per pagamento ✓
-- Pending esclusi, preventivi in total_quotes ✓
-**File test:** `/app/backend/tests/test_iter14_calculations.py`, report `/app/test_reports/iteration_14.json`
+**Richiesta:** "Devi controllare se i calcoli che esegue l'app siano corretti".
+**Verifica iter14:** 143/143 PASS su tutti i test formula (scorporo IVA, ritenuta, acconti, materiali pro-quota, best/worst month, ecc.).
+**BUG SCOPERTO IN ITER15 (dopo che l'utente ha fornito dati concreti):** in `_compute_summary` i materiali dei clienti **preventivo puro** (status≠lavoro_eseguito e senza pagamenti) venivano sommati in `total_materials` mentre il loro `amount` andava in `total_quotes` (non in imponibile). Risultato asimmetrico: il ricavo del preventivo non c'era ma il costo dei materiali sì, gonfiando la perdita mensile.
+**Fix:** aggiunto guard nel loop materiali: `if not (is_executed or has_payments_c): continue`. I materiali di un preventivo entrano nel bilancio automaticamente non appena il preventivo diventa eseguito o riceve un acconto.
+- File: `backend/server.py` linea 940-961
+- Test: `/app/backend/tests/test_iter15_preventivo_materials.py` (9 test dedicati)
+- Regressione: 152/152 PASS. Aggiornato 1 test legacy in `backend_test.py` che asseriva il vecchio comportamento buggato.
 
 ### Feb 2026 — Dettaglio mese cliccabile in Riepilogo annuale
 **Richiesta:** cliccando su una card mese nel Riepilogo annuale, mostrare il dettaglio del mese.
