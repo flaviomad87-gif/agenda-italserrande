@@ -52,6 +52,12 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Stampa archivio lavori per mese
+**Richiesta:** poter stampare tutti i lavori eseguiti divisi per mese, come un'agenda.
+**Fix:** nuova pagina `/archivio/:month` (YYYY-MM) che elenca i lavori eseguiti del mese con data, nome cliente, indirizzo, metodo di pagamento, stato, orario e nota appuntamento, importo. Riusa endpoint esistente `GET /api/clients?month=YYYY-MM` (nessuna modifica backend). Aggiunta card "Stampa archivio lavori" in Profilo con selettori mese/anno e pulsante "Apri archivio". Il layout usa il CSS `@media print` già esistente per nascondere nav/toolbar.
+- File: `frontend/src/pages/PrintArchive.jsx` (nuovo), `frontend/src/App.js` (nuova route), `frontend/src/pages/Profilo.jsx` (nuova card)
+- data-testid: `print-archive-card`, `archive-month-select`, `archive-year-select`, `open-archive-button`, `archive-back-link`, `archive-print-button`, `archive-row-{id}`
+
 ### Feb 2026 — Riepilogo nascosto dalla nav (temporaneo)
 **Richiesta:** "Siccome continuano a non tornare i conti, eliminiamo la sezione riepilogo". Opzione scelta: solo nascondere dalla nav (codice preservato).
 **Fix:** commentata la voce `/riepilogo` in `secondaryNav` di `AppShell.jsx`. La rotta è ancora servita (raggiungibile via URL diretto) e le API `/summary` e `/summary/year` restano attive. Per riabilitare basta rimuovere il commento.

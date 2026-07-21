@@ -1,14 +1,34 @@
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
-import { LogOut, Mail, Download, Smartphone, Palette, Check } from "lucide-react";
+import { LogOut, Mail, Download, Smartphone, Palette, Check, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { THEMES, getSavedTheme, applyTheme } from "../lib/themes";
+
+const MONTHS = [
+  { value: "01", label: "Gennaio" },
+  { value: "02", label: "Febbraio" },
+  { value: "03", label: "Marzo" },
+  { value: "04", label: "Aprile" },
+  { value: "05", label: "Maggio" },
+  { value: "06", label: "Giugno" },
+  { value: "07", label: "Luglio" },
+  { value: "08", label: "Agosto" },
+  { value: "09", label: "Settembre" },
+  { value: "10", label: "Ottobre" },
+  { value: "11", label: "Novembre" },
+  { value: "12", label: "Dicembre" },
+];
 
 export default function Profilo() {
   const { user, logout } = useAuth();
   const [installEvent, setInstallEvent] = useState(null);
   const [currentTheme, setCurrentTheme] = useState(getSavedTheme());
+  const now = new Date();
+  const [printMonth, setPrintMonth] = useState(String(now.getMonth() + 1).padStart(2, "0"));
+  const [printYear, setPrintYear] = useState(String(now.getFullYear()));
+  const yearOptions = Array.from({ length: 6 }, (_, i) => String(now.getFullYear() - i));
 
   useEffect(() => {
     const handler = (e) => {
@@ -111,6 +131,55 @@ export default function Profilo() {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-stone-200/60 bg-white p-6 shadow-sm" data-testid="print-archive-card">
+        <div className="flex items-center gap-2">
+          <Printer className="h-5 w-5 text-[#4A5D23]" />
+          <h2 className="font-display text-lg font-semibold">Stampa archivio lavori</h2>
+        </div>
+        <p className="mt-1 text-sm text-stone-500">
+          Scegli il mese: aprirà l&apos;elenco dei lavori eseguiti pronto da stampare o salvare in PDF.
+        </p>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[8rem]">
+            <label className="block text-xs font-semibold uppercase tracking-widest text-stone-500">
+              Mese
+            </label>
+            <select
+              value={printMonth}
+              onChange={(e) => setPrintMonth(e.target.value)}
+              data-testid="archive-month-select"
+              className="mt-2 h-12 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm font-semibold text-stone-700"
+            >
+              {MONTHS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-[6rem]">
+            <label className="block text-xs font-semibold uppercase tracking-widest text-stone-500">
+              Anno
+            </label>
+            <select
+              value={printYear}
+              onChange={(e) => setPrintYear(e.target.value)}
+              data-testid="archive-year-select"
+              className="mt-2 h-12 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm font-semibold text-stone-700"
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <Link
+            to={`/archivio/${printYear}-${printMonth}`}
+            data-testid="open-archive-button"
+            className="inline-flex h-12 items-center gap-1.5 rounded-xl bg-[#4A5D23] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3C4B1C]"
+          >
+            <Printer className="h-4 w-4" /> Apri archivio
+          </Link>
         </div>
       </div>
 

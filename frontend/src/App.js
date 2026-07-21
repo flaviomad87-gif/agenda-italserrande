@@ -18,6 +18,7 @@ const Incassi = lazy(() => import("./pages/Incassi"));
 const Spese = lazy(() => import("./pages/Spese"));
 const Riepilogo = lazy(() => import("./pages/Riepilogo"));
 const Profilo = lazy(() => import("./pages/Profilo"));
+const PrintArchive = lazy(() => import("./pages/PrintArchive"));
 
 const FullPageSpinner = () => (
   <div className="flex h-screen items-center justify-center text-stone-500">Caricamento…</div>
@@ -72,6 +73,7 @@ function App() {
                 <Route path="/spese" element={<Spese />} />
                 <Route path="/riepilogo" element={<Riepilogo />} />
                 <Route path="/profilo" element={<Profilo />} />
+                <Route path="/archivio/:month" element={<PrintArchive />} />
               </Route>
               <Route path="*" element={<Navigate to="/prossimi-lavori" replace />} />
             </Routes>
