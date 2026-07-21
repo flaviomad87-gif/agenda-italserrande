@@ -54,9 +54,9 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 
 ### Feb 2026 — Stampa archivio lavori per mese
 **Richiesta:** poter stampare tutti i lavori eseguiti divisi per mese, come un'agenda.
-**Fix:** nuova pagina `/archivio/:month` (YYYY-MM) che elenca i lavori eseguiti del mese con data, nome cliente, indirizzo, metodo di pagamento, stato, orario e nota appuntamento, importo. Riusa endpoint esistente `GET /api/clients?month=YYYY-MM` (nessuna modifica backend). Aggiunta card "Stampa archivio lavori" in Profilo con selettori mese/anno e pulsante "Apri archivio". Il layout usa il CSS `@media print` già esistente per nascondere nav/toolbar.
-- File: `frontend/src/pages/PrintArchive.jsx` (nuovo), `frontend/src/App.js` (nuova route), `frontend/src/pages/Profilo.jsx` (nuova card)
-- data-testid: `print-archive-card`, `archive-month-select`, `archive-year-select`, `open-archive-button`, `archive-back-link`, `archive-print-button`, `archive-row-{id}`
+**Fix:** nuova pagina `/archivio/:month` che elenca i lavori eseguiti del mese. Redesign in stile **diario cartaceo**: raggruppamento giorno-per-giorno (solo giorni con lavori), intestazione ampia con numero + nome giorno + mese, sotto le righe lavoro (ora, nome cliente, indirizzo, nota, metodo pagamento, importo). Formato **A4 orizzontale** via `@page`, **bianco e nero** elegante in stampa (tutto forzato a #000), nessun totale in fondo. Riusa endpoint `GET /api/clients?month=YYYY-MM`.
+- File: `frontend/src/pages/PrintArchive.jsx` (diario B/N landscape), `frontend/src/App.js` (route), `frontend/src/pages/Profilo.jsx` (card "Stampa archivio lavori")
+- data-testid: `print-archive-card`, `archive-month-select`, `archive-year-select`, `open-archive-button`, `archive-print-button`, `archive-day-{yyyy-MM-dd}`, `archive-row-{id}`
 
 ### Feb 2026 — Riepilogo nascosto dalla nav (temporaneo)
 **Richiesta:** "Siccome continuano a non tornare i conti, eliminiamo la sezione riepilogo". Opzione scelta: solo nascondere dalla nav (codice preservato).
