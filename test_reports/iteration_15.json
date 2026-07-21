@@ -1,0 +1,54 @@
+{
+  "summary": "Iter15: verificato il fix per il bug 'materiali dei preventivi sottratti dal balance mensile' (server.py _compute_summary linee 940-961). Creato /app/backend/tests/test_iter15_preventivo_materials.py con 9 test dedicati (P1-P9) tutti PASSATI. Full regression 152/152 PASS (era 151 + 1 aggiornato: il test legacy in backend_test.py che asseriva il vecchio comportamento buggato è stato aggiornato con giustificazione). Bug confermato risolto: preventivi senza payments non contribuiscono più a total_materials/materials_by_source/balance.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter15_preventivo_materials.py",
+    "/app/test_reports/pytest/iteration_15_results.xml",
+    "/app/test_reports/pytest/iteration_15_full.xml"
+  ],
+  "tests_verified": [
+    "P1 PRIMARY: A (eseguito 1000 IVA22 mat 400) + B (preventivo 500 mat 300 no payments) -> total_imponibile=1000, total_materials=400 (NOT 700), total_quotes=500, balance=600. PASS",
+    "P2 Regressione: eseguito con materiali continua a contarli (250) -> balance=750. PASS",
+    "P3 Regressione: cliente pending=true completamente escluso (imp=0, mat=0, balance=0). PASS",
+    "P4 UI-Backend coherence: 5 clienti misti -> sum(margini card contati) == total_imponibile - total_materials. PASS",
+    "P5 Preventivo->Eseguito: prima balance=0 (materiali 300 ignorati); dopo update a lavoro_eseguito con payment 500 -> total_materials=300, balance=200. PASS",
+    "P6 Preventivo con acconto (status=preventivo MA payments=[200]) -> materiali 100 contati (perche' ha payments), imponibile=200. PASS",
+    "P7 Yearly summary: month A eseguito materiali 300 -> balance 700; month B solo preventivo materiali 500 -> balance 0, total_materials=0; totals.total_materials=300. PASS",
+    "P8 materials_by_source: preventivo con materiali su entrambe le sorgenti (999+888) COMPLETAMENTE esclusi; solo eseguito (200 contanti + 300 conto) contati. PASS",
+    "P9 Scenario utente Alessandra Ugolini: cliente 1098 IVA22 mat 520 + preventivo ghost 2000 con mat 3155 -> total_materials=520 (NON 3675), balance=578. PASS (riproduce esattamente il caso segnalato)"
+  ],
+  "regression_full_suite": {
+    "total": 152,
+    "passed": 152,
+    "failed": 0,
+    "duration_sec": 154,
+    "notes": "Iter14 test suite (11 test) tutti passati. test_iter13, test_iter12, test_edge_cases_iter11, test_iva_split, backend_test tutti passati."
+  },
+  "updated_files": [
+    "/app/backend/tests/test_iter15_preventivo_materials.py (nuovo, 9 test)",
+    "/app/backend/tests/backend_test.py::TestMaterials::test_summary_total_materials_and_by_source (asseriva il VECCHIO comportamento buggato: 'preventivo materials still counts'. Aggiornato per il nuovo comportamento post-fix: preventivo senza payments -> materiali esclusi. Nuova soglia total_materials=150 invece di 350, upper bound <350, materials_by_source ridimensionato. Giustificazione: il test testava il bug, ora testa il fix.)"
+  ],
+  "critical_code_review_comments": [
+    "server.py 951-953: il guard `if not (is_executed or has_payments_c): continue` e' corretto e coerente con la logica di _compute_summary sopra (linee 894 e 919), dove imponibile viene sommato solo per has_payments oppure status=eseguito. Il fix ripristina la simmetria: se il cliente NON contribuisce a total_imponibile, i suoi materiali NON contribuiscono a total_materials.",
+    "Il fix propaga automaticamente al yearly_summary (verificato in P7) perche' summa i mesi calcolati con _compute_summary.",
+    "Coerenza con /clients/unpaid (linee 546-556): li' i preventivi senza payments sono gia' esclusi (continue). Ora anche _compute_summary segue la stessa regola.",
+    "Ancora presente: _split() duplicata tra _compute_summary e payments/by-method (flag da iter12/iter14). Non bloccante.",
+    "server.py 1179 righe -> ancora sopra soglia 700, refactor consigliato ma non bloccante.",
+    "Non ci sono side effect sul frontend `computeClientMargin` (utils.js): la card mostra amount - materiali per singolo cliente, quindi per un preventivo continua a mostrare il margine 'teorico' ma questo NON entra nel summary (giusto)."
+  ],
+  "success_rate": {"backend": "100% (152/152)", "frontend": "not tested (backend-only request per review)"},
+  "test_credentials": "Firebase signUp REST via REACT_APP_FIREBASE_API_KEY (frontend/.env). Pattern: testuser+iter15<ts><uuid>@italserrande.test / TestPassword123!.",
+  "seed_data_creation": "TEST_ prefixed data in mesi isolati 2028-06/07/08; autouse fixture sweep pre/post ogni test. Nessuna collisione con iter14 (2027-05/06/07/08).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Fix per bug utente 'Italserrande: materiali dei preventivi gonfiavano il total_materials del mese, causando perdita apparente 3155 EUR piu' alta del vero'. Verificato: preventivi senza payments ora esclusi da total_materials/materials_by_source/balance. Aggiornato UN test legacy in backend_test.py che asseriva il vecchio comportamento buggato (con giustificazione nel codice). Full suite 152/152 PASS. Nessuna azione ulteriore richiesta lato codice.",
+  "rca_of_the_issue": "ROOT CAUSE: In _compute_summary il primo loop (linee 888-934) sommava total_imponibile SOLO per clienti eseguiti o con payments, ma il secondo loop (linee 942-961, materiali) sommava total_materials per TUTTI i clienti del mese (inclusi preventivi puri). Risultato asimmetrico: il ricavo del preventivo non c'era ma il costo materiali si', gonfiando la perdita del mese. REPRODUCTION: cliente A eseguito 1000 mat 400 + cliente B preventivo 500 mat 300 -> prima del fix total_materials=700 (BUG), balance=1000-0-700=300; dopo il fix total_materials=400, balance=600 (CORRETTO). MITIGATION: aggiunto guard `if not (is_executed or has_payments_c): continue` che skippa i materiali dei preventivi puri. I materiali diventano automaticamente attivi quando il preventivo evolve (status=lavoro_eseguito o riceve un acconto). VERIFICATO: 9 test dedicati + 143 regression."
+}

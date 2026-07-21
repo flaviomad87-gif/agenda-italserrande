@@ -940,6 +940,18 @@ async def _compute_summary(uid: str, month: str) -> dict:
     materials_by_source = {"contanti": 0.0, "conto_aziendale": 0.0}
     total_materials = 0.0
     for c in clients:
+        # I materiali entrano nel bilancio SOLO se il cliente ha effettivamente
+        # generato ricavi nel mese (lavoro eseguito o almeno un pagamento).
+        # Per i preventivi puri (nessun pagamento, status != lavoro_eseguito)
+        # i materiali sono un promemoria interno alla scheda e NON vengono
+        # sottratti dal margine, altrimenti il bilancio del mese risulterebbe
+        # penalizzato da materiali di lavori non ancora eseguiti. Quando il
+        # preventivo verrà eseguito (o riceverà un pagamento), i materiali
+        # entreranno automaticamente nel calcolo.
+        has_payments_c = bool(c.get("payments"))
+        is_executed = c.get("status") == "lavoro_eseguito"
+        if not (is_executed or has_payments_c):
+            continue
         for m in (c.get("materials") or []):
             m_amt = float(m.get("amount") or 0)
             src = m.get("source") or "conto_aziendale"

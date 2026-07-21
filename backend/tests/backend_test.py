@@ -985,7 +985,10 @@ class TestMaterials:
                 ],
             }).json()
             seeded.append(c1["id"])
-            # Client 2: preventivo with materials (still counts in summary)
+            # Client 2: preventivo with materials — since iter15 fix, materials
+            # of a pure preventivo (no payments, status != lavoro_eseguito) are
+            # NOT summed into total_materials nor materials_by_source (they'd
+            # penalise the monthly balance with costs of unexecuted jobs).
             c2 = auth_a.post(f"{API}/clients", json={
                 "date": "2024-05-12", "name": "TEST_MAT_SUM2",
                 "status": "preventivo", "amount": 800.0,
@@ -1007,12 +1010,12 @@ class TestMaterials:
             s = r.json()
             assert "total_materials" in s
             assert "materials_by_source" in s
-            assert s["total_materials"] >= 350.0  # 100+50+200
+            assert s["total_materials"] >= 150.0  # 100+50 (preventivo 200 excluded by iter15 fix)
             assert s["materials_by_source"]["contanti"] >= 100.0
-            assert s["materials_by_source"]["conto_aziendale"] >= 250.0  # 50+200
+            assert s["materials_by_source"]["conto_aziendale"] >= 50.0  # only executed (50); preventivo 200 excluded
 
-            # 999 from June not in May
-            assert s["total_materials"] < 999.0 + 350.0  # June not included
+            # 999 from June not in May, preventivo 200 May excluded → strict upper bound
+            assert s["total_materials"] < 350.0
 
             # balance formula: incassi - spese - advances - materials
             expected = (
