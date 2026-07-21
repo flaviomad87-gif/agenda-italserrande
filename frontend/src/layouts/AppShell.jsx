@@ -32,7 +32,10 @@ const primaryNav = [
 // Voci secondarie — accessibili tramite hamburger menu
 const secondaryNav = [
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
-  { to: "/riepilogo", label: "Riepilogo", icon: PieChart, testId: "nav-riepilogo" },
+  // Riepilogo temporaneamente nascosto su richiesta utente: calcoli non
+  // ancora allineati alle sue aspettative. La pagina e le rotte restano
+  // funzionanti; per riabilitarla basta ripristinare questa voce.
+  // { to: "/riepilogo", label: "Riepilogo", icon: PieChart, testId: "nav-riepilogo" },
   { to: "/profilo", label: "Profilo", icon: User, testId: "nav-profilo" },
 ];
 

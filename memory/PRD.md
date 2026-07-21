@@ -52,7 +52,12 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
-### Feb 2026 — Verifica calcoli Riepilogo (utente ha segnalato dubbio generico)
+### Feb 2026 — Riepilogo nascosto dalla nav (temporaneo)
+**Richiesta:** "Siccome continuano a non tornare i conti, eliminiamo la sezione riepilogo". Opzione scelta: solo nascondere dalla nav (codice preservato).
+**Fix:** commentata la voce `/riepilogo` in `secondaryNav` di `AppShell.jsx`. La rotta è ancora servita (raggiungibile via URL diretto) e le API `/summary` e `/summary/year` restano attive. Per riabilitare basta rimuovere il commento.
+- File: `frontend/src/layouts/AppShell.jsx` linea 35
+
+### Feb 2026 — Verifica calcoli Riepilogo + fix bug materiali preventivi
 **Richiesta:** "Devi controllare se i calcoli che esegue l'app siano corretti".
 **Verifica iter14:** 143/143 PASS su tutti i test formula (scorporo IVA, ritenuta, acconti, materiali pro-quota, best/worst month, ecc.).
 **BUG SCOPERTO IN ITER15 (dopo che l'utente ha fornito dati concreti):** in `_compute_summary` i materiali dei clienti **preventivo puro** (status≠lavoro_eseguito e senza pagamenti) venivano sommati in `total_materials` mentre il loro `amount` andava in `total_quotes` (non in imponibile). Risultato asimmetrico: il ricavo del preventivo non c'era ma il costo dei materiali sì, gonfiando la perdita mensile.
