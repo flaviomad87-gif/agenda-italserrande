@@ -52,6 +52,22 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Verifica calcoli Riepilogo (utente ha segnalato dubbio generico)
+**Richiesta:** "Devi controllare se i calcoli che esegue l'app siano corretti" (screenshot Riepilogo annuale, perdita -14550,54).
+**Verifica:** testing agent ha eseguito 11 test mirati + full regression 143/143 PASS. Formule tutte corrette:
+- balance = total_imponibile − total_spese − total_materials ✓
+- Scorporo IVA/ritenuta: divisor = 1 + (vat − wh)/100 ✓
+- Acconti operai NON sottratti dal balance (sono promemoria) ✓
+- Materiali distribuiti pro-quota per pagamento ✓
+- Pending esclusi, preventivi in total_quotes ✓
+**File test:** `/app/backend/tests/test_iter14_calculations.py`, report `/app/test_reports/iteration_14.json`
+
+### Feb 2026 — Dettaglio mese cliccabile in Riepilogo annuale
+**Richiesta:** cliccando su una card mese nel Riepilogo annuale, mostrare il dettaglio del mese.
+**Fix:** ogni card mensile ora è un `<button>` che apre `MonthDetailsDialog` con: guadagno/perdita del mese, imponibile+IVA+ritenuta, spese fisse, materiali, acconti (promemoria), incassi per metodo (contanti/POS/bonifico), preventivi ancora aperti, conteggi lavori/spese/acconti. I dati sono già presenti nella response di `/api/summary/year` (nessuna chiamata aggiuntiva).
+- File: `frontend/src/components/MonthDetailsDialog.jsx` (nuovo), `frontend/src/components/YearlyView.jsx` (card mensili convertite in button)
+- data-testid: `year-month-open-{yyyy-MM}`, `month-details-dialog`, `month-details-balance`
+
 
 ## Backlog (P2)
 - Notifica email automatica quando il GitHub Action fallisce N volte di fila

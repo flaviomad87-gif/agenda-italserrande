@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import { formatEUR } from "../lib/utils";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Trophy, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import MonthDetailsDialog from "./MonthDetailsDialog";
 
 const MONTH_NAMES = [
   "Gen", "Feb", "Mar", "Apr", "Mag", "Giu",
@@ -14,6 +15,7 @@ export default function YearlyView() {
   const [year, setYear] = useState(today.getFullYear());
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,10 +164,16 @@ export default function YearlyView() {
               <li
                 key={m.month}
                 data-testid={`year-month-${m.month}`}
-                className={`rounded-2xl border bg-white p-4 shadow-sm transition ${
-                  isEmpty ? "border-stone-200/40 opacity-60" : "border-stone-200/60"
-                }`}
               >
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonth(m)}
+                  data-testid={`year-month-open-${m.month}`}
+                  aria-label={`Dettagli ${MONTH_NAMES[idx]} ${year}`}
+                  className={`block w-full text-left rounded-2xl border bg-white p-4 shadow-sm transition hover:border-stone-300 hover:shadow-md active:scale-[0.99] ${
+                    isEmpty ? "border-stone-200/40 opacity-60" : "border-stone-200/60"
+                  }`}
+                >
                 <div className="flex items-baseline justify-between gap-3">
                   <div className="flex items-baseline gap-2">
                     <span className="font-display text-lg font-bold capitalize">{MONTH_NAMES[idx]}</span>
@@ -202,11 +210,18 @@ export default function YearlyView() {
                     </div>
                   </>
                 )}
+                </button>
               </li>
             );
           })}
         </ul>
       </section>
+
+      <MonthDetailsDialog
+        open={!!selectedMonth}
+        onOpenChange={(v) => { if (!v) setSelectedMonth(null); }}
+        month={selectedMonth}
+      />
     </div>
   );
 }
