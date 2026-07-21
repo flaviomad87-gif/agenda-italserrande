@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../lib/api";
-import { formatEUR, PAYMENT_LABEL, formatMonthLabel, computeWithVat } from "../lib/utils";
+import { formatEUR, PAYMENT_LABEL, formatMonthLabel, computeWithVat, computeMaterialsTotal } from "../lib/utils";
 import { Printer, ArrowLeft, Loader2 } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { it } from "date-fns/locale";
 
 /**
  * Vista stampabile "diario" dei lavori ESEGUITI di un mese.
- * Route: /archivio/:month  (month = YYYY-MM)
- * Estetica: pagina di agenda cartacea con righe sottili, testate giorno in maiuscoletto.
- * IMPORTANTE: i giorni fluiscono UNO DOPO L'ALTRO (niente page-break per giorno).
- * Solo l'header giorno resta legato alla prima riga (break-after: avoid).
+ * Route: /archivio/:month
+ * Colonne: Ora | Cliente · Indirizzo | Pag. | Mat. | Margine | Importo
+ * Layout: flusso continuo (i giorni non saltano pagina). Header giorno legato
+ * alla prima riga con break-after: avoid. Nessun vincolo di orientamento:
+ * l'utente sceglie portrait o landscape dal dialog di stampa.
  */
 export default function PrintArchive() {
   const { month } = useParams();
@@ -59,6 +60,16 @@ export default function PrintArchive() {
     return toCollect || 0;
   };
 
+  /** Metodo di pagamento con fallback sui payments[] (evita colonna vuota). */
+  const paymentLabelOf = (c) => {
+    if (c.payment_method) return PAYMENT_LABEL[c.payment_method] || c.payment_method;
+    const methods = Array.from(
+      new Set((c.payments || []).map((p) => p.method).filter(Boolean)),
+    );
+    if (methods.length === 0) return "—";
+    return methods.map((m) => PAYMENT_LABEL[m] || m).join(" + ");
+  };
+
   return (
     <>
       <PrintArchiveStyles />
@@ -83,9 +94,7 @@ export default function PrintArchive() {
           </button>
         </div>
 
-        {/* Foglio */}
         <article className="archive-sheet mx-auto max-w-[210mm] bg-white p-6 shadow-sm sm:p-10">
-          {/* Intestazione */}
           <header className="archive-header pb-3">
             <div className="flex items-baseline justify-between gap-3">
               <div>
@@ -112,11 +121,12 @@ export default function PrintArchive() {
             </div>
           ) : (
             <div className="archive-body mt-4">
-              {/* Riga colonne (visibile solo se ci sono lavori) */}
               <div className="archive-cols archive-cols-head">
                 <div className="col-time">Ora</div>
                 <div className="col-main">Cliente · Indirizzo</div>
-                <div className="col-pay">Pagamento</div>
+                <div className="col-pay">Pag.</div>
+                <div className="col-mat">Mat.</div>
+                <div className="col-margin">Margine</div>
                 <div className="col-amt">Importo</div>
               </div>
 
@@ -143,6 +153,9 @@ export default function PrintArchive() {
                       const appt = c.appointment_at ? parseISO(c.appointment_at) : null;
                       const time = appt && isValid(appt) ? format(appt, "HH:mm") : "";
                       const note = c.appointment_note || c.notes || "";
+                      const imponibile = Number(c.amount) || 0;
+                      const materialsTotal = computeMaterialsTotal(c.materials);
+                      const margin = imponibile - materialsTotal;
                       return (
                         <div
                           key={c.id}
@@ -155,9 +168,11 @@ export default function PrintArchive() {
                             {c.address && <div className="row-addr">{c.address}</div>}
                             {note && <div className="row-note">{note}</div>}
                           </div>
-                          <div className="col-pay">
-                            {c.payment_method ? (PAYMENT_LABEL[c.payment_method] || c.payment_method) : "—"}
+                          <div className="col-pay">{paymentLabelOf(c)}</div>
+                          <div className="col-mat">
+                            {materialsTotal > 0 ? formatEUR(materialsTotal) : "—"}
                           </div>
+                          <div className="col-margin">{formatEUR(margin)}</div>
                           <div className="col-amt">{formatEUR(grossOf(c))}</div>
                         </div>
                       );
@@ -173,12 +188,6 @@ export default function PrintArchive() {
   );
 }
 
-/**
- * Stili di stampa + preview a schermo.
- * A4 portrait (compatibile con default della maggior parte delle stampanti mobili),
- * righe orizzontali sottili tipo pagina di agenda, no box.
- * I giorni fluiscono uno dopo l'altro: solo l'header giorno resta legato al primo lavoro.
- */
 function PrintArchiveStyles() {
   return (
     <style>{`
@@ -187,8 +196,8 @@ function PrintArchiveStyles() {
 
       .archive-cols {
         display: grid;
-        grid-template-columns: 3.2rem 1fr 5.5rem 5rem;
-        gap: 0.75rem;
+        grid-template-columns: 3rem 1fr 5rem 4.5rem 5rem 5.5rem;
+        gap: 0.6rem;
         align-items: baseline;
       }
       .archive-cols-head {
@@ -200,8 +209,17 @@ function PrintArchiveStyles() {
         padding: 0.4rem 0.25rem;
         border-bottom: 1px solid #111;
       }
-      .col-amt, .archive-cols-head .col-amt { text-align: right; }
-      .col-pay { text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; }
+      .col-mat, .col-margin, .col-amt,
+      .archive-cols-head .col-mat, .archive-cols-head .col-margin, .archive-cols-head .col-amt {
+        text-align: right;
+      }
+      .col-pay {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 9.5px;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        color: #333;
+      }
 
       .archive-day { break-inside: auto; }
       .archive-day-header {
@@ -214,53 +232,34 @@ function PrintArchiveStyles() {
         break-after: avoid;
         page-break-after: avoid;
       }
-      .archive-day-header .day-num {
-        font-family: Georgia, serif;
-        font-size: 22px;
-        font-weight: 700;
-        line-height: 1;
-        color: #111;
-      }
-      .archive-day-header .day-name {
-        font-family: 'Helvetica Neue', Arial, sans-serif;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.2em;
-        color: #111;
-      }
-      .archive-day-header .day-count {
-        margin-left: auto;
-        font-family: 'Helvetica Neue', Arial, sans-serif;
-        font-size: 9px;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: #666;
-      }
+      .archive-day-header .day-num { font-family: Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1; color: #111; }
+      .archive-day-header .day-name { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #111; }
+      .archive-day-header .day-count { margin-left: auto; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #666; }
 
       .archive-row {
         padding: 0.45rem 0.25rem;
         border-bottom: 1px solid #d4d4d4;
         break-inside: avoid;
       }
-      .archive-row:first-of-type { break-before: avoid; }
       .archive-row .col-time { font-size: 11px; font-weight: 700; font-family: 'Helvetica Neue', Arial, sans-serif; color: #111; }
       .archive-row .col-time .tick { color: #ccc; }
-      .archive-row .row-name { font-family: Georgia, serif; font-size: 14px; font-weight: 700; line-height: 1.15; color: #111; }
-      .archive-row .row-addr { font-family: Georgia, serif; font-size: 11px; line-height: 1.25; color: #333; margin-top: 0.05rem; }
-      .archive-row .row-note { font-family: Georgia, serif; font-style: italic; font-size: 10.5px; line-height: 1.25; color: #555; margin-top: 0.05rem; }
-      .archive-row .col-amt { font-family: Georgia, serif; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: #111; }
+      .archive-row .row-name { font-family: Georgia, serif; font-size: 13.5px; font-weight: 700; line-height: 1.15; color: #111; }
+      .archive-row .row-addr { font-family: Georgia, serif; font-size: 10.5px; line-height: 1.25; color: #333; margin-top: 0.05rem; }
+      .archive-row .row-note { font-family: Georgia, serif; font-style: italic; font-size: 10px; line-height: 1.25; color: #555; margin-top: 0.05rem; }
+      .archive-row .col-mat { font-family: Georgia, serif; font-size: 11.5px; font-variant-numeric: tabular-nums; color: #444; }
+      .archive-row .col-margin { font-family: Georgia, serif; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: #111; }
+      .archive-row .col-amt { font-family: Georgia, serif; font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: #111; }
 
       @media print {
-        @page {
-          size: A4 portrait;
-          margin: 14mm 12mm 12mm 12mm;
-        }
+        /* Nessun vincolo di orientamento/formato: rispetta la scelta utente
+           nel dialog di stampa (portrait o landscape). Solo margini. */
+        @page { margin: 12mm 10mm; }
         html, body { background: #fff !important; }
         .archive-sheet {
           box-shadow: none !important;
           padding: 0 !important;
           max-width: 100% !important;
+          width: 100% !important;
           margin: 0 !important;
         }
         .archive-sheet, .archive-sheet * {
@@ -271,8 +270,6 @@ function PrintArchiveStyles() {
         .archive-header { border-bottom-color: #000 !important; }
         .archive-day-header, .archive-cols-head { border-bottom-color: #000 !important; }
         .archive-row { border-bottom-color: #888 !important; }
-        /* IMPORTANTE: NON forzare page-break sul giorno.
-           I giorni fluiscono continui: solo l'header resta con la prima riga. */
       }
     `}</style>
   );

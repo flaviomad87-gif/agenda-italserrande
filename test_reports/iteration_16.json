@@ -1,0 +1,39 @@
+{
+  "summary": "Iter16 frontend-only test of /archivio/:month print view (3 bug fixes: payment fallback, materials+margin columns, no hardcoded portrait). All 10 requested scenarios PASSED via Playwright against real preview URL. Screenshot saved at /app/test_reports/screenshots/iter16_archive.png.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "tests_verified": [
+    "TEST1 payment fallback single: c.payment_method='' + payments=[bonifico] -> 'Bonifico' (col-pay). PASS",
+    "TEST2 payment misto: payments=[contanti,bonifico] -> 'Contanti + Bonifico'. PASS",
+    "TEST3 payment_method priority: c.payment_method='pos' + payments=[contanti] -> 'POS / Carta' (contanti NOT shown). PASS. NOTE: review said 'POS' but PAYMENT_LABEL.pos='POS / Carta' - label is correct as-is.",
+    "TEST4 materials column: materials sum 300 -> '300,00 €'; no materials -> '—'. PASS",
+    "TEST5 margine: amount 1000 - mat 300 -> '700,00 €'; amount 500 - mat 600 -> '-100,00 €' (segno negativo mostrato). PASS",
+    "TEST6 header row contains all 6 labels (Ora, Cliente · Indirizzo, Pag., Mat., Margine, Importo). PASS",
+    "TEST7 CSS @page: solo 1 rule '@page { margin: 12mm 10mm; }' - nessuna direttiva 'size' hardcoded. PASS",
+    "TEST8 mese vuoto /archivio/2099-12 -> 'Nessun lavoro eseguito registrato'. PASS",
+    "TEST9 .archive-day break-inside=auto (NOT avoid); .archive-day-header break-after=avoid + page-break-after=avoid. PASS",
+    "TEST10 grouping: 2 clienti same-day (2028-11-10) + 3 in other days -> 4 archive-day sections, day-10 contains 2 archive-row. PASS"
+  ],
+  "test_report_links": [
+    "/app/test_reports/screenshots/iter16_archive.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PrintArchive.jsx paymentLabelOf() (lines 63-71) implementa correttamente la priorita' c.payment_method -> fallback su payments[].method con dedup via Set e join ' + '. Coerente con la logica utente.",
+    "computeMaterialsTotal riutilizzata da utils.js (DRY). computeWithVat riutilizzata per grossOf. Nessuna duplicazione.",
+    "CSS @page rule (line 256) contiene solo 'margin: 12mm 10mm' - rispetta la scelta utente su orientamento/formato dal dialog di stampa (fix bug taglio landscape).",
+    "grid-template-columns aggiornata a 6 colonne (line 199: '3rem 1fr 5rem 4.5rem 5rem 5.5rem'). Larghezze compatte, adatte anche a portrait A4.",
+    "col-margin/col-mat/col-amt allineati a destra e con tabular-nums per allineamento numerico (buono per stampa)."
+  ],
+  "updated_files": [],
+  "success_rate": {"frontend": "100% (10/10)"},
+  "test_credentials": "Firebase signUp REST via REACT_APP_FIREBASE_API_KEY - ephemeral user testuser+iter16<ts><uuid>@italserrande.test / TestPassword123!",
+  "seed_data_creation": "5 clienti TEST_ prefissati in mese isolato 2028-11 (C1_bonifico, C2_misto, C3_pos, C4_mat, C5_neg) - creati via POST /api/clients con Firebase idToken; cleanup DELETE eseguito a fine test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Bug fix UI archivio mensile /archivio/:month verificato end-to-end via Playwright. 3 sub-bug fissati: (1) col Pag. non piu' vuota grazie a paymentLabelOf() con fallback su payments[].method; (2) aggiunte 2 nuove colonne Mat. e Margine calcolate da c.materials e c.amount; (3) @page CSS non ha piu' 'size: A4 portrait' hardcoded quindi landscape non taglia piu'. Screenshot in /app/test_reports/screenshots/iter16_archive.png mostra tutte le nuove colonne renderizzate correttamente."
+}
