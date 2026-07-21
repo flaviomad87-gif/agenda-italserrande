@@ -52,6 +52,16 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Stampa archivio: fix colonne + orientamento libero
+**Richiesta:** su stampa vera l'utente ha visto (1) colonna Pagamento vuota (tutti '—'), (2) mancano prezzo materiale e margine, (3) selezionando orientamento orizzontale la pagina viene tagliata a metà.
+**Fix:**
+- `paymentLabelOf(c)`: fallback su `c.payments[].method` (dedup + join `' + '`) quando `c.payment_method` è vuoto
+- Aggiunte due nuove colonne **Mat.** (`computeMaterialsTotal`) e **Margine** (`c.amount − materialsTotal`)
+- Rimosso `@page { size: A4 portrait }` hardcoded: ora rispetta la scelta utente dal dialog di stampa (portrait o landscape). Rimane solo `margin: 12mm 10mm`.
+- `.archive-sheet` in stampa: `width: 100%` per adattarsi al foglio scelto
+**File:** `frontend/src/pages/PrintArchive.jsx` (colonne + CSS)
+**Testing:** testing agent iter16 → **10/10 PASS**. Verificati tutti gli scenari (fallback pagamento, mix contanti+bonifico, priorità payment_method, materiali/margine con segno negativo, no @page size, flusso continuo giorni).
+
 ### Feb 2026 — Stampa archivio lavori per mese
 **Richiesta:** poter stampare tutti i lavori eseguiti divisi per mese, come un'agenda.
 **Fix:** nuova pagina `/archivio/:month` che elenca i lavori eseguiti del mese. Redesign in stile **diario cartaceo**: raggruppamento giorno-per-giorno (solo giorni con lavori), intestazione ampia con numero + nome giorno + mese, sotto le righe lavoro (ora, nome cliente, indirizzo, nota, metodo pagamento, importo). Formato **A4 orizzontale** via `@page`, **bianco e nero** elegante in stampa (tutto forzato a #000), nessun totale in fondo. Riusa endpoint `GET /api/clients?month=YYYY-MM`.
