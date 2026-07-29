@@ -52,6 +52,13 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Margine sempre visibile su card lavoro eseguito
+**Bug segnalato:** su card di clienti con IVA e senza materiali (es. Fabrizio 158,60€ IVA 22%, Farmacia vigna clara 73,20€) l'utente vedeva solo l'importo lordo, non il margine di guadagno escluso IVA.
+**Root cause:** in `Agenda.jsx` linea 315 il blocco margine aveva `if (materialsTotal <= 0) return null;` → nascondeva il margine quando non c'erano materiali (comune per lavori piccoli).
+**Fix:** cambiata condizione in `if (c.status !== "lavoro_eseguito") return null;`. Ora il margine si mostra sempre per lavori eseguiti (anche con materiali=0, in quel caso Margine = imponibile). La riga "−X materiali" resta condizionale su materialsTotal > 0.
+**File:** `frontend/src/pages/Agenda.jsx` linea 313-335
+**Testing:** bug_testing_agent iter17 → verdict **fixed** (100% frontend). Verificati Fabrizio-like → "Margine 130,00 € (100%)", Farmacia-like → "Margine 60,00 € (100%)", cliente con materiali → "−300,00 € materiali · Margine 700,00 € (70%)", preventivi → blocco margine nascosto.
+
 ### Feb 2026 — Stampa archivio: fix colonne + orientamento libero
 **Richiesta:** su stampa vera l'utente ha visto (1) colonna Pagamento vuota (tutti '—'), (2) mancano prezzo materiale e margine, (3) selezionando orientamento orizzontale la pagina viene tagliata a metà.
 **Fix:**
