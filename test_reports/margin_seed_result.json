@@ -1,0 +1,19 @@
+{
+  "email": "margin-bug-1785347019@example.com",
+  "password": "MarginBugTest!2026",
+  "today": "2026-07-29",
+  "backend_url": "https://questa-demo.preview.emergentagent.com",
+  "created_ids": [
+    "qa-margin-fabrizio-1785347019",
+    "qa-margin-farmacia-1785347019",
+    "qa-margin-materials-1785347019",
+    "qa-margin-preventivo-1785347019"
+  ],
+  "created_names": [
+    "QA Fabrizio margine 1785347019",
+    "QA Farmacia vigna clara 1785347019",
+    "QA Lavoro con materiali 1785347019",
+    "QA Preventivo senza margine 1785347019"
+  ],
+  "api_list_count_for_today": 4
+}

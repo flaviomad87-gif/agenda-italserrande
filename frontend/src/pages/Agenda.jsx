@@ -312,10 +312,17 @@ export default function Agenda() {
                     })()}
                     {(() => {
                       const { materialsTotal, margin, marginPct } = computeClientMargin(c);
-                      if (materialsTotal <= 0) return null;
+                      // Mostra il margine SOLO per lavori eseguiti (per gli altri
+                      // stati non ha senso: il margine si concretizza a lavoro
+                      // finito). Se non ci sono materiali, il margine coincide
+                      // con l'imponibile (netto IVA) e viene mostrato lo stesso
+                      // così l'utente vede subito il guadagno reale.
+                      if (c.status !== "lavoro_eseguito") return null;
                       return (
                         <div className="mt-1 text-xs" data-testid={`client-margin-${c.id}`}>
-                          <div className="text-[#B8683D]">−{formatEUR(materialsTotal)} materiali</div>
+                          {materialsTotal > 0 && (
+                            <div className="text-[#B8683D]">−{formatEUR(materialsTotal)} materiali</div>
+                          )}
                           <div className={`font-semibold ${margin >= 0 ? "text-[#2E5A47]" : "text-red-600"}`}>
                             Margine {formatEUR(margin)}
                             {c.amount > 0 && (

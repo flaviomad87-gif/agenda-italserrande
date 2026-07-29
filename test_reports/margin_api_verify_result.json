@@ -1,0 +1,10 @@
+{
+  "verified": true,
+  "date": "2026-07-29",
+  "assertions": [
+    "qa-margin-fabrizio-1785347019: status=lavoro_eseguito amount=130.0 vat=22.0 materials_total=0",
+    "qa-margin-farmacia-1785347019: status=lavoro_eseguito amount=60.0 vat=22.0 materials_total=0",
+    "qa-margin-materials-1785347019: status=lavoro_eseguito amount=1000.0 vat=None materials_total=300.0",
+    "qa-margin-preventivo-1785347019: status=preventivo amount=200.0 vat=22.0 materials_total=0"
+  ]
+}
