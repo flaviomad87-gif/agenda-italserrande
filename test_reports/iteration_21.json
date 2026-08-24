@@ -1,0 +1,32 @@
+{
+  "summary": "Iteration 21 - frontend-only verification that the react-hooks/exhaustive-deps fix (refresh wrapped in useCallback in TimeTrackerWidget.jsx and OreLavoro.jsx) did not break behaviour or introduce refresh loops. T1 BUILD PASS: `cd /app/frontend && CI=true yarn build` -> 'Compiled successfully.' with zero ESLint warnings/errors, exit 0 (main.js 139.02 kB gz). T2 PASS: /agenda mounts TimeTrackerWidget with exactly 2 GET /api/employees + 2 GET /api/time-entries?date=... - that is 1 logical call double-invoked by React.StrictMode in dev (index.js wraps App in StrictMode); no growth after 8s of idle, so no loop. 2 tracker rows rendered (Alfonso Pomponio / Bruno Pucci - 'A casa'). T3 PASS: tracker-clock-in-button -> dialog -> Conferma issued 2 POST /api/time-entries (one per selected employee) followed by exactly 1 GET /api/time-entries + 1 GET /api/employees (single refresh, no loop); widget switched to 'Al lavoro da 15:23' for both and the button became 'Timbra uscita'. T4 PASS: /ore-lavoro mount = 2+2 GETs (StrictMode double), month change Agosto->Giugno = exactly +1 employees +1 time-entries, year change 2026->2025 = exactly +1/+1, heading updated to 'Giugno 2025' and back to 'Luglio 2026'/'Agosto 2026'; no loop. T5 PASS: ore-edit on 2026-08-10 create = 1 POST + 1 refresh GET (row shows 08:00/18:00/60'/9h/+1h, bank card '+1h - Ha lavorato 1h in piu'); subsequent edit = exactly 1 PUT + 1 refresh GET (row 08:00/17:00/8h/0h) - no duplicated calls from the useCallback refresh. T6 PASS: EmployeesDialog add (1 POST + 1 refresh), rename on blur (1 PUT + 1 refresh, list re-rendered with new name), delete (1 DELETE + 1 refresh, row gone) - same behaviour as iter20. T7 PASS: /clienti, /archivio/2026-07 and /profilo all render with zero console errors. Test data cleaned up and verified via API (GET /api/time-entries 2026-08 = [], employees back to the 2 seeded ones).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots/iter21_agenda_after_in.jpeg",
+    "/app/test_reports/screenshots/iter21_ore.jpeg",
+    "/app/test_reports/screenshots/iter21_ore_edit.jpeg"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "TimeTrackerWidget: `const today = isoDate()` is recomputed each render but is a primitive string, so useCallback([today]) stays referentially stable -> no loop. Caveat: if the tab stays open past midnight the string changes and the widget silently re-fetches for the new day, which is actually desirable but undocumented.",
+    "OreLavoro: firstDay/lastDay are useMemo'd on [year, month], so refresh identity changes only on month/year change - verified empirically (exactly 1 extra fetch per change).",
+    "Both refresh callbacks have no state dependency inside, so the useEffect(refresh) pattern is safe. No further action needed.",
+    "Pre-existing (not caused by this fix, carried over from iter20): POST /api/time-entries still lacks employee_id+date uniqueness and ISO format validation; OreLavoro.jsx is ~580 lines with an inline <style> block."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (7/7 scenarios T1-T7)"},
+  "seed_data_creation": "Firebase test user ore-iter21-1787584907@italserrande.test / TestPassword123! (auto-seeded employees Alfonso Pomponio + Bruno Pucci). Temporary time entries (2026-08-10, 2026-08-24) and TEST_Iter21 employee were created and deleted; API re-checked empty.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "ore-iter21-1787584907@italserrande.test / TestPassword123!",
+  "context_for_next_testing_agent": "The eslint deps fix is verified safe: no refresh loop in TimeTrackerWidget or OreLavoro. Note that dev mode doubles every mount fetch because of React.StrictMode - expect 2 GETs at mount and treat >2 as a loop. CI=true yarn build is clean, so the Vercel build failure is resolved. Nothing outstanding from iter21; remaining open items are the pre-existing backend validation gaps listed in iteration_20.json (time-entry uniqueness/format validation, daily_hours > 0) and the mobile long-scroll cosmetic note.",
+  "rca_of_the_issue": "Root cause of the Vercel failure was CRA treating react-hooks/exhaustive-deps warnings as errors when CI=true; refresh() was declared inline and omitted from the useEffect deps. Wrapping refresh in useCallback with primitive/memoised deps (today; firstDay/lastDay) both satisfies the lint rule and keeps the callback identity stable, so the mount effect runs once per logical dependency change - confirmed by network-call counting in Playwright."
+}

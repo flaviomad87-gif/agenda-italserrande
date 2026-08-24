@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import {
@@ -31,11 +31,10 @@ export default function OreLavoro() {
   const [loading, setLoading] = useState(true);
   const [managing, setManaging] = useState(false);
 
-  const monthKey = useMemo(() => `${year}-${String(month).padStart(2, "0")}`, [year, month]);
   const firstDay = useMemo(() => startOfMonth(new Date(year, month - 1, 1)), [year, month]);
   const lastDay = useMemo(() => endOfMonth(firstDay), [firstDay]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const [empRes, entRes] = await Promise.all([
@@ -49,9 +48,9 @@ export default function OreLavoro() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [firstDay, lastDay]);
 
-  useEffect(() => { refresh(); }, [monthKey]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const days = useMemo(() => eachDayOfInterval({ start: firstDay, end: lastDay }), [firstDay, lastDay]);
 

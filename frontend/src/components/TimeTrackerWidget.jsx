@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -23,7 +23,7 @@ export default function TimeTrackerWidget() {
   const [dialogMode, setDialogMode] = useState("in"); // "in" | "out"
   const [dialogRows, setDialogRows] = useState([]); // [{employee, time, breakMinutes}]
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const [empRes, entRes] = await Promise.all([
@@ -40,9 +40,9 @@ export default function TimeTrackerWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [today]);
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const nowTime = () => {
     const d = new Date();

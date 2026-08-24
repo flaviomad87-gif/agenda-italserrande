@@ -52,6 +52,12 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Fix build Vercel (react-hooks/exhaustive-deps)
+**Bug:** deploy Vercel del frontend falliva con `Failed to compile` su `TimeTrackerWidget.jsx:45` e `OreLavoro.jsx:54` — `useEffect has missing dependency 'refresh'`. In CRA con `CI=true` i warning ESLint diventano errori.
+**Fix:** `refresh` wrappato in `useCallback` con deps memo-stabili (`[today]` per il widget, `[firstDay, lastDay]` per la pagina). `useEffect` ora ha `[refresh]` come dep e non triggera loop. Rimosso `monthKey` inutilizzato.
+**Verifica:** `CI=true yarn build` → `Compiled successfully`. Testing agent iter21 → 7/7 PASS, network call counting conferma nessun loop (1 chiamata per mount + 1 per cambio filtro).
+**File:** `frontend/src/components/TimeTrackerWidget.jsx`, `frontend/src/pages/OreLavoro.jsx`
+
 ### Feb 2026 — Ore Lavoro (banca ore dipendenti)
 **Richiesta:** tracking ore lavoro per 2 dipendenti (Alfonso Pomponio + Bruno Pucci) con pulsante unico ingresso/uscita in Agenda, modificabile a mano. Base 8h/giorno con 1h pausa. Pagina hamburger `/ore-lavoro` con banca ore + calendario mensile + stampa report. Ore configurabili per dipendente.
 **Backend:** modelli `Employee` (name, daily_hours, default_break_minutes, sort_order, active) e `TimeEntry` (employee_id, date, clock_in, clock_out, break_minutes). Endpoint CRUD `/api/employees` e `/api/time-entries` con auto-seed alla prima GET (crea Alfonso e Bruno). Filtri per `date`, `from_date/to_date`, `employee_id`. Scoping stretto per user_id.
