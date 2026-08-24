@@ -1,0 +1,85 @@
+{
+  "summary": "Full backend + frontend testing of the new Ore Lavoro / time-tracking feature (T1-T13). Backend: 15/15 pytest cases pass in /app/backend/tests/test_iter19_ore_lavoro.py (auto-seed Alfonso+Bruno with daily_hours=8/active=true/break=60 and no re-seed, employees CRUD with incremental sort_order, employee delete keeps historical time_entries, time-entry create/404, PUT clock_out, ?date and ?from_date/?to_date and ?employee_id filters, delete + 404, full user_id scoping incl. cross-user PUT/DELETE returning 404, no _id leaks). Frontend on the public URL with an ephemeral Firebase user: T6 widget shows 2 rows 'A casa' + 'Timbra ingresso'; T7 clock-in dialog (2 checkboxes/time/break inputs), editing time to 08:00 and confirming POSTs both entries and widget shows 'Al lavoro da 08:00'; T8 clock-out button appears, dialog PUTs and widget shows '08:00-17:00 · 8h' and both buttons disappear when everyone is done; T9 nav-ore-lavoro -> /ore-lavoro with header, month/year selects and ore-bank-{id} cards; T10 day rows have 6 data columns + actions, create-via-edit, update existing entry and delete all work and refresh the bank; T11 print button and employees dialog (add TEST_Carlo 6h -> appears, daily_hours edit persists across reload, delete works); T12 banca-ore math verified in UI (8h->0h, 9h->+1h, 7h->-1h, net 0h) and via API; T13 /clienti, /agenda, /profilo regression with zero console errors. Two defects found: clearing an existing 'Uscita' is silently ignored, and the Ore Lavoro table overflows the mobile viewport.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "PUT /api/time-entries/{id}",
+        "issue": "Explicit nulls are stripped (`if v is not None`), so clock_out/clock_in/notes can never be cleared. Reproduced with /app/tests/check_null_clear.py: PUT {clock_out: null} returns 200 with the OLD value still persisted. This makes the UI 'clear Uscita then Salva' path lie to the user (toast 'Salvato', value unchanged). Use `exclude_unset=True` only and keep None values (or accept an explicit sentinel)."
+      },
+      {
+        "endpoint": "POST /api/time-entries",
+        "issue": "No uniqueness/validation: multiple entries can be created for the same employee+date (the UI keys entries by employee|date in a Map, so a duplicate day silently hides one entry), and `date`/`clock_in` format is not validated (any string is accepted)."
+      },
+      {
+        "endpoint": "PUT /api/employees/{id}",
+        "issue": "Same null-stripping pattern means `active: false` is settable but a field can never be reset to null; also daily_hours accepts 0 or negative values (would make delta arithmetic meaningless)."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "OreLavoro / DayRow",
+        "issue": "Clearing only the 'Uscita' time and saving shows the success toast 'Salvato' but the old clock_out is still displayed after refresh (root cause is the backend null-stripping above). Verified on 2026-08-25: cells stayed 08:00 / 18:00 / 9h / +1h.",
+        "selector": "[data-testid='ore-out-{empId}-{date}'] + [data-testid='ore-save-{empId}-{date}']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Employees dialog - rename employee",
+        "issue": "The name input fires a PUT /api/employees/{id} on EVERY keystroke and each response triggers refresh() of the whole page (employees + month entries). Typing a full name issues ~15 requests and can race with the refetch, overwriting the in-progress text. Debounce or switch to a save-on-blur/submit pattern.",
+        "affected_selectors": ["[data-testid='emp-name-{id}']", "[data-testid='emp-hours-{id}']"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "/ore-lavoro (mobile 390x844)",
+        "issues": [
+          "The .ore-cols/.ore-row grid overflows the viewport: document.scrollWidth=399 vs 390 and the 'Azioni' header spans x=347..392, i.e. past the right edge. Header labels are clipped/collide visually ('INGRESS|USCITA', 'PAUSA|LAVORATE'). The app is phone-first, so the month table needs a narrower mobile layout (drop the 'Pausa' column or use a compact 2-line card per day).",
+          "Minor: the widget/table use the native browser time picker (input type=time). Acceptable for times, but note the AM/PM rendering seen in the dialog screenshot depends on locale and looks inconsistent with the rest of the Italian 24h UI."
+        ]
+      },
+      {
+        "screen": "/agenda time tracker widget",
+        "issues": [
+          "Once every employee has clocked out, both action buttons disappear and the empty flex container leaves ~12px of dangling bottom margin; there is also no way from the widget to correct a wrong timbratura (user must go to /ore-lavoro). Consider keeping a small 'Modifica' link."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter19_ore_lavoro.py",
+    "/app/test_reports/pytest/iter19_ore.xml",
+    "/app/tests/seed_ore_user.py",
+    "/app/tests/check_null_clear.py"
+  ],
+  "action_items": [
+    "PUT /api/time-entries (and /api/employees): stop dropping explicit nulls so clearing clock_in/clock_out actually works; otherwise the OreLavoro edit row must not report 'Salvato'.",
+    "Make the /ore-lavoro month table fit a 390px viewport (currently scrollWidth 399 and the 'Azioni' column is off-screen; header labels collide).",
+    "Debounce (or move to blur/submit) the employee name/hours PUT in EmployeesDialog - it currently fires one request + full page refresh per keystroke.",
+    "Consider guarding against duplicate time entries for the same employee+date and validating date/ISO datetime formats server-side."
+  ],
+  "critical_code_review_comments": [
+    "hours.js dayDelta(): returns 0 whenever workedMinutes()==0, so a day where clock_in==clock_out (or worked <= break) is counted as 'delta 0' instead of a full negative day; the bank ore also silently ignores such days in the 'giornate' count.",
+    "OreLavoro.jsx entriesByEmpDate is a Map keyed by employee_id|date, so if the API ever returns two entries for the same day only the last one is shown and the bank total ignores the other (see duplicate-entry backend note).",
+    "TimeTrackerWidget.submit() loops with sequential awaits and has no per-row error isolation: if the 2nd POST fails the 1st is already committed but the user only sees 'Errore nella timbratura. Riprova.', and re-clicking would create a second entry for the successful employee.",
+    "TimeTrackerWidget.refresh() swallows API errors entirely (empty catch) and the widget then renders nothing - a network failure is indistinguishable from 'no employees'.",
+    "hours.js isoToTime()/buildIso() rely on the browser timezone; entries stamped from a device in another TZ (or after a DST change) will render shifted. Storing plain 'HH:MM' + date would be more robust for this use case.",
+    "OreLavoro.jsx is 521 lines with 4 components (page, DayRow, EmployeesDialog, print styles) - split into files as it grows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter19_ore_lavoro.py",
+    "/app/tests/seed_ore_user.py",
+    "/app/tests/check_null_clear.py",
+    "/app/test_reports/iteration_19.json"
+  ],
+  "success_rate": {"backend": "100% (15/15 pytest cases)", "frontend": "T6-T13 all functional cases passed; 1 functional defect (clear Uscita) + 1 mobile layout defect"},
+  "seed_data_creation": "Ephemeral Firebase user ore-iter19-178758287702ce@italserrande.test / TestPassword123! (credentials also in /app/test_reports/ore_seed_result.json). Its data: auto-seeded Alfonso Pomponio (id 23fe134b-9378-43df-8b19-37a28158f2e5) + Bruno Pucci (b4fab51d-7396-4d03-9c49-96685dbeaac4); time entries 2026-08-24 08:00-17:00 for both and 2026-08-25 08:00-18:00 for Alfonso are left in place for manual re-verification. Backend pytest users are throwaway and clean up their own entries.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "ore-iter19-178758287702ce@italserrande.test / TestPassword123!",
+  "context_for_next_testing_agent": "Backend regression suite for this feature: pytest /app/backend/tests/test_iter19_ore_lavoro.py (creates its own Firebase users via signUp REST, 2027 dates, self-cleaning). Frontend: login via /login (login-email-input/login-password-input/login-submit-button) lands on /prossimi-lavori, NOT /agenda - click [data-testid=nav-agenda] to reach the TimeTrackerWidget. Selectors: time-tracker-widget, tracker-row-{empId}, tracker-clock-in-button, tracker-clock-out-button, tracker-dialog, tracker-select/time/break-{empId}, tracker-confirm-button; /ore-lavoro: ore-month-select, ore-year-select, ore-manage-employees, ore-print-button, ore-bank-{empId}, ore-row-{empId}-{yyyy-MM-dd} (7 child divs: giorno, ingresso, uscita, pausa, lavorate, delta, azioni), ore-edit/ore-in/ore-out/ore-save/ore-delete-{empId}-{date}, employees-dialog, emp-name/emp-hours/emp-delete-{id}, emp-new-name/emp-new-hours/emp-new-submit. Bank card inner_text is CSS-uppercased ('ALFONSO POMPONIO'). window.confirm is used for deletes - register page.on('dialog', accept).",
+  "rca_of_the_issue": "Clear-Uscita bug: update_time_entry() builds `updates = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}`; the frontend DayRow.save() sends clock_out: null when the user empties the field, so the null is filtered out, Mongo is never updated and the endpoint returns the unchanged document with HTTP 200, while the UI shows 'Salvato'. Mobile overflow: .ore-cols/.ore-row use fixed grid-template-columns (3.5rem 3rem 3rem 2.5rem 3rem 3rem auto) under 640px which sums to more than the 390px content box, pushing the 'Azioni' column past the viewport."
+}

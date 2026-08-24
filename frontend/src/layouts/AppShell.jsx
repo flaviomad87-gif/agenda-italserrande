@@ -12,6 +12,7 @@ import {
   FileText,
   FilePlus,
   Users,
+  BriefcaseBusiness,
   Menu,
   X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const primaryNav = [
 // Voci secondarie — accessibili tramite hamburger menu
 const secondaryNav = [
   { to: "/clienti", label: "Clienti", icon: Users, testId: "nav-clienti" },
+  { to: "/ore-lavoro", label: "Ore Lavoro", icon: BriefcaseBusiness, testId: "nav-ore-lavoro" },
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
   // Riepilogo temporaneamente nascosto su richiesta utente: calcoli non
   // ancora allineati alle sue aspettative. La pagina e le rotte restano

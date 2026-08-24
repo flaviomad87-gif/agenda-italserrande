@@ -52,6 +52,23 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Ore Lavoro (banca ore dipendenti)
+**Richiesta:** tracking ore lavoro per 2 dipendenti (Alfonso Pomponio + Bruno Pucci) con pulsante unico ingresso/uscita in Agenda, modificabile a mano. Base 8h/giorno con 1h pausa. Pagina hamburger `/ore-lavoro` con banca ore + calendario mensile + stampa report. Ore configurabili per dipendente.
+**Backend:** modelli `Employee` (name, daily_hours, default_break_minutes, sort_order, active) e `TimeEntry` (employee_id, date, clock_in, clock_out, break_minutes). Endpoint CRUD `/api/employees` e `/api/time-entries` con auto-seed alla prima GET (crea Alfonso e Bruno). Filtri per `date`, `from_date/to_date`, `employee_id`. Scoping stretto per user_id.
+**Frontend:**
+- `TimeTrackerWidget` in cima Agenda: stato oggi per ogni dipendente ("A casa" / "Al lavoro da HH:MM" / "HH:MM–HH:MM · Xh Y'") + pulsanti Timbra ingresso/uscita → dialog con checkbox e time picker per ciascuno
+- `OreLavoro.jsx` pagina `/ore-lavoro`: banca ore per dipendente (delta cumulativo mese), calendario giorno-per-giorno editabile inline, pulsante Stampa (layout diario B/N), dialog gestione dipendenti (aggiungi/rinomina/cambia ore base/rimuovi)
+- Utility `lib/hours.js`: workedMinutes, dayDelta, formatMinutes, isoToTime, buildIso, employeeStatusToday
+- Voce nav "Ore Lavoro" (icona BriefcaseBusiness) in secondaryNav
+**Testing:**
+- iter19: 15/15 backend PASS, T6-T13 frontend PASS. 3 defect trovati (clear Uscita ignorato, mobile overflow, PUT storm su rename).
+- iter20 (fix retest): 21/21 backend PASS, 100% frontend PASS. Fix applicati:
+  1. `PUT /api/time-entries` accetta null espliciti (rimosso `if v is not None`)
+  2. Mobile CSS stacked su <640px (0 rows overflow su 390px)
+  3. `EmployeesDialog` usa `defaultValue+onBlur` (0 PUT durante typing, 1 al blur)
+**File nuovi:** `backend/server.py` (modelli+CRUD linee 1160-1360), `frontend/src/lib/hours.js`, `frontend/src/components/TimeTrackerWidget.jsx`, `frontend/src/pages/OreLavoro.jsx`
+**Data-testid:** `time-tracker-widget`, `tracker-row-{id}`, `tracker-clock-in-button`, `tracker-clock-out-button`, `tracker-dialog`, `nav-ore-lavoro`, `ore-month-select`, `ore-year-select`, `ore-bank-{id}`, `ore-row-{empId}-{date}`, `ore-edit/save/delete/in/out-{empId}-{date}`, `employees-dialog`, `emp-name/hours/delete-{id}`, `emp-new-name/hours/submit`
+
 ### Feb 2026 — Pagina Clienti (rubrica lavori annuale)
 **Richiesta:** nuova sezione "Clienti" con lista lavori eseguiti per anno, raggruppati per mese Gennaio → Dicembre, una riga per lavoro, ricerca nome/telefono, pulsante Stampa. Voce nel menu hamburger.
 **Fix:** nuova pagina `/clienti` che fetch annuale via `GET /api/clients?from_date=YYYY-01-01&to_date=YYYY-12-31`, filtra `status=lavoro_eseguito`, raggruppa per MM. Ogni riga: data · nome (+ indirizzo) · telefono cliccabile (link tel:) · notes come lavoro eseguito · prezzo lordo (con IVA). Voce "Clienti" in `secondaryNav`. Riuso endpoint esistente, no modifiche backend.

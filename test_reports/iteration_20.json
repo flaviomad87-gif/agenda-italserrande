@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 20 retest of the 3 iter19 defects + Ore Lavoro regression. RETEST 1 (clear Uscita) PASS: new pytest suite /app/backend/tests/test_iter20_fixes.py (6/6) proves PUT /api/time-entries now accepts explicit nulls - {clock_out: null} returns clock_out=null, GET confirms persistence, clock_in/notes can also be nulled, omitted fields untouched, re-setting clock_out works, unknown id -> 404. Confirmed end-to-end in the UI: created 2026-08-20 08:00-18:00 (9h/+1h), cleared Uscita + Salva -> row shows 08:00/—/—/— and stays cleared after full reload. RETEST 2 (mobile overflow 390px) PASS: /ore-lavoro at 390x844 has documentElement.scrollWidth=390, body.scrollWidth=390, 0 of 62 .ore-row elements exceed the viewport, no element in the DOM overflows to the right; stacked layout renders readable prefixed cells (giorno / In / Out / Pausa / Lav / delta / azioni). RETEST 3 (rename onBlur) PASS: typing 5 chars in emp-name-{id} fires 0 PUT /api/employees; exactly 1 PUT on blur; rename persists across reload; daily_hours 8->6 fires 0 PUTs while typing and exactly 1 on blur; blur without a change fires 0 PUT. Regression: iter19 suite 15/15 green; UI verified agenda TimeTrackerWidget (A casa -> Timbra ingresso -> 'Al lavoro da 08:00' -> Timbra uscita -> '08:00-17:00 · 8h', buttons disappear when everyone is done), ore-lavoro month/year selects, banca-ore cards (+1h / 0h, restored to original values after cleanup), row create/edit/delete, print button, employees dialog, Alfonso+Bruno seed. Zero console errors in all runs. Backend 21/21, frontend 100% of retested flows.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/employees/{id}", "issue": "Still strips explicit nulls (`if v is not None`) - unlike time-entries it was not changed. Harmless today (no nullable employee field is edited by the UI) but inconsistent with the time-entry handler."},
+      {"endpoint": "POST /api/time-entries", "issue": "Carried over from iter19 and still open: no uniqueness on employee_id+date (duplicates silently hidden by the UI Map) and no format validation on date/clock_in/clock_out (any string accepted)."},
+      {"endpoint": "PUT /api/employees/{id}", "issue": "daily_hours still accepts 0 / negative values, which makes the delta arithmetic meaningless."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/ore-lavoro (mobile 390px)", "issues": ["Overflow fixed, but each empty day now occupies 3 stacked lines (In/Out, Pausa/Lav, delta) so a full month is ~62 tall rows -> very long scroll. Consider collapsing days with no entry to a single compact line."]},
+      {"screen": "/ore-lavoro (desktop)", "issues": ["Toast ('Eliminata'/'Salvato') renders top-center and covers the 'BANCA ORE · REPORT MENSILE' eyebrow/title; cosmetic only."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter20_fixes.py", "/app/backend/tests/test_iter19_ore_lavoro.py", "/app/test_reports/pytest/iter20_results.xml"],
+  "action_items": ["No blocking action: all 3 iter19 fixes verified. Optional: align PUT /api/employees null handling with time-entries, add employee_id+date uniqueness + date/time format validation on POST /api/time-entries, validate daily_hours > 0, compact empty day rows on mobile."],
+  "critical_code_review_comments": [
+    "server.py PUT /api/time-entries now writes the raw payload with exclude_unset - fine, but nothing validates ISO format, so a client can persist clock_out < clock_in or a garbage string (delta math then silently degrades).",
+    "OreLavoro.jsx is 564 lines with an inline <style> block containing the mobile/print CSS; consider extracting the CSS to a module to keep the component readable.",
+    "EmployeesDialog uses defaultValue+onBlur: correct for the PUT-storm fix, but the inputs are no longer re-synced if refresh() returns a different value (e.g. server-side trim), so a trimmed name would still show the untrimmed text until reload."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter20_fixes.py", "/app/test_reports/iteration_20.json"],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "100% of retested flows"},
+  "seed_data_creation": "Ephemeral Firebase users via signUp REST for the pytest suites (self-cleaning). UI tests reused ore-iter19-178758287702ce@italserrande.test; the temporary 2026-08-20 entry was deleted and Alfonso's 2026-08-24 entry was re-created via the widget, so the account state (bank +1h / 0h) is identical to before the run.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "ore-iter19-178758287702ce@italserrande.test / TestPassword123!",
+  "context_for_next_testing_agent": "Backend suites for this feature: test_iter19_ore_lavoro.py (15) + test_iter20_fixes.py (6), both green. Alfonso id in the shared test account: 23fe134b-9378-43df-8b19-37a28158f2e5. Mobile check pattern: compare document.documentElement.scrollWidth and every .ore-row getBoundingClientRect().right against window.innerWidth at 390x844. Remaining open (non-blocking) items are the POST /api/time-entries validation/uniqueness gaps and PUT /api/employees null-stripping.",
+  "rca_of_the_issue": "Defect 1 root cause was the `if v is not None` filter in the PUT time-entries dict comprehension (nulls dropped before $set); now removed, exclude_unset alone distinguishes 'not sent' from 'explicit null'. Defect 2 was a fixed-column grid inherited on small screens; now a 2-column stacked grid with nth-child repositioning. Defect 3 was a controlled input calling the API in onChange; now defaultValue+onBlur with a valueChanged guard."
+}

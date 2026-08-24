@@ -8,6 +8,7 @@ import ClientFormDialog from "../components/ClientFormDialog";
 import AdvanceFormDialog from "../components/AdvanceFormDialog";
 import ClientSearch from "../components/ClientSearch";
 import WeekView from "../components/WeekView";
+import TimeTrackerWidget from "../components/TimeTrackerWidget";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
 import AppointmentBadge from "../components/AppointmentBadge";
 import { Plus, MapPin, Phone, FileText, Wallet, CreditCard, Landmark, HardHat, Trash2, AlarmClock, Calendar, CalendarDays } from "lucide-react";
@@ -127,6 +128,8 @@ export default function Agenda() {
           La tua giornata
         </h1>
       </header>
+
+      <TimeTrackerWidget />
 
       <ClientSearch
         onPick={(c) => {
