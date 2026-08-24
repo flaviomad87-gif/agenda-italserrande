@@ -154,30 +154,46 @@ export default function OreLavoro() {
               {/* Banca ore riepilogo */}
               <section className="mt-4">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {bankPerEmployee.map(({ emp, deltaMinutes, workedTotal, workedDays }) => (
-                    <div
-                      key={emp.id}
-                      data-testid={`ore-bank-${emp.id}`}
-                      className={`rounded-2xl border p-4 ${
-                        deltaMinutes >= 0
-                          ? "border-[#4A5D23]/30 bg-[#EAF3EF]/40"
-                          : "border-red-200 bg-red-50/40"
-                      }`}
-                    >
-                      <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-                        {emp.name}
+                  {bankPerEmployee.map(({ emp, deltaMinutes, workedTotal, workedDays }) => {
+                    const absMin = Math.abs(deltaMinutes);
+                    let actionLabel = "In pari con le ore contrattuali.";
+                    let actionColor = "text-stone-500";
+                    if (deltaMinutes > 0) {
+                      actionLabel = `Ha lavorato ${formatMinutes(absMin)} in più · può recuperare`;
+                      actionColor = "text-[#2E5A47]";
+                    } else if (deltaMinutes < 0) {
+                      actionLabel = `Deve lavorare ${formatMinutes(absMin)} in più per recuperare`;
+                      actionColor = "text-red-600";
+                    }
+                    return (
+                      <div
+                        key={emp.id}
+                        data-testid={`ore-bank-${emp.id}`}
+                        className={`rounded-2xl border p-4 ${
+                          deltaMinutes > 0
+                            ? "border-[#4A5D23]/30 bg-[#EAF3EF]/40"
+                            : deltaMinutes < 0
+                              ? "border-red-200 bg-red-50/40"
+                              : "border-stone-200 bg-stone-50/60"
+                        }`}
+                      >
+                        <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+                          {emp.name}
+                        </div>
+                        <div className={`mt-1 font-display text-2xl font-bold tabular-nums ${
+                          deltaMinutes > 0 ? "text-[#2E5A47]" : deltaMinutes < 0 ? "text-red-600" : "text-stone-500"
+                        }`}>
+                          {formatMinutes(deltaMinutes, { withSign: true })}
+                        </div>
+                        <div className={`mt-1 text-xs font-semibold ${actionColor}`} data-testid={`ore-action-${emp.id}`}>
+                          {actionLabel}
+                        </div>
+                        <div className="mt-2 text-[11px] text-stone-500">
+                          {workedDays} {workedDays === 1 ? "giornata" : "giornate"} · {formatMinutes(workedTotal)} lavorate · base {emp.daily_hours}h/g
+                        </div>
                       </div>
-                      <div className={`mt-1 font-display text-2xl font-bold tabular-nums ${
-                        deltaMinutes >= 0 ? "text-[#2E5A47]" : "text-red-600"
-                      }`}>
-                        {formatMinutes(deltaMinutes, { withSign: true })}
-                      </div>
-                      <div className="mt-1 text-[11px] text-stone-500">
-                        {workedDays} {workedDays === 1 ? "giornata" : "giornate"} · {formatMinutes(workedTotal)} lavorate
-                        {" · "}base {emp.daily_hours}h/g
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
 
