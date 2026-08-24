@@ -1,0 +1,45 @@
+{
+  "email": "clienti-iter18-1787550258@italserrande.test",
+  "password": "TestPassword123!",
+  "year": "2026",
+  "prev_year": "2025",
+  "backend_url": "https://questa-demo.preview.emergentagent.com",
+  "created_ids": [
+    "TEST-clienti-mario-1787550258",
+    "TEST-clienti-anna-1787550258",
+    "TEST-clienti-nophone-1787550258",
+    "TEST-clienti-preventivo-1787550258",
+    "TEST-clienti-prevyear-1787550258"
+  ],
+  "year_list_count": 4,
+  "year_list": [
+    {
+      "id": "TEST-clienti-mario-1787550258",
+      "date": "2026-03-15",
+      "status": "lavoro_eseguito",
+      "amount": 100.0,
+      "vat_rate": 22.0
+    },
+    {
+      "id": "TEST-clienti-anna-1787550258",
+      "date": "2026-03-05",
+      "status": "lavoro_eseguito",
+      "amount": 200.0,
+      "vat_rate": 22.0
+    },
+    {
+      "id": "TEST-clienti-nophone-1787550258",
+      "date": "2026-07-10",
+      "status": "lavoro_eseguito",
+      "amount": 50.0,
+      "vat_rate": null
+    },
+    {
+      "id": "TEST-clienti-preventivo-1787550258",
+      "date": "2026-07-20",
+      "status": "preventivo",
+      "amount": 300.0,
+      "vat_rate": 22.0
+    }
+  ]
+}

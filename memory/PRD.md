@@ -52,6 +52,14 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Pagina Clienti (rubrica lavori annuale)
+**Richiesta:** nuova sezione "Clienti" con lista lavori eseguiti per anno, raggruppati per mese Gennaio → Dicembre, una riga per lavoro, ricerca nome/telefono, pulsante Stampa. Voce nel menu hamburger.
+**Fix:** nuova pagina `/clienti` che fetch annuale via `GET /api/clients?from_date=YYYY-01-01&to_date=YYYY-12-31`, filtra `status=lavoro_eseguito`, raggruppa per MM. Ogni riga: data · nome (+ indirizzo) · telefono cliccabile (link tel:) · notes come lavoro eseguito · prezzo lordo (con IVA). Voce "Clienti" in `secondaryNav`. Riuso endpoint esistente, no modifiche backend.
+- File: `frontend/src/pages/Clienti.jsx` (nuovo), `frontend/src/App.js` (route), `frontend/src/layouts/AppShell.jsx` (nav)
+- CSS responsive: layout stacked su mobile (<640px, evita overflow orizzontale), griglia print-oriented su desktop e stampa
+- data-testid: `nav-clienti`, `clienti-year-select`, `clienti-search-input`, `clienti-print-button`, `clienti-month-{MM}`, `clienti-row-{id}`
+**Testing:** testing agent iter18 → 12/12 test funzionali PASS. Trovato bug responsive (colonna Prezzo overflow mobile) → fixato con media query <640px stacked; verifica mobile 390px con `docSW==vw==390`, `badRows=0`.
+
 ### Feb 2026 — Margine sempre visibile su card lavoro eseguito
 **Bug segnalato:** su card di clienti con IVA e senza materiali (es. Fabrizio 158,60€ IVA 22%, Farmacia vigna clara 73,20€) l'utente vedeva solo l'importo lordo, non il margine di guadagno escluso IVA.
 **Root cause:** in `Agenda.jsx` linea 315 il blocco margine aveva `if (materialsTotal <= 0) return null;` → nascondeva il margine quando non c'erano materiali (comune per lavori piccoli).

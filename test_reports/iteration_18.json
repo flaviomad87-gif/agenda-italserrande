@@ -1,0 +1,34 @@
+{
+  "summary": "Frontend-only testing of the new /clienti page (T1-T12). Seeded a fresh Firebase user + 5 clients via backend API (2 executed jobs in March 2026, 1 executed in July 2026 without phone/notes, 1 preventivo, 1 executed in 2025). All 12 requested test cases PASS: header 'Clienti · 2026', year select, search input, print button, month grouping in Gen->Dic order (clienti-month-03/07), empty months skipped, preventivo excluded, gross price 122,00 € for amount=100 vat=22, row layout (date '15 mar', name+address, tel: href, notes, price, em-dash fallbacks), ascending date order within month, search by name and by phone, 'Nessun cliente trovato' empty state, print button disabled when 0 results / enabled with data, year selector refetch (2025 -> only 2025 job, month-05), hamburger menu item nav-clienti -> /clienti (both desktop sidebar and mobile menu-nav-clienti), and /archivio/2026-03 regression still renders. One real UI defect found: on mobile the row grid overflows the viewport horizontally so the 'Prezzo' column is cut off.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/clienti (mobile 390x844)",
+        "issues": [
+          "The .clienti-cols grid uses fixed widths (4.5rem 1.4fr 6.5rem 1.6fr 5rem) so the row is wider than the container: document.scrollWidth=460 vs clientWidth=390, and the '.col-amt' (Prezzo) column right edge is at x=457 > viewport 390 — the price and the 'PREZZO' header are visually cut off on mobile. Add a responsive layout (stacked/2-line card on <640px, or overflow-x wrapper) while keeping the print grid intact.",
+          "Minor: on mobile the header row label 'Nome' is rendered before 'Telefono' with narrow columns causing 3-line wrapping of names/notes; readability suffers on small screens."
+        ]
+      }
+    ]
+  },
+  "test_report_links": ["/app/tests/seed_clienti_data.py", "/app/test_reports/clienti_seed_result.json"],
+  "action_items": [
+    "Make the /clienti row grid responsive for mobile (price column currently overflows off-screen; the app is primarily used on a phone)."
+  ],
+  "critical_code_review_comments": [
+    "Clienti.jsx: filtering by status==='lavoro_eseguito' happens client-side on the whole year fetch; with many years of data this list will grow — consider server-side status filter later, not a blocker now.",
+    "Clienti.jsx: api.get failure is silently swallowed (.catch(() => setClients([]))) and shown as the same empty state as 'no data'. An error state/toast would help distinguish network failure from an empty year.",
+    "Clienti.jsx: yearOptions only goes back 6 years from the current year and cannot go forward; acceptable, but future-dated executed jobs would be unreachable."
+  ],
+  "updated_files": ["/app/tests/seed_clienti_data.py", "/app/test_reports/clienti_seed_result.json", "/app/test_reports/iteration_18.json"],
+  "success_rate": { "backend": "not tested (per request)", "frontend": "100% of the 12 functional cases passed; 1 responsive/design defect" },
+  "seed_data_creation": "Firebase user clienti-iter18-1787550258@italserrande.test / TestPassword123! (ephemeral, data isolated per user). Clients: TEST-clienti-mario-1787550258 (2026-03-15, 100+22%), TEST-clienti-anna-1787550258 (2026-03-05, 200+22%), TEST-clienti-nophone-1787550258 (2026-07-10, 50, no phone/notes), TEST-clienti-preventivo-1787550258 (2026-07-20, preventivo), TEST-clienti-prevyear-1787550258 (2025-05-10). Left in place for the main agent to re-verify; they belong to the ephemeral test user only.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "clienti-iter18-1787550258@italserrande.test / TestPassword123!",
+  "context_for_next_testing_agent": "Reuse /app/tests/seed_clienti_data.py to recreate an ephemeral Firebase user plus /clienti fixtures; it writes credentials and created ids to /app/test_reports/clienti_seed_result.json. Login via /login (login-email-input, login-password-input, login-submit-button) then desktop sidebar [data-testid=nav-clienti] or mobile [data-testid=mobile-menu-button] -> [data-testid=menu-nav-clienti]. Clienti selectors: clienti-year-select, clienti-search-input, clienti-print-button, clienti-month-{MM}, clienti-row-{id}, plus CSS classes .col-date/.row-name/.row-addr/.col-phone/.col-desc/.col-amt.",
+  "rca_of_the_issue": "Mobile overflow root cause: .clienti-cols in Clienti.jsx uses a print-oriented fixed grid-template-columns (4.5rem 1.4fr 6.5rem 1.6fr 5rem) with no media query, so at 390px the total minimum column width exceeds the sheet width and the last (price) column is pushed outside the viewport."
+}
