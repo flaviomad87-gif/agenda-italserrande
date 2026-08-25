@@ -52,6 +52,14 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Orario contrattuale come default nel dialog timbratura
+**Richiesta:** all'apertura del dialog "Timbra ingresso/uscita" l'orario di default deve essere l'orario contrattuale (08:00 / 17:00) e non l'ora attuale. Serve anche poter modificare se attaccano prima o dopo.
+**Fix:** aggiunti campi `default_clock_in` (default "08:00") e `default_clock_out` (default "17:00") al modello `Employee`. Il widget Agenda ora usa `emp.default_clock_in` / `emp.default_clock_out` come default nel dialog invece di `nowTime()`. Aggiunto pulsante rapido **"Adesso"** accanto al campo orario per timbrare l'ora attuale con un tap se serve. Configurazione dei default (ingresso/uscita/pausa) direttamente dal dialog "Dipendenti" con onBlur.
+**Retrocompat:** dipendenti già presenti in DB senza questi campi ricevono 08:00 / 17:00 come default via Pydantic.
+**File:** `backend/server.py` (Employee/EmployeeCreate/EmployeeUpdate), `frontend/src/components/TimeTrackerWidget.jsx` (default da emp + pulsante Adesso), `frontend/src/pages/OreLavoro.jsx` (EmployeesDialog con 3 nuovi campi: Ingresso/Uscita/Pausa)
+**Verifica:** `CI=true yarn build` PASS; curl end-to-end OK (GET restituisce 08:00/17:00, PUT `{"default_clock_in":"07:30","default_clock_out":"16:30"}` viene persistito e riletto correttamente).
+**data-testid:** `emp-in-{id}`, `emp-out-{id}`, `emp-break-{id}`, `tracker-now-{id}`
+
 ### Feb 2026 — Fix build Vercel (react-hooks/exhaustive-deps)
 **Bug:** deploy Vercel del frontend falliva con `Failed to compile` su `TimeTrackerWidget.jsx:45` e `OreLavoro.jsx:54` — `useEffect has missing dependency 'refresh'`. In CRA con `CI=true` i warning ESLint diventano errori.
 **Fix:** `refresh` wrappato in `useCallback` con deps memo-stabili (`[today]` per il widget, `[firstDay, lastDay]` per la pagina). `useEffect` ora ha `[refresh]` come dep e non triggera loop. Rimosso `monthKey` inutilizzato.

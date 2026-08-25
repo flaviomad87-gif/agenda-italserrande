@@ -1167,6 +1167,8 @@ class Employee(BaseModel):
     name: str
     daily_hours: float = 8.0  # ore base giornaliere (contratto)
     default_break_minutes: int = 60  # pausa pranzo di default
+    default_clock_in: str = "08:00"   # HH:MM orario contrattuale di ingresso
+    default_clock_out: str = "17:00"  # HH:MM orario contrattuale di uscita
     sort_order: int = 0
     active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -1176,6 +1178,8 @@ class EmployeeCreate(BaseModel):
     name: str
     daily_hours: float = 8.0
     default_break_minutes: int = 60
+    default_clock_in: str = "08:00"
+    default_clock_out: str = "17:00"
 
 
 class EmployeeUpdate(BaseModel):
@@ -1183,6 +1187,8 @@ class EmployeeUpdate(BaseModel):
     name: Optional[str] = None
     daily_hours: Optional[float] = None
     default_break_minutes: Optional[int] = None
+    default_clock_in: Optional[str] = None
+    default_clock_out: Optional[str] = None
     sort_order: Optional[int] = None
     active: Optional[bool] = None
 

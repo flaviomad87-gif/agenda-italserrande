@@ -434,6 +434,51 @@ function EmployeesDialog({ open, onOpenChange, employees, onChanged }) {
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-600">
+                <label className="flex items-center gap-1.5">
+                  Ingresso
+                  <input
+                    type="time"
+                    defaultValue={emp.default_clock_in || "08:00"}
+                    onBlur={(e) => {
+                      const v = e.target.value || "08:00";
+                      if (v !== (emp.default_clock_in || "08:00")) commitField(emp, { default_clock_in: v }, true);
+                    }}
+                    className="h-8 rounded border border-stone-300 px-2 text-sm tabular-nums"
+                    data-testid={`emp-in-${emp.id}`}
+                  />
+                </label>
+                <label className="flex items-center gap-1.5">
+                  Uscita
+                  <input
+                    type="time"
+                    defaultValue={emp.default_clock_out || "17:00"}
+                    onBlur={(e) => {
+                      const v = e.target.value || "17:00";
+                      if (v !== (emp.default_clock_out || "17:00")) commitField(emp, { default_clock_out: v }, true);
+                    }}
+                    className="h-8 rounded border border-stone-300 px-2 text-sm tabular-nums"
+                    data-testid={`emp-out-${emp.id}`}
+                  />
+                </label>
+                <label className="flex items-center gap-1.5">
+                  Pausa
+                  <input
+                    type="number"
+                    min="0"
+                    max="240"
+                    step="15"
+                    defaultValue={emp.default_break_minutes ?? 60}
+                    onBlur={(e) => {
+                      const v = Number(e.target.value) || 60;
+                      if (v !== (emp.default_break_minutes ?? 60)) commitField(emp, { default_break_minutes: v }, true);
+                    }}
+                    className="h-8 w-14 rounded border border-stone-300 px-2 text-sm tabular-nums"
+                    data-testid={`emp-break-${emp.id}`}
+                  />
+                  min
+                </label>
+              </div>
             </li>
           ))}
         </ul>

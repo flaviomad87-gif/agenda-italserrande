@@ -59,7 +59,7 @@ export default function TimeTrackerWidget() {
     setDialogRows(toClockIn.map((emp) => ({
       employee: emp,
       selected: true,
-      time: nowTime(),
+      time: emp.default_clock_in || "08:00",
       breakMinutes: emp.default_break_minutes ?? 60,
     })));
     setDialogOpen(true);
@@ -81,7 +81,7 @@ export default function TimeTrackerWidget() {
         employee: emp,
         entry,
         selected: true,
-        time: nowTime(),
+        time: emp.default_clock_out || "17:00",
         breakMinutes: entry.break_minutes ?? emp.default_break_minutes ?? 60,
       };
     }));
@@ -260,6 +260,18 @@ export default function TimeTrackerWidget() {
                         className="h-9 rounded-lg border border-stone-300 bg-white px-2 text-sm"
                         data-testid={`tracker-time-${r.employee.id}`}
                       />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nr = [...dialogRows];
+                          nr[idx].time = nowTime();
+                          setDialogRows(nr);
+                        }}
+                        data-testid={`tracker-now-${r.employee.id}`}
+                        className="rounded-full border border-stone-300 bg-white px-2 py-1 text-[11px] font-semibold text-stone-700 hover:bg-stone-50"
+                      >
+                        Adesso
+                      </button>
                     </label>
                     <label className="flex items-center gap-2 text-xs text-stone-600">
                       Pausa (min)
