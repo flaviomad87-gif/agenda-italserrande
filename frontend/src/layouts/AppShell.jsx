@@ -13,6 +13,7 @@ import {
   FilePlus,
   Users,
   BriefcaseBusiness,
+  TrendingUp,
   Menu,
   X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const primaryNav = [
 
 // Voci secondarie — accessibili tramite hamburger menu
 const secondaryNav = [
+  { to: "/margine", label: "Margine", icon: TrendingUp, testId: "nav-margine" },
   { to: "/clienti", label: "Clienti", icon: Users, testId: "nav-clienti" },
   { to: "/ore-lavoro", label: "Ore Lavoro", icon: BriefcaseBusiness, testId: "nav-ore-lavoro" },
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },

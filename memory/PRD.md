@@ -52,6 +52,19 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Pagina Margine (guadagno mensile per metodo)
+**Richiesta:** rimettere il resoconto che mostra il margine di guadagno mensile con somma dei margini di ogni lavoro eseguito, diviso tra pagamenti in contanti e pagamenti tracciabili (bonifico/POS).
+**Fix:** nuova pagina `/margine` (voce hamburger "Margine", icona TrendingUp). Selettore mese/anno. Contenuto:
+- Card totale grande: `+/- X.XXX,XX €` con formula esplicita "Imponibile (senza IVA) − Materiali"
+- 2 card metodo: **Contanti** (verde) e **Bonifico / POS** (blu, con dettaglio Bonifico X · POS Y)
+- Elenco compatto dei lavori del mese con nome, data e margine per riga
+- Solo lavori con `status='lavoro_eseguito'`
+**Attribuzione margine per metodo:** se `c.payments[]` ha metodi definiti, margine distribuito pro-quota; altrimenti tutto sul `c.payment_method` principale; fallback contanti.
+**Riuso:** endpoint `GET /api/clients?month=YYYY-MM` esistente. Nessuna modifica backend.
+**Verifica:** `CI=true yarn build` PASS, screenshot mobile 390px zero overflow, selettore mese/anno funzionante.
+**File:** `frontend/src/pages/Margine.jsx` (nuovo), `frontend/src/App.js` (route), `frontend/src/layouts/AppShell.jsx` (nav)
+**data-testid:** `nav-margine`, `margine-month-select`, `margine-year-select`, `margine-total-card`, `margine-method-contanti`, `margine-method-tracciabile`, `margine-row-{id}`
+
 ### Feb 2026 — Orario contrattuale come default nel dialog timbratura
 **Richiesta:** all'apertura del dialog "Timbra ingresso/uscita" l'orario di default deve essere l'orario contrattuale (08:00 / 17:00) e non l'ora attuale. Serve anche poter modificare se attaccano prima o dopo.
 **Fix:** aggiunti campi `default_clock_in` (default "08:00") e `default_clock_out` (default "17:00") al modello `Employee`. Il widget Agenda ora usa `emp.default_clock_in` / `emp.default_clock_out` come default nel dialog invece di `nowTime()`. Aggiunto pulsante rapido **"Adesso"** accanto al campo orario per timbrare l'ora attuale con un tap se serve. Configurazione dei default (ingresso/uscita/pausa) direttamente dal dialog "Dipendenti" con onBlur.
