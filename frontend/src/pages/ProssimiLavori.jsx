@@ -163,27 +163,36 @@ export default function ProssimiLavori() {
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 no-print">
+      <div className="flex flex-nowrap items-center justify-end gap-2 no-print">
         <button
           onClick={() => setOpenWeek(true)}
           data-testid="open-week-view-button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50"
+          aria-label="Vista settimana"
+          title="Vista settimana"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-stone-300 bg-white p-2.5 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50 sm:px-4 sm:py-2"
         >
-          <CalendarRange className="h-4 w-4" /> Vista settimana
+          <CalendarRange className="h-4 w-4" />
+          <span className="hidden sm:inline">Vista settimana</span>
         </button>
         <button
           onClick={() => window.print()}
           data-testid="print-pending-button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50"
+          aria-label="Stampa"
+          title="Stampa"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-stone-300 bg-white p-2.5 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50 sm:px-4 sm:py-2"
         >
-          <Printer className="h-4 w-4" /> Stampa
+          <Printer className="h-4 w-4" />
+          <span className="hidden sm:inline">Stampa</span>
         </button>
         <button
           onClick={() => setOpenVoice(true)}
           data-testid="voice-add-button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#4A5D23]/40 bg-white px-4 py-2 text-sm font-semibold text-[#2E5A47] shadow-sm transition hover:bg-[#EAF3EF]"
+          aria-label="Aggiungi con voce"
+          title="Aggiungi con voce"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-[#4A5D23]/40 bg-white p-2.5 text-sm font-semibold text-[#2E5A47] shadow-sm transition hover:bg-[#EAF3EF] sm:px-4 sm:py-2"
         >
-          <Mic className="h-4 w-4" /> Voce
+          <Mic className="h-4 w-4" />
+          <span className="hidden sm:inline">Voce</span>
         </button>
         <button
           onClick={() => {
@@ -191,9 +200,12 @@ export default function ProssimiLavori() {
             setOpenClient(true);
           }}
           data-testid="add-pending-button"
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#B8683D] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#9F5630]"
+          aria-label="Nuovo lavoro"
+          title="Nuovo lavoro"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#B8683D] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#9F5630]"
         >
-          <Plus className="h-4 w-4" /> Nuovo lavoro
+          <Plus className="h-4 w-4" />
+          <span>Nuovo lavoro</span>
         </button>
       </div>
 
