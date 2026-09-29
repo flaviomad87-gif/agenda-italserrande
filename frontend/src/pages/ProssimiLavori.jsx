@@ -5,9 +5,10 @@ import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
 import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
 import WeekAppointmentsDialog from "../components/WeekAppointmentsDialog";
+import VoiceClientDialog from "../components/VoiceClientDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
 import AppointmentBadge from "../components/AppointmentBadge";
-import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown, Printer, CalendarRange } from "lucide-react";
+import { Plus, MapPin, Phone, FileText, Clock, CalendarCheck, ArrowRight, ArrowUp, ArrowDown, Printer, CalendarRange, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
@@ -37,6 +38,7 @@ export default function ProssimiLavori() {
   const [loading, setLoading] = useState(true);
   const [openClient, setOpenClient] = useState(false);
   const [openWeek, setOpenWeek] = useState(false);
+  const [openVoice, setOpenVoice] = useState(false);
   const [editing, setEditing] = useState(null);
   const [executingId, setExecutingId] = useState(null);
   const location = useLocation();
@@ -175,6 +177,13 @@ export default function ProssimiLavori() {
           className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50"
         >
           <Printer className="h-4 w-4" /> Stampa
+        </button>
+        <button
+          onClick={() => setOpenVoice(true)}
+          data-testid="voice-add-button"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#4A5D23]/40 bg-white px-4 py-2 text-sm font-semibold text-[#2E5A47] shadow-sm transition hover:bg-[#EAF3EF]"
+        >
+          <Mic className="h-4 w-4" /> Voce
         </button>
         <button
           onClick={() => {
@@ -346,6 +355,23 @@ export default function ProssimiLavori() {
       />
 
       <WeekAppointmentsDialog open={openWeek} onOpenChange={setOpenWeek} />
+
+      <VoiceClientDialog
+        open={openVoice}
+        onOpenChange={setOpenVoice}
+        onComplete={(data) => {
+          // Precompila la form standard con i dati dettati: apre in preview,
+          // l'utente rilegge, corregge se serve e schiaccia Salva.
+          setEditing({
+            name: data.name || "",
+            address: data.address || "",
+            phone: data.phone || "",
+            date: isoDate(),
+            pending: true,
+          });
+          setOpenClient(true);
+        }}
+      />
     </div>
   );
 }

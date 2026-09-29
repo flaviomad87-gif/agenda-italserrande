@@ -52,6 +52,21 @@ App per gestire agenda lavori, clienti, spese e acconti operai di una piccola im
 - File: `frontend/src/components/DayAppointmentsDialog.jsx` (nuovo), `frontend/src/components/WeekAppointmentsDialog.jsx` (modificato)
 - data-testid: `week-day-col-{yyyy-MM-dd}`, `day-appointments-dialog`, `day-appt-{id}`
 
+### Feb 2026 — Aggiunta clienti tramite dettatura vocale
+**Richiesta:** poter creare nuovi clienti dettando i dati con la voce (utile in cantiere/auto). Campi: nome, indirizzo, telefono.
+**Fix:** nuovo `VoiceClientDialog` a 3 step sequenziali:
+1. "Dimmi il nome e cognome"
+2. "Dimmi l'indirizzo"
+3. "Dimmi il numero di telefono"
+
+Ogni step ha: pulsante microfono grande (Parla/Ferma), area trascrizione live, input testuale di fallback, indicatore step precedenti, Avanti/Indietro.
+Usa `SpeechRecognition` / `webkitSpeechRecognition` (lang="it-IT") — gratis, browser-native. Post-processing: capitalize sul nome, `cleanPhone()` sul telefono (solo cifre + eventuale +).
+Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per la **preview obbligatoria**: l'utente rilegge, corregge se serve e schiaccia Salva.
+**File:** `frontend/src/components/VoiceClientDialog.jsx` (nuovo), `frontend/src/pages/ProssimiLavori.jsx` (nuovo bottone "Voce" accanto a "Nuovo lavoro" + wiring `onComplete` a `ClientFormDialog`)
+**Verifica:** `CI=true yarn build` PASS, screenshot mobile 390px zero overflow, `speechSupported: true` su Chromium.
+**data-testid:** `voice-add-button`, `voice-client-dialog`, `voice-transcript-area`, `voice-mic-button`, `voice-text-input`, `voice-back-button`, `voice-next-button`
+**Fallback browser non supportati:** messaggio esplicito in rosso "Usa Chrome recente su Android/desktop o Safari 14.5+ su iOS".
+
 ### Feb 2026 — Pagina Margine (guadagno mensile per metodo)
 **Richiesta:** rimettere il resoconto che mostra il margine di guadagno mensile con somma dei margini di ogni lavoro eseguito, diviso tra pagamenti in contanti e pagamenti tracciabili (bonifico/POS).
 **Fix:** nuova pagina `/margine` (voce hamburger "Margine", icona TrendingUp). Selettore mese/anno. Contenuto:
