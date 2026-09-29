@@ -1004,6 +1004,99 @@ async def monthly_summary(month: str, user=Depends(get_current_user)):
     return await _compute_summary(user["uid"], month)
 
 
+@api.get("/suppliers/summary")
+async def suppliers_summary(month: str, user=Depends(get_current_user)):
+    """Riepilogo materiali del mese raggruppati per fornitore.
+
+    Serve all'utente per sapere quanto deve pagare ai fornitori a fine mese.
+    Aggrega tutti i materiali di TUTTI i lavori del mese (inclusi preventivi,
+    perché i materiali sono stati comunque acquistati/prenotati dal fornitore).
+    Filtra per data del lavoro (client.date) nel mese YYYY-MM.
+
+    Ritorna:
+      - month, total, total_contanti, total_conto_aziendale, items_count
+      - suppliers: lista ordinata per totale desc di
+        {name, total, total_contanti, total_conto_aziendale, items_count,
+         items: [{client_id, client_name, client_date, description, amount,
+                  source, date, notes}]}
+    """
+    regex = {"$regex": f"^{month}"}
+    clients = await db.clients.find(
+        {
+            "user_id": user["uid"],
+            "date": regex,
+            "$or": [{"pending": {"$exists": False}}, {"pending": False}],
+        },
+        {"_id": 0},
+    ).to_list(5000)
+
+    by_supplier: dict = {}
+    total = 0.0
+    total_contanti = 0.0
+    total_conto = 0.0
+    items_count = 0
+
+    for c in clients:
+        for m in (c.get("materials") or []):
+            amt = float(m.get("amount") or 0)
+            if amt <= 0:
+                continue
+            raw_supp = (m.get("supplier") or "").strip()
+            supp_key = raw_supp if raw_supp else "__no_supplier__"
+            supp_name = raw_supp if raw_supp else "Senza fornitore"
+            src = m.get("source") or "conto_aziendale"
+            if src not in ("contanti", "conto_aziendale"):
+                src = "conto_aziendale"
+
+            bucket = by_supplier.setdefault(supp_key, {
+                "name": supp_name,
+                "total": 0.0,
+                "total_contanti": 0.0,
+                "total_conto_aziendale": 0.0,
+                "items_count": 0,
+                "items": [],
+            })
+            bucket["total"] += amt
+            if src == "contanti":
+                bucket["total_contanti"] += amt
+                total_contanti += amt
+            else:
+                bucket["total_conto_aziendale"] += amt
+                total_conto += amt
+            bucket["items_count"] += 1
+            bucket["items"].append({
+                "client_id": c.get("id"),
+                "client_name": c.get("name") or "",
+                "client_date": c.get("date") or "",
+                "description": m.get("description") or "",
+                "amount": round(amt, 2),
+                "source": src,
+                "date": m.get("date") or "",
+                "notes": m.get("notes") or "",
+            })
+            total += amt
+            items_count += 1
+
+    suppliers = []
+    for k, b in by_supplier.items():
+        b["total"] = round(b["total"], 2)
+        b["total_contanti"] = round(b["total_contanti"], 2)
+        b["total_conto_aziendale"] = round(b["total_conto_aziendale"], 2)
+        # ordina gli items per data lavoro desc
+        b["items"].sort(key=lambda x: (x.get("client_date") or ""), reverse=True)
+        suppliers.append(b)
+    suppliers.sort(key=lambda s: (s["name"] == "Senza fornitore", -s["total"]))
+
+    return {
+        "month": month,
+        "total": round(total, 2),
+        "total_contanti": round(total_contanti, 2),
+        "total_conto_aziendale": round(total_conto, 2),
+        "items_count": items_count,
+        "suppliers": suppliers,
+    }
+
+
 @api.get("/payments/by-method")
 async def payments_by_method(month: str, method: str, user=Depends(get_current_user)):
     """Restituisce il dettaglio dei singoli pagamenti per metodo (contanti/pos/bonifico)
