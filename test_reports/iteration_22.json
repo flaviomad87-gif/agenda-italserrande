@@ -1,0 +1,40 @@
+{
+  "summary": "Tested new Fornitori feature: GET /api/suppliers/summary backend endpoint (12/12 pytest tests) and /fornitori frontend page. Backend logic is fully correct: aggregation, source split, whitespace trimming, zero/missing amount skipping, invalid source defaulting to conto_aziendale, 'Senza fornitore' sorted last, pending exclusion, month filter, preventivi included. Frontend page renders correctly with totals cards, month navigation (prev/next), empty state, expandable supplier rows, source badges, and hamburger/sidebar nav-fornitori link. Found and fixed a CRITICAL runtime crash when expanding supplier rows caused by variable shadowing.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Fornitori.jsx (fixed)",
+        "issue": "Expanding a supplier row (supplier-toggle-N) threw an uncaught runtime TypeError: 'Cannot read properties of undefined (reading preprocessor)' from date-fns format. Root cause: the .map callback used `it` as iterator name (line 271), which shadowed the imported `it` Italian locale from 'date-fns/locale' (line 18). The call `format(parseISO(it.client_date), 'd MMM', { locale: it })` therefore passed the item object (no preprocessor) as the locale, crashing the whole page whenever any supplier was expanded.",
+        "selector": "[data-testid=\"supplier-toggle-0\"]",
+        "priority": "HIGH",
+        "status": "FIXED by testing agent - renamed map iterator from `it` to `item` throughout the inner map so the date-fns locale import remains reachable."
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter22_suppliers_summary.py",
+    "/app/test_reports/pytest/iter22_suppliers.xml"
+  ],
+  "action_items": [
+    "Review the Fornitori.jsx fix (map iterator rename `it` -> `item`) applied by the testing agent. Consider adding an ESLint rule (no-shadow) to prevent this class of bug in future."
+  ],
+  "critical_code_review_comments": [
+    "Fornitori.jsx: variable-shadowing bug fixed. Recommend enabling eslint `no-shadow` and `no-shadow-restricted-names` at least for imported identifiers to catch these at build time.",
+    "server.py suppliers_summary endpoint (lines 1007-1097) is clean, correctly excludes MongoDB _id, uses async/await, returns Pydantic-serializable dict. No issues.",
+    "Suppliers list sort key `(name == 'Senza fornitore', -total)` correctly pins the no-supplier bucket last while primary sort is by total desc — verified by test_no_supplier_always_last."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/Fornitori.jsx",
+    "/app/backend/tests/test_iter22_suppliers_summary.py"
+  ],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100% after fix"},
+  "test_credentials": "Ephemeral Firebase users pattern testuser+iter22*@italserrande.test / TestPassword123! (per /app/memory/test_credentials.md).",
+  "seed_data_creation": "One TEST_UI_* client in month 2027-03 with three materials (Molle/Ferramenta Rossi/50/contanti, Vernice/Ferramenta Rossi/30/conto_aziendale, Bulloni/(no supplier)/10/conto_aziendale). Cleaned up automatically via DELETE /api/clients/{id} at end of run; backend pytest uses autouse fixture sweeping TEST_* clients on months 2027-03 and 2027-04.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend /api/suppliers/summary is stable; regression file lives at /app/backend/tests/test_iter22_suppliers_summary.py. Run with REACT_APP_BACKEND_URL and REACT_APP_FIREBASE_API_KEY env vars set (they are NOT auto-loaded from frontend/.env by pytest). Frontend crash on supplier expansion has been fixed; verify main agent kept the rename `it` -> `item` in the inner .map of Fornitori.jsx.",
+  "rca of the issue": "RCA: JavaScript lexical scoping — inner `.map((it, j) => ...)` shadowed the module-level `import { it } from 'date-fns/locale'`. Inside the callback, `it` resolves to the current material item, not the locale, so `format(..., { locale: it })` handed date-fns a plain object with no `.preprocessor` property, throwing a TypeError inside the locale format helper and crashing the whole React subtree. Reproduction: open /fornitori for a month with at least one material and click any supplier toggle. Mitigation: rename inner iterator to `item` (applied). Long-term: enable ESLint `no-shadow` on imports."
+}

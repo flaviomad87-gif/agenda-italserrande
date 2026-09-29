@@ -163,10 +163,24 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 - data-testid: `year-month-open-{yyyy-MM}`, `month-details-dialog`, `month-details-balance`
 
 
+### Feb 2026 — Nuova pagina "Fornitori" (riepilogo materiali per fornitore)
+**Richiesta:** "una parte dove mi riassuma anche le spese che io inserisco del materiale su ogni lavoro. Così da saper quanto dovrei pagare ai fornitori a fine mese." Utente sceglie opzione B (pagina dedicata, senza toggle pagato/da pagare).
+**Fix:**
+- Backend: nuovo endpoint `GET /api/suppliers/summary?month=YYYY-MM` (server.py ~1007) che aggrega tutti i `materials[]` dei clienti del mese raggruppandoli per `supplier`. Ritorna totali per fonte (contanti/conto_aziendale), items count e dettaglio per fornitore. "Senza fornitore" ordinato in fondo.
+- Frontend: nuova pagina `/fornitori` (`pages/Fornitori.jsx`) con navigazione mese, 3 card totali, elenco fornitori espandibili con dettaglio materiali (descrizione, cliente, data, importo, fonte). Voce menu "Fornitori" in `secondaryNav` (hamburger).
+- Fix bug (via testing agent): shadowing di `it` (locale date-fns) con iterator `.map((it,j)...)` → rinominato a `item`.
+- Test: 12/12 PASS (`test_iter22_suppliers_summary.py`). Frontend OK dopo fix shadowing.
+
+### Feb 2026 — Fix overflow pulsanti Prossimi lavori su mobile
+**Richiesta:** "Metti meglio le opzioni perché quella a sinistra è tagliata". Utente sceglie opzione B (icone su mobile).
+**Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
+
+
 ## Backlog (P2)
 - Notifica email automatica quando il GitHub Action fallisce N volte di fila
 - Indicatore visivo "in sync..." per item ottimistici non ancora confermati dal server
 - Possibilità di retry manuale dal toast di errore
+- Enable ESLint `no-shadow` per prevenire bug tipo `it` (locale) shadowato da iterator
 
 ## API endpoints chiave
 - `POST/PUT/DELETE /api/clients[/{id}]`
@@ -177,6 +191,7 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 - `POST/PUT/DELETE /api/expenses[/{id}]`
 - `POST /api/advances`, `GET /api/advances?date=...&worker=...`
 - `GET /api/summary?month=YYYY-MM`
+- `GET /api/suppliers/summary?month=YYYY-MM` (riepilogo materiali per fornitore)
 
 ## Hosting
 - Main API: `https://agenda-italserrande-api.onrender.com`

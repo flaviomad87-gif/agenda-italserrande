@@ -268,35 +268,35 @@ export default function Fornitori() {
                     className="divide-y divide-stone-100 border-t border-stone-100 bg-stone-50/50"
                     data-testid={`supplier-items-${idx}`}
                   >
-                    {s.items.map((it, j) => (
+                    {s.items.map((item, j) => (
                       <li
-                        key={`${it.client_id}-${j}`}
+                        key={`${item.client_id}-${j}`}
                         className="flex items-start gap-3 px-4 py-2.5"
                       >
                         <Package className="mt-0.5 h-4 w-4 flex-none text-stone-400" />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-baseline gap-x-2">
                             <span className="truncate font-medium text-stone-800">
-                              {it.description || "Materiale"}
+                              {item.description || "Materiale"}
                             </span>
                             <span className="text-xs text-stone-500">
-                              per <span className="font-semibold">{it.client_name || "—"}</span>
+                              per <span className="font-semibold">{item.client_name || "—"}</span>
                             </span>
                           </div>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-stone-500">
-                            {it.client_date && (
+                            {item.client_date && (
                               <span>
-                                {format(parseISO(it.client_date), "d MMM", { locale: it })}
+                                {format(parseISO(item.client_date), "d MMM", { locale: it })}
                               </span>
                             )}
-                            {it.notes && <span className="italic">· {it.notes}</span>}
+                            {item.notes && <span className="italic">· {item.notes}</span>}
                           </div>
                         </div>
                         <div className="flex flex-none flex-col items-end gap-1">
                           <span className="font-display text-sm font-bold">
-                            {formatEUR(it.amount)}
+                            {formatEUR(item.amount)}
                           </span>
-                          <SourceBadge source={it.source} />
+                          <SourceBadge source={item.source} />
                         </div>
                       </li>
                     ))}
