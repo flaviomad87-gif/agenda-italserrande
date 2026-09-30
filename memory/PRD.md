@@ -176,6 +176,15 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Ricerca vocale clienti esistenti
+**Richiesta:** "Possibile aggiungere una ricerca vocale dei clienti esistenti?"
+**Fix:** creato componente riutilizzabile `VoiceSearchButton.jsx` che usa Web Speech API (it-IT, native browser API, nessuna chiave). Il pulsante microfono è ora accanto all'input di ricerca in due posizioni:
+- `components/ClientSearch.jsx` (header Agenda, dropdown risultati live)
+- `pages/Clienti.jsx` (rubrica annuale)
+Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo intermedio riempie in tempo reale l'input di ricerca. Su browser non supportati il pulsante non viene mostrato (fallback graceful).
+- data-testid: `voice-search-button`, `client-search-voice`, `clienti-search-voice`
+
+
 ### Feb 2026 — Refactor backend: `server.py` (1473 → 68 righe) in moduli
 **Richiesta:** utente ha accettato il refactor proposto ("Ok allora procedi. Spero che non vada perso nulla sennò mi trovo nei guai").
 **Motivazione:** `server.py` cresciuto a 1473 righe con auth+clienti+spese+acconti+dipendenti+riepiloghi+fornitori tutti insieme → difficile manutenzione.

@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { format, parseISO } from "date-fns";
 import { it as itLocale } from "date-fns/locale";
 import { formatEUR } from "../lib/utils";
+import VoiceSearchButton from "./VoiceSearchButton";
 
 export default function ClientSearch({ onPick }) {
   const [q, setQ] = useState("");
@@ -49,31 +50,45 @@ export default function ClientSearch({ onPick }) {
 
   return (
     <div ref={wrapRef} className="relative">
-      <div className="relative flex items-center">
-        <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-stone-400" />
-        <input
-          type="text"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
+      <div className="flex items-stretch gap-2">
+        <div className="relative flex flex-1 items-center">
+          <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-stone-400" />
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            placeholder="Cerca cliente per nome, indirizzo, telefono…"
+            data-testid="client-search-input"
+            className="h-12 w-full rounded-2xl border border-stone-200/70 bg-white pl-10 pr-10 text-sm shadow-sm outline-none transition focus:border-[#4A5D23]/40 focus:ring-2 focus:ring-[#4A5D23]/10"
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={reset}
+              data-testid="client-search-clear"
+              className="absolute right-3 flex h-7 w-7 items-center justify-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+              aria-label="Cancella"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <VoiceSearchButton
+          testId="client-search-voice"
+          className="h-12 w-12"
+          onInterim={(txt) => {
+            setQ(txt);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
-          placeholder="Cerca cliente per nome, indirizzo, telefono…"
-          data-testid="client-search-input"
-          className="h-12 w-full rounded-2xl border border-stone-200/70 bg-white pl-10 pr-10 text-sm shadow-sm outline-none transition focus:border-[#4A5D23]/40 focus:ring-2 focus:ring-[#4A5D23]/10"
+          onResult={(txt) => {
+            setQ(txt);
+            setOpen(true);
+          }}
         />
-        {q && (
-          <button
-            type="button"
-            onClick={reset}
-            data-testid="client-search-clear"
-            className="absolute right-3 flex h-7 w-7 items-center justify-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-            aria-label="Cancella"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
       </div>
 
       {open && q.trim().length >= 2 && (

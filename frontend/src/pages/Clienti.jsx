@@ -4,6 +4,7 @@ import { formatEUR, computeWithVat } from "../lib/utils";
 import { Printer, Search, Users, Phone, Loader2 } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { it } from "date-fns/locale";
+import VoiceSearchButton from "../components/VoiceSearchButton";
 
 const MONTH_NAMES = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
@@ -109,6 +110,13 @@ export default function Clienti() {
               className="h-11 w-full rounded-xl border border-stone-300 bg-white pl-9 pr-3 text-sm text-stone-700 placeholder:text-stone-400"
             />
           </div>
+
+          <VoiceSearchButton
+            testId="clienti-search-voice"
+            className="h-11 w-11"
+            onInterim={(txt) => setQuery(txt)}
+            onResult={(txt) => setQuery(txt)}
+          />
 
           <button
             onClick={() => window.print()}
