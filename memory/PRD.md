@@ -176,6 +176,23 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Refactor backend: `server.py` (1473 → 68 righe) in moduli
+**Richiesta:** utente ha accettato il refactor proposto ("Ok allora procedi. Spero che non vada perso nulla sennò mi trovo nei guai").
+**Motivazione:** `server.py` cresciuto a 1473 righe con auth+clienti+spese+acconti+dipendenti+riepiloghi+fornitori tutti insieme → difficile manutenzione.
+**Approccio zero-rischio:**
+1. Baseline test PRE-refactor: 185/185 PASS
+2. Spostato codice senza modificare UNA riga di logica in:
+   - `db.py` (client MongoDB + load_dotenv)
+   - `models.py` (tutti i Pydantic model + type aliases + DEFAULT_EMPLOYEES)
+   - `summary_service.py` (`_compute_summary`)
+   - `routes/health.py`, `routes/clients.py`, `routes/expenses.py`, `routes/advances.py`, `routes/summary.py`, `routes/employees.py`
+   - `server.py` slim: solo FastAPI app + include_router + middleware + shutdown hook
+3. `_compute_summary` re-esportato da `server.py` per compat con `from server import _compute_summary` (usato da `test_iva_split.py`)
+4. Baseline test POST-refactor: **185/185 PASS** — nessuna regressione, tutte le 47 route esposte come prima
+- File: `backend/server.py` (riscritto), `backend/db.py` (nuovo), `backend/models.py` (nuovo), `backend/summary_service.py` (nuovo), `backend/routes/*.py` (nuovi)
+- data-testid: N/A (solo cambiamenti backend interni)
+
+
 ## Backlog (P2)
 - Notifica email automatica quando il GitHub Action fallisce N volte di fila
 - Indicatore visivo "in sync..." per item ottimistici non ancora confermati dal server
