@@ -199,7 +199,8 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-h-[92vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-lg"
+        className="max-h-[92dvh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-lg"
+        style={{ scrollPaddingBottom: "25vh", scrollPaddingTop: "2rem" }}
         data-testid="client-form-dialog"
       >
         <DialogHeader>
@@ -207,7 +208,26 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
             {editing ? "Modifica cliente" : "Nuovo cliente"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+        <form
+          onSubmit={submit}
+          className="space-y-4"
+          onFocusCapture={(e) => {
+            // Fix Android Chrome: quando si apre la tastiera virtuale il dialog
+            // a volte resetta lo scroll in alto. Ripristiniamo la vista
+            // sull'input focalizzato dopo che la tastiera si è aperta.
+            const target = e.target;
+            if (!target || !(target instanceof HTMLElement)) return;
+            if (!["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+            // Doppio rAF + delay per aspettare che la tastiera sia aperta.
+            window.setTimeout(() => {
+              try {
+                target.scrollIntoView({ block: "center", behavior: "smooth" });
+              } catch {
+                /* ignore */
+              }
+            }, 350);
+          }}
+        >
           {/* Toggle "Lavoro in attesa" — backlog Prossimi lavori */}
           <div
             className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${

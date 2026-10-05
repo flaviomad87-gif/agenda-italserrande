@@ -89,7 +89,8 @@ export default function RecurringExpensesDialog({ open, onOpenChange, month, onA
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-h-[92vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-lg"
+        className="max-h-[92dvh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-lg"
+        style={{ scrollPaddingBottom: "25vh", scrollPaddingTop: "2rem" }}
         data-testid="recurring-dialog"
       >
         <DialogHeader>

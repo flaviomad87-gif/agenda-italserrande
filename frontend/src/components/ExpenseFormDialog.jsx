@@ -68,7 +68,8 @@ export default function ExpenseFormDialog({ open, onOpenChange, initial, onSaved
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-h-[92vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-md"
+        className="max-h-[92dvh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-md"
+        style={{ scrollPaddingBottom: "25vh", scrollPaddingTop: "2rem" }}
         data-testid="expense-form-dialog"
       >
         <DialogHeader>

@@ -176,6 +176,14 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Fix scroll Android Chrome su dialog "Nuovo cliente"
+**Bug:** Utente su Android segnalava che scrivendo l'imponibile e scendendo per toccare l'input "importo pagamento", la tastiera si apriva ma il dialog "scattava" tornando sopra (vicino all'imponibile). Pattern tipico di Chrome Android con dialog `position:fixed` + `overflow-y-auto` + `vh`: quando appare la tastiera il viewport si riduce ma `vh` resta calcolato sul viewport pre-tastiera, confondendo il meccanismo native di scroll-into-view.
+**Fix in `ClientFormDialog.jsx` + preventivo in `ExpenseFormDialog.jsx` e `RecurringExpensesDialog.jsx`:**
+1. `max-h-[92vh]` → `max-h-[92dvh]` (dynamic viewport height, si adatta alla tastiera)
+2. `scroll-padding-bottom: 25vh` e `scroll-padding-top: 2rem` così lo scrollIntoView lascia margine sopra la tastiera
+3. In `ClientFormDialog`, aggiunto `onFocusCapture` sul `<form>` che dopo 350ms (apertura tastiera) richiama `scrollIntoView({block:"center"})` sull'input focalizzato — rimedia all'eventuale reset-to-top che Android Chrome fa talvolta
+
+
 ### Feb 2026 — Ricerca vocale clienti esistenti
 **Richiesta:** "Possibile aggiungere una ricerca vocale dei clienti esistenti?"
 **Fix:** creato componente riutilizzabile `VoiceSearchButton.jsx` che usa Web Speech API (it-IT, native browser API, nessuna chiave). Il pulsante microfono è ora accanto all'input di ricerca in due posizioni:
