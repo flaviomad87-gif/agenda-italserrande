@@ -1,8 +1,10 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
+  initializeAuth,
   getAuth,
-  setPersistence,
+  indexedDBLocalPersistence,
   browserLocalPersistence,
+  inMemoryPersistence,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -15,7 +17,20 @@ const firebaseConfig = {
 };
 
 export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const auth = getAuth(firebaseApp);
 
-// Persistenza locale (mantiene login dopo refresh / chiusura tab)
-setPersistence(auth, browserLocalPersistence).catch(() => {});
+// Persistenza del login:
+//   1. IndexedDB (più duratura: sopravvive ad aggiornamenti PWA e pulizie OS)
+//   2. localStorage come fallback
+//   3. memoria come ultima spiaggia (es. browser privato)
+// `initializeAuth` applica la catena immediatamente, PRIMA di qualunque signIn,
+// a differenza del vecchio `setPersistence` asincrono che poteva perdere la
+// corsa con il primo login.
+export const auth = getApps().length
+  ? getAuth(firebaseApp)
+  : initializeAuth(firebaseApp, {
+      persistence: [
+        indexedDBLocalPersistence,
+        browserLocalPersistence,
+        inMemoryPersistence,
+      ],
+    });

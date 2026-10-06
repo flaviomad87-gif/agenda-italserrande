@@ -176,6 +176,19 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Fix logout imprevisto nella PWA Android (persistenza login)
+**Bug:** Utente segnalava che a volte riaprendo l'app installata come PWA sulla home del telefono doveva rifare login (iniziato in questa settimana, 2 volte). Nessuna impostazione "clear on exit" attiva.
+**Causa più probabile:** la persistenza era `browserLocalPersistence` (basata su `localStorage`), applicata con `setPersistence` ASINCRONO dopo `getAuth`. In contesto PWA Android:
+- Gli aggiornamenti del service worker (ogni deploy) possono invalidare il contesto storage temporaneamente
+- Android può pulire aggressivamente `localStorage` delle PWA quando ha poca memoria
+- Race condition: se il primo login avveniva prima che `setPersistence` risolvesse, veniva salvato in modalità default che poteva non essere `local`
+**Fix in `lib/firebase.js`:**
+- `getAuth()` + `setPersistence(browserLocalPersistence)` sostituiti con `initializeAuth({ persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence] })`
+- Catena di fallback: IndexedDB (più durevole su PWA) → localStorage → memoria
+- Nessuna race: la persistenza è configurata al momento della creazione dell'istanza, prima di qualunque `signIn`
+**Nota utente:** alla prossima apertura potrebbe essere richiesto un ulteriore login per applicare la nuova configurazione.
+
+
 ### Feb 2026 — Fix scroll Android Chrome su dialog "Nuovo cliente"
 **Bug:** Utente su Android segnalava che scrivendo l'imponibile e scendendo per toccare l'input "importo pagamento", la tastiera si apriva ma il dialog "scattava" tornando sopra (vicino all'imponibile). Pattern tipico di Chrome Android con dialog `position:fixed` + `overflow-y-auto` + `vh`: quando appare la tastiera il viewport si riduce ma `vh` resta calcolato sul viewport pre-tastiera, confondendo il meccanismo native di scroll-into-view.
 **Fix in `ClientFormDialog.jsx` + preventivo in `ExpenseFormDialog.jsx` e `RecurringExpensesDialog.jsx`:**
