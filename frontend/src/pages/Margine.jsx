@@ -63,8 +63,7 @@ export default function Margine() {
   );
 
   // Dettaglio per lavoro: calcolo il margine PER CLIENTE basato sui pagamenti
-  // già incassati, specchio della logica backend. Produce anche la ripartizione
-  // per metodo di pagamento, così il totale per metodo è ispezionabile riga per riga.
+  // già incassati, specchio della logica backend.
   const rows = useMemo(() => {
     const _split = (amount, vat, wh) => {
       const divisor = 1 + (Number(vat || 0) - Number(wh || 0)) / 100;
@@ -82,7 +81,6 @@ export default function Margine() {
 
       let collectedImp = 0;
       let collectedMargin = 0;
-      const methodBreakdown = { contanti: 0, pos: 0, bonifico: 0, altro: 0 };
 
       if (payments.length > 0) {
         const clientImpTotal = payments.reduce(
@@ -93,29 +91,16 @@ export default function Margine() {
           const imp = _split(Number(p.amount) || 0, vat, wh);
           const share = clientImpTotal > 0 ? imp / clientImpTotal : 0;
           const matShare = matTotal * share;
-          const marginP = imp - matShare;
           collectedImp += imp;
-          collectedMargin += marginP;
-          const m = (p.method || "").trim();
-          if (m === "contanti" || m === "pos" || m === "bonifico") {
-            methodBreakdown[m] += marginP;
-          } else {
-            methodBreakdown.altro += marginP;
-          }
+          collectedMargin += imp - matShare;
         });
       } else if (
         c.status === "lavoro_eseguito" &&
         (c.payment_method || c.invoice_number)
       ) {
-        // Legacy: considerato saldato, attribuito al payment_method del cliente
+        // Legacy: considerato saldato
         collectedImp = expectedImp;
         collectedMargin = expectedMargin;
-        const m = (c.payment_method || "").trim();
-        if (m === "contanti" || m === "pos" || m === "bonifico") {
-          methodBreakdown[m] += expectedMargin;
-        } else {
-          methodBreakdown.altro += expectedMargin;
-        }
       }
 
       out.push({
@@ -128,8 +113,6 @@ export default function Margine() {
         collectedImp,
         matTotal,
         pending: expectedImp - collectedImp,
-        methodBreakdown,
-        hasPayments: payments.length > 0,
       });
     });
     out.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
@@ -259,24 +242,15 @@ export default function Margine() {
                     r.collectedMargin < r.expectedMargin - 0.01 &&
                     r.collectedMargin > 0;
                   const unpaid = r.collectedMargin <= 0.01 && r.expectedMargin > 0;
-                  const b = r.methodBreakdown;
                   return (
                     <li
                       key={r.id}
                       data-testid={`margine-row-${r.id}`}
-                      className="flex items-start justify-between gap-3 py-2"
+                      className="flex items-center justify-between gap-3 py-2"
                     >
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-2">
                           <span className="truncate text-sm font-semibold text-stone-800">{r.name}</span>
-                          {!r.hasPayments && r.collectedMargin > 0 && (
-                            <span
-                              className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
-                              title="Nessun pagamento nella sezione Pagamenti: sto usando il metodo salvato sulla scheda"
-                            >
-                              senza pagamento
-                            </span>
-                          )}
                           {partial && (
                             <span className="shrink-0 rounded-full bg-[#FBF1DE] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A1F]">
                               acconto
@@ -294,32 +268,6 @@ export default function Margine() {
                             <> · imp. {formatEUR(r.expectedImp)} − mat. {formatEUR(r.matTotal)}</>
                           )}
                         </div>
-                        {/* Badge ripartizione per metodo: aiuta a vedere a colpo d'occhio
-                            dove sta andando il margine di questo singolo lavoro. */}
-                        {r.collectedMargin > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {b.contanti > 0.01 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#EAF3EF] px-2 py-0.5 text-[10px] font-semibold text-[#2E5A47]">
-                                <Wallet className="h-2.5 w-2.5" /> {formatEUR(b.contanti)}
-                              </span>
-                            )}
-                            {b.bonifico > 0.01 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F0F4] px-2 py-0.5 text-[10px] font-semibold text-[#335C6E]">
-                                <CreditCard className="h-2.5 w-2.5" /> Bonifico {formatEUR(b.bonifico)}
-                              </span>
-                            )}
-                            {b.pos > 0.01 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F0F4] px-2 py-0.5 text-[10px] font-semibold text-[#335C6E]">
-                                <CreditCard className="h-2.5 w-2.5" /> POS {formatEUR(b.pos)}
-                              </span>
-                            )}
-                            {b.altro > 0.01 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600">
-                                senza metodo {formatEUR(b.altro)}
-                              </span>
-                            )}
-                          </div>
-                        )}
                       </div>
                       <div className="shrink-0 text-right">
                         <div className={`font-display text-base font-bold tabular-nums ${
