@@ -176,6 +176,17 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Margine: lavori non incassati tornano in pieno colore e nei totali
+**Richiesta utente:** "Non voglio vederli trasparenti gli importi da incassare. Voglio vederli già nel conteggio. Ma quelli prima si trovavano nell incasso dei contanti invece devono stare nell incasso aziendale."
+**Fix solo frontend `Margine.jsx`:**
+- Rimosso stile grigio chiaro: TUTTI i lavori ora in pieno colore (nome scuro, cifra verde) — non c'è più distinzione visiva paid/unpaid (eccetto tag "acconto" per parziali)
+- `byMethod`: oltre ai payments[] ora include anche il fallback legacy `c.payment_method` per i lavori senza pagamenti registrati → margine atteso attribuito al metodo salvato sulla scheda
+- `collectedMargin` fallback a `expectedMargin` per i lavori unpaid → mostrati a valore pieno
+- **Righe cliccabili**: ogni riga è ora un `<button>` che apre `ClientFormDialog` del cliente pre-compilato (data-testid `margine-row-open-{id}`). `onSaved`/`onDeleted` ricaricano i dati del mese
+- Nessun badge "ancora da incassare" né tag "non incassato" (preservato dalla iter24)
+**Testing:** iter25 passato al 100% su scenario con 3 clienti misti (paid + 2 legacy)
+
+
 ### Feb 2026 — Margine: rimessi i lavori non incassati come righe grigie
 **Richiesta utente:** "I pagamento che devo ancora incassare però vorrei vederli nel margine" (dopo averli nascosti).
 **Fix solo frontend `Margine.jsx`:**

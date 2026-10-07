@@ -1,0 +1,20 @@
+{
+  "summary": "Frontend-only verification of /margine iter25 on live preview. Seeded 3 TEST_IT25 clients in 2026-10 via Firebase REST + /api/clients: A paid 500€ contanti (via payments[]), B legacy 1000€ bonifico (no payments[], payment_method only), C legacy 800€ contanti (no payments[], payment_method only). After UI login and selecting Ottobre 2026, all expected behavior confirmed: (1) all 3 rows appear in full color — names text-stone-800, amounts text-[#2E5A47] green — including the two legacy-only clients (B and C); (2) per-method totals correctly include the expected margin of legacy clients: Contanti 1300,00 € = 500 (A paid) + 800 (C legacy contanti), Bonifico/POS 1000,00 € (Bonifico 1000,00 · POS 0,00); (3) big card shows + 2300,00 € · 3 lavori eseguiti; (4) each row renders as a <button> with data-testid='margine-row-open-{id}', tapping row C opens ClientFormDialog with name input pre-filled 'TEST_IT25 C legacy contanti'; (5) no 'ancora da incassare' / 'non incassato' strings anywhere; (6) no 'acconto' pill nor 'atteso …€' subtitle for the three rows (none partial). The byMethod fallback on c.payment_method for payments[]-empty clients is working as specified. All test data cleaned up (3× DELETE 200).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/test_reports/screenshots/iter25_margine.jpeg"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Margine.jsx byMethod (lines 56-94): correctly short-circuits to c.payment_method fallback when payments[] is empty, attributing expected margin (amount − materials) to the matching bucket. Only accepts 'contanti' | 'pos' | 'bonifico' so empty/invalid payment_method does NOT contribute — matches spec.",
+  "Margine.jsx rows (lines 103-160): collectedMargin falls back to expectedMargin when payments.length===0 so unpaid rows display full value; isPending flag retained for internal use only, no longer gates visual muting. 'partial' pill still correctly fires only when collectedMargin < expectedMargin AND > 0.",
+    "Row rendering (lines 269-324): outer <li> keeps testid 'margine-row-{id}' and inner <button type=button> has data-testid 'margine-row-open-{id}'. onClick sets editing+openClient and the dialog is wired to onSaved/onDeleted that re-fetch clients, so totals refresh without manual reload.",
+    "Minor: rows[].pending (line 153) is still computed but no longer consumed in JSX — safe to remove in a cleanup pass."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (all iter25 assertions pass)"},
+  "test_credentials": "Ephemeral Firebase user via REST signUp (testuser+iter25<ts><uuid>@italserrande.test / TestPassword123!) per /app/memory/test_credentials.md.",
+  "seed_data_creation": "3 TEST_IT25 clients in 2026-10 seeded via POST /api/clients, deleted after test via DELETE /api/clients/{id} (3× 200).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iter25 confirmed on preview: /margine now shows ALL executed jobs in full color (including payments[]-empty 'legacy' clients) and attributes their expected margin to the Contanti/Bonifico/POS bucket indicated by c.payment_method. Fully-unpaid rows have no 'acconto'/'atteso' subtitle; 'acconto' pill still shown only for true partials. Each row is a clickable button that opens ClientFormDialog with the client pre-filled; onSaved re-fetches clients. Note that the EUR formatter does NOT emit thousand-separator dots on this preview environment (e.g., '2300,00 €', not '2.300,00 €') — any text assertion must match the compact format."
+}
