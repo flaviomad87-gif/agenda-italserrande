@@ -145,10 +145,12 @@ export default function Margine() {
   }, [clients]);
 
   const positive = totalMargin >= 0;
-  const pendingTotal = rows.reduce((s, r) => s + Math.max(0, r.pending), 0);
-  const pendingMarginTotal = rows.reduce(
-    (s, r) => s + Math.max(0, r.expectedMargin - r.collectedMargin),
-    0,
+  // Lavori con qualcosa di già incassato (margine > 0). I lavori non ancora
+  // pagati NON vanno mostrati in questa pagina: compaiono già nella sezione
+  // Incassi come saldo da riscuotere.
+  const visibleRows = useMemo(
+    () => rows.filter((r) => r.collectedMargin > 0.01),
+    [rows],
   );
 
   return (
@@ -203,21 +205,12 @@ export default function Margine() {
               {positive ? "+ " : "− "}{formatEUR(Math.abs(totalMargin))}
             </div>
             <div className="mt-2 text-xs text-stone-500">
-              Margine già incassato (imponibile scorporato IVA − materiali) · {rows.length} {rows.length === 1 ? "lavoro eseguito" : "lavori eseguiti"}
+              Margine già incassato (imponibile scorporato IVA − materiali) · {visibleRows.length} {visibleRows.length === 1 ? "lavoro incassato" : "lavori incassati"}
             </div>
-            {pendingMarginTotal > 0.01 && (
-              <div
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF1DE] px-3 py-1 text-[11px] font-semibold text-[#8A5A1F]"
-                data-testid="margine-pending-badge"
-              >
-                + {formatEUR(pendingMarginTotal)} ancora da incassare
-                {pendingTotal > 0.01 && <> · saldo {formatEUR(pendingTotal)}</>}
-              </div>
-            )}
           </section>
 
           {/* Suddivisione per metodo */}
-          {rows.length > 0 && (
+          {visibleRows.length > 0 && (
             <section>
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-stone-500">
                 Per metodo di pagamento (già incassato)
@@ -253,7 +246,7 @@ export default function Margine() {
           )}
 
           {/* Elenco lavori */}
-          {rows.length > 0 && (
+          {visibleRows.length > 0 && (
             <section className="rounded-3xl border border-stone-200/60 bg-white p-4 shadow-sm">
               <div className="mb-2 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[#4A5D23]" />
@@ -262,11 +255,10 @@ export default function Margine() {
                 </span>
               </div>
               <ul className="divide-y divide-stone-100">
-                {rows.map((r) => {
+                {visibleRows.map((r) => {
                   const partial =
                     r.collectedMargin < r.expectedMargin - 0.01 &&
                     r.collectedMargin > 0;
-                  const unpaid = r.collectedMargin <= 0.01 && r.expectedMargin > 0;
                   return (
                     <li
                       key={r.id}
@@ -279,11 +271,6 @@ export default function Margine() {
                           {partial && (
                             <span className="shrink-0 rounded-full bg-[#FBF1DE] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A1F]">
                               acconto
-                            </span>
-                          )}
-                          {unpaid && (
-                            <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600">
-                              non incassato
                             </span>
                           )}
                         </div>
@@ -300,7 +287,7 @@ export default function Margine() {
                         }`}>
                           {formatEUR(r.collectedMargin)}
                         </div>
-                        {partial || unpaid ? (
+                        {partial ? (
                           <div className="text-[10px] text-stone-500">
                             atteso {formatEUR(r.expectedMargin)}
                           </div>
@@ -313,9 +300,9 @@ export default function Margine() {
             </section>
           )}
 
-          {rows.length === 0 && (
+          {visibleRows.length === 0 && (
             <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 py-10 text-center text-sm text-stone-500">
-              Nessun lavoro eseguito registrato in {MONTHS[month - 1].toLowerCase()} {year}.
+              Nessun lavoro incassato in {MONTHS[month - 1].toLowerCase()} {year}.
             </div>
           )}
         </>
