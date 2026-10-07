@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { formatEUR, computeMaterialsTotal } from "../lib/utils";
 import { TrendingUp, Wallet, CreditCard, Loader2 } from "lucide-react";
+import ClientFormDialog from "../components/ClientFormDialog";
 
 const MONTHS = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
@@ -21,6 +22,8 @@ export default function Margine() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [openClient, setOpenClient] = useState(false);
   const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 
   const monthKey = `${year}-${String(month).padStart(2, "0")}`;
@@ -44,13 +47,12 @@ export default function Margine() {
     };
   }, [monthKey]);
 
-  // Totali per metodo = margine REALMENTE INCASSATO, calcolato SOLO dai
-  // pagamenti registrati nella sezione "Pagamenti/Fatture" di ogni scheda.
-  // Non usiamo /api/summary qui perché aggrega anche lavori "legacy" senza
-  // payments[] (con solo payment_method salvato come default): questo falsa
-  // il margine per metodo quando l'utente non ha ancora registrato il pagamento
-  // reale. Riepilogo usa logica diversa (visione cash flow + legacy): non ci
-  // confrontiamo con quello qui.
+  // Totali per metodo = margine attribuito a Contanti/Bonifico/POS, basato:
+  //   • sui pagamenti registrati in payments[] (prioritari) con il loro metodo;
+  //   • oppure, se un lavoro eseguito non ha payments[] (dato "legacy"),
+  //     sul payment_method salvato sulla scheda del cliente.
+  // In questo modo anche i lavori ancora da incassare (ma marcati con il
+  // metodo che il cliente USERÀ) finiscono nel bucket giusto.
   const byMethod = useMemo(() => {
     const _split = (amount, vat, wh) => {
       const divisor = 1 + (Number(vat || 0) - Number(wh || 0)) / 100;
@@ -63,21 +65,30 @@ export default function Margine() {
       const wh = c.withholding_rate == null ? 0 : Number(c.withholding_rate);
       const matTotal = computeMaterialsTotal(c.materials);
       const payments = (c.payments || []).filter((p) => Number(p.amount) > 0);
-      if (payments.length === 0) return;
-      const clientImpTotal = payments.reduce(
-        (s, p) => s + _split(Number(p.amount) || 0, vat, wh),
-        0,
-      );
-      payments.forEach((p) => {
-        const imp = _split(Number(p.amount) || 0, vat, wh);
-        const share = clientImpTotal > 0 ? imp / clientImpTotal : 0;
-        const matShare = matTotal * share;
-        const marginP = imp - matShare;
-        const m = (p.method || "").trim();
+      if (payments.length > 0) {
+        const clientImpTotal = payments.reduce(
+          (s, p) => s + _split(Number(p.amount) || 0, vat, wh),
+          0,
+        );
+        payments.forEach((p) => {
+          const imp = _split(Number(p.amount) || 0, vat, wh);
+          const share = clientImpTotal > 0 ? imp / clientImpTotal : 0;
+          const matShare = matTotal * share;
+          const marginP = imp - matShare;
+          const m = (p.method || "").trim();
+          if (m === "contanti" || m === "pos" || m === "bonifico") {
+            acc[m] += marginP;
+          }
+        });
+      } else {
+        // Nessun pagamento registrato → usa il payment_method del cliente
+        // (preferenza/legacy). Attribuisce il margine ATTESO al bucket indicato.
+        const m = (c.payment_method || "").trim();
         if (m === "contanti" || m === "pos" || m === "bonifico") {
-          acc[m] += marginP;
+          const amt = Number(c.amount) || 0;
+          acc[m] += amt - matTotal;
         }
-      });
+      }
     });
     return acc;
   }, [clients]);
@@ -119,14 +130,16 @@ export default function Margine() {
           collectedImp += imp;
           collectedMargin += imp - matShare;
         });
-      } else if (
-        c.status === "lavoro_eseguito" &&
-        (c.invoice_number || "").trim()
-      ) {
-        // Legacy esplicito con numero fattura: considerato saldato.
+      } else {
+        // Nessun pagamento registrato: usiamo il valore atteso del lavoro.
+        // Mostriamo quindi margine ATTESO al valore pieno (non in grigio).
+        // Il flag isPending resta true per uso interno; il rendering non
+        // differenzia più visivamente paid vs unpaid.
         collectedImp = expectedImp;
         collectedMargin = expectedMargin;
       }
+
+      const isPending = payments.length === 0;
 
       out.push({
         id: c.id,
@@ -138,6 +151,8 @@ export default function Margine() {
         collectedImp,
         matTotal,
         pending: expectedImp - collectedImp,
+        isPending,
+        client: c,
       });
     });
     out.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
@@ -238,10 +253,10 @@ export default function Margine() {
             </section>
           )}
 
-          {/* Elenco lavori: TUTTI i lavori eseguiti del mese, inclusi quelli
-              ancora da incassare. I lavori non ancora pagati mostrano il
-              margine atteso in grigio chiaro (senza il tag "non incassato"
-              perché la gestione dei saldi aperti sta nella pagina Incassi). */}
+          {/* Elenco lavori: TUTTI i lavori eseguiti del mese. Il margine
+              mostrato è quello incassato (se ci sono payments[]) oppure
+              quello atteso (fallback sui lavori senza pagamenti registrati).
+              Tap su una riga → apre la scheda per correggere metodo/pagamento. */}
           {rows.length > 0 && (
             <section className="rounded-3xl border border-stone-200/60 bg-white p-4 shadow-sm">
               <div className="mb-2 flex items-center gap-2">
@@ -255,51 +270,56 @@ export default function Margine() {
                   const partial =
                     r.collectedMargin < r.expectedMargin - 0.01 &&
                     r.collectedMargin > 0;
-                  const unpaid = r.collectedMargin <= 0.01 && r.expectedMargin > 0;
-                  // Importo mostrato: se c'è stato almeno un pagamento, mostra
-                  // il margine incassato; se nulla è stato incassato, mostra
-                  // il margine ATTESO (così l'utente vede comunque il lavoro).
-                  const shownMargin = unpaid ? r.expectedMargin : r.collectedMargin;
+                  // Importo mostrato: usiamo il margine incassato se ci sono
+                  // payments[], altrimenti il margine atteso (fallback). In
+                  // entrambi i casi il valore viene mostrato a pieno colore.
+                  const shownMargin = r.isPending ? r.expectedMargin : r.collectedMargin;
                   return (
                     <li
                       key={r.id}
                       data-testid={`margine-row-${r.id}`}
-                      className="flex items-center justify-between gap-3 py-2"
                     >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={
-                            "truncate text-sm font-semibold " +
-                            (unpaid ? "text-stone-500" : "text-stone-800")
-                          }>{r.name}</span>
-                          {partial && (
-                            <span className="shrink-0 rounded-full bg-[#FBF1DE] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A1F]">
-                              acconto
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditing(r.client);
+                          setOpenClient(true);
+                        }}
+                        className="flex w-full items-center justify-between gap-3 rounded-xl py-2 px-1 text-left transition hover:bg-stone-50 active:bg-stone-100"
+                        data-testid={`margine-row-open-${r.id}`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-semibold text-stone-800">
+                              {r.name}
                             </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-stone-500">
-                          {r.date}
-                          {r.matTotal > 0 && (
-                            <> · imp. {formatEUR(r.expectedImp)} − mat. {formatEUR(r.matTotal)}</>
-                          )}
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className={
-                          "font-display text-base font-bold tabular-nums " +
-                          (unpaid
-                            ? "text-stone-400"
-                            : shownMargin >= 0 ? "text-[#2E5A47]" : "text-red-600")
-                        }>
-                          {formatEUR(shownMargin)}
-                        </div>
-                        {partial ? (
-                          <div className="text-[10px] text-stone-500">
-                            atteso {formatEUR(r.expectedMargin)}
+                            {partial && (
+                              <span className="shrink-0 rounded-full bg-[#FBF1DE] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A1F]">
+                                acconto
+                              </span>
+                            )}
                           </div>
-                        ) : null}
-                      </div>
+                          <div className="text-[11px] text-stone-500">
+                            {r.date}
+                            {r.matTotal > 0 && (
+                              <> · imp. {formatEUR(r.expectedImp)} − mat. {formatEUR(r.matTotal)}</>
+                            )}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className={
+                            "font-display text-base font-bold tabular-nums " +
+                            (shownMargin >= 0 ? "text-[#2E5A47]" : "text-red-600")
+                          }>
+                            {formatEUR(shownMargin)}
+                          </div>
+                          {partial ? (
+                            <div className="text-[10px] text-stone-500">
+                              atteso {formatEUR(r.expectedMargin)}
+                            </div>
+                          ) : null}
+                        </div>
+                      </button>
                     </li>
                   );
                 })}
@@ -314,6 +334,30 @@ export default function Margine() {
           )}
         </>
       )}
+
+      <ClientFormDialog
+        open={openClient}
+        onOpenChange={setOpenClient}
+        date={editing?.date}
+        initial={editing}
+        onSaved={() => {
+          // Ricarica i dati del mese per aggiornare totali e lista.
+          api.get(`/clients?month=${monthKey}`)
+            .then((r) =>
+              setClients((r.data || []).filter((c) => c.status === "lavoro_eseguito")),
+            )
+            .catch(() => {});
+          setOpenClient(false);
+        }}
+        onDeleted={() => {
+          api.get(`/clients?month=${monthKey}`)
+            .then((r) =>
+              setClients((r.data || []).filter((c) => c.status === "lavoro_eseguito")),
+            )
+            .catch(() => {});
+          setOpenClient(false);
+        }}
+      />
     </div>
   );
 }
