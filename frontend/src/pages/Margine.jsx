@@ -83,10 +83,16 @@ export default function Margine() {
       } else {
         // Nessun pagamento registrato → usa il payment_method del cliente
         // (preferenza/legacy). Attribuisce il margine ATTESO al bucket indicato.
+        // Default: se il metodo non è specificato (empty), lo contiamo come
+        // "Bonifico/POS" perché per l'utente è il "conto aziendale" di default.
         const m = (c.payment_method || "").trim();
-        if (m === "contanti" || m === "pos" || m === "bonifico") {
-          const amt = Number(c.amount) || 0;
-          acc[m] += amt - matTotal;
+        const amt = Number(c.amount) || 0;
+        const marginExpected = amt - matTotal;
+        if (m === "contanti" || m === "pos") {
+          acc[m] += marginExpected;
+        } else {
+          // "bonifico" esplicito oppure vuoto/non valido → bonifico come default
+          acc.bonifico += marginExpected;
         }
       }
     });
