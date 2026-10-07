@@ -9,9 +9,10 @@ const MONTHS = [
 ];
 
 /**
- * Pagina "Margine": mostra il margine di guadagno del mese selezionato.
- * Margine = Imponibile (senza IVA) − Materiali. Suddiviso per metodo di
- * pagamento. Solo lavori con status='lavoro_eseguito'.
+ * Pagina "Margine": mostra il margine di guadagno REALMENTE INCASSATO del
+ * mese selezionato. Prende i totali dal backend `/api/summary` (che calcola
+ * imponibile scorporato IVA + materiali pro-quota SOLO sui pagamenti già
+ * ricevuti), così resta coerente con Riepilogo e Incassi.
  * Route: /margine
  */
 export default function Margine() {
@@ -19,6 +20,7 @@ export default function Margine() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [clients, setClients] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 
@@ -27,58 +29,102 @@ export default function Margine() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    api
-      .get(`/clients?month=${monthKey}`)
-      .then((r) => {
+    Promise.all([
+      api.get(`/clients?month=${monthKey}`).then((r) => r.data || []).catch(() => []),
+      api.get(`/summary?month=${monthKey}`).then((r) => r.data).catch(() => null),
+    ])
+      .then(([cs, s]) => {
         if (cancelled) return;
-        const executed = (r.data || []).filter((c) => c.status === "lavoro_eseguito");
-        setClients(executed);
+        setClients(cs.filter((c) => c.status === "lavoro_eseguito"));
+        setSummary(s);
       })
-      .catch(() => setClients([]))
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [monthKey]);
 
-  // Aggregazioni
-  const { totalMargin, byMethod, rows } = useMemo(() => {
-    const methods = { contanti: 0, pos: 0, bonifico: 0 };
-    const perClient = [];
-    let total = 0;
-    clients.forEach((c) => {
-      const imp = Number(c.amount) || 0;
-      const mat = computeMaterialsTotal(c.materials);
-      const margin = imp - mat;
-      total += margin;
+  // Totali per metodo di pagamento = margine REALMENTE INCASSATO (dal backend).
+  // È il valore corretto da esporre: coincide con quello mostrato in Riepilogo.
+  const byMethod = useMemo(() => {
+    const src = summary?.incassi_margine_by_method || {};
+    return {
+      contanti: Number(src.contanti) || 0,
+      pos: Number(src.pos) || 0,
+      bonifico: Number(src.bonifico) || 0,
+    };
+  }, [summary]);
 
-      // Distribuzione margine per metodo di pagamento:
-      // 1) se ci sono payments[] con method, distribuisco pro-quota sull'amount di ogni payment
-      // 2) altrimenti tutto al payment_method principale
-      // 3) altrimenti fallback contanti
-      const payments = (c.payments || []).filter((p) => p.method);
+  const totalMargin = useMemo(
+    () => byMethod.contanti + byMethod.pos + byMethod.bonifico,
+    [byMethod],
+  );
+
+  // Dettaglio per lavoro: calcolo il margine PER CLIENTE basato sui pagamenti
+  // già incassati, specchio della logica backend.
+  const rows = useMemo(() => {
+    const _split = (amount, vat, wh) => {
+      const divisor = 1 + (Number(vat || 0) - Number(wh || 0)) / 100;
+      const d = divisor <= 0 ? 1 : divisor;
+      return amount / d;
+    };
+    const out = [];
+    clients.forEach((c) => {
+      const vat = c.vat_rate == null ? 0 : Number(c.vat_rate);
+      const wh = c.withholding_rate == null ? 0 : Number(c.withholding_rate);
+      const matTotal = computeMaterialsTotal(c.materials);
+      const payments = (c.payments || []).filter((p) => Number(p.amount) > 0);
+      const expectedImp = Number(c.amount) || 0;
+      const expectedMargin = expectedImp - matTotal;
+
+      let collectedImp = 0;
+      let collectedMargin = 0;
+
       if (payments.length > 0) {
-        const totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-        if (totalPaid > 0) {
-          payments.forEach((p) => {
-            const share = ((Number(p.amount) || 0) / totalPaid) * margin;
-            const m = p.method in methods ? p.method : "contanti";
-            methods[m] += share;
-          });
-        } else {
-          const m = c.payment_method && c.payment_method in methods ? c.payment_method : "contanti";
-          methods[m] += margin;
-        }
-      } else {
-        const m = c.payment_method && c.payment_method in methods ? c.payment_method : "contanti";
-        methods[m] += margin;
+        const clientImpTotal = payments.reduce(
+          (s, p) => s + _split(Number(p.amount) || 0, vat, wh),
+          0,
+        );
+        payments.forEach((p) => {
+          const imp = _split(Number(p.amount) || 0, vat, wh);
+          const share = clientImpTotal > 0 ? imp / clientImpTotal : 0;
+          const matShare = matTotal * share;
+          collectedImp += imp;
+          collectedMargin += imp - matShare;
+        });
+      } else if (
+        c.status === "lavoro_eseguito" &&
+        (c.payment_method || c.invoice_number)
+      ) {
+        // Legacy: considerato saldato
+        collectedImp = expectedImp;
+        collectedMargin = expectedMargin;
       }
 
-      perClient.push({ id: c.id, name: c.name, date: c.date, imp, mat, margin });
+      out.push({
+        id: c.id,
+        name: c.name,
+        date: c.date,
+        expectedMargin,
+        collectedMargin,
+        expectedImp,
+        collectedImp,
+        matTotal,
+        pending: expectedImp - collectedImp,
+      });
     });
-    perClient.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-    return { totalMargin: total, byMethod: methods, rows: perClient };
+    out.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    return out;
   }, [clients]);
 
   const positive = totalMargin >= 0;
+  const pendingTotal = rows.reduce((s, r) => s + Math.max(0, r.pending), 0);
+  const pendingMarginTotal = rows.reduce(
+    (s, r) => s + Math.max(0, r.expectedMargin - r.collectedMargin),
+    0,
+  );
 
   return (
     <div className="space-y-4 fade-in">
@@ -132,15 +178,24 @@ export default function Margine() {
               {positive ? "+ " : "− "}{formatEUR(Math.abs(totalMargin))}
             </div>
             <div className="mt-2 text-xs text-stone-500">
-              Margine = Imponibile (senza IVA) − Materiali · {rows.length} {rows.length === 1 ? "lavoro eseguito" : "lavori eseguiti"}
+              Margine già incassato (imponibile scorporato IVA − materiali) · {rows.length} {rows.length === 1 ? "lavoro eseguito" : "lavori eseguiti"}
             </div>
+            {pendingMarginTotal > 0.01 && (
+              <div
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF1DE] px-3 py-1 text-[11px] font-semibold text-[#8A5A1F]"
+                data-testid="margine-pending-badge"
+              >
+                + {formatEUR(pendingMarginTotal)} ancora da incassare
+                {pendingTotal > 0.01 && <> · saldo {formatEUR(pendingTotal)}</>}
+              </div>
+            )}
           </section>
 
           {/* Suddivisione per metodo */}
           {rows.length > 0 && (
             <section>
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-stone-500">
-                Per metodo di pagamento
+                Per metodo di pagamento (già incassato)
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div
@@ -151,7 +206,7 @@ export default function Margine() {
                     <Wallet className="h-3 w-3" /> Contanti
                   </div>
                   <div className="mt-1 font-display text-3xl font-bold tabular-nums">
-                    {formatEUR(byMethod.contanti || 0)}
+                    {formatEUR(byMethod.contanti)}
                   </div>
                 </div>
                 <div
@@ -162,10 +217,10 @@ export default function Margine() {
                     <CreditCard className="h-3 w-3" /> Bonifico / POS
                   </div>
                   <div className="mt-1 font-display text-3xl font-bold tabular-nums">
-                    {formatEUR((byMethod.bonifico || 0) + (byMethod.pos || 0))}
+                    {formatEUR(byMethod.bonifico + byMethod.pos)}
                   </div>
                   <div className="mt-0.5 text-[10px] text-stone-500">
-                    Bonifico {formatEUR(byMethod.bonifico || 0)} · POS {formatEUR(byMethod.pos || 0)}
+                    Bonifico {formatEUR(byMethod.bonifico)} · POS {formatEUR(byMethod.pos)}
                   </div>
                 </div>
               </div>
@@ -182,28 +237,53 @@ export default function Margine() {
                 </span>
               </div>
               <ul className="divide-y divide-stone-100">
-                {rows.map((r) => (
-                  <li
-                    key={r.id}
-                    data-testid={`margine-row-${r.id}`}
-                    className="flex items-center justify-between gap-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-stone-800">{r.name}</div>
-                      <div className="text-[11px] text-stone-500">
-                        {r.date}
-                        {r.mat > 0 && (
-                          <> · imp. {formatEUR(r.imp)} − mat. {formatEUR(r.mat)}</>
-                        )}
+                {rows.map((r) => {
+                  const partial =
+                    r.collectedMargin < r.expectedMargin - 0.01 &&
+                    r.collectedMargin > 0;
+                  const unpaid = r.collectedMargin <= 0.01 && r.expectedMargin > 0;
+                  return (
+                    <li
+                      key={r.id}
+                      data-testid={`margine-row-${r.id}`}
+                      className="flex items-center justify-between gap-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-stone-800">{r.name}</span>
+                          {partial && (
+                            <span className="shrink-0 rounded-full bg-[#FBF1DE] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A1F]">
+                              acconto
+                            </span>
+                          )}
+                          {unpaid && (
+                            <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600">
+                              non incassato
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-stone-500">
+                          {r.date}
+                          {r.matTotal > 0 && (
+                            <> · imp. {formatEUR(r.expectedImp)} − mat. {formatEUR(r.matTotal)}</>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className={`shrink-0 font-display text-base font-bold tabular-nums ${
-                      r.margin >= 0 ? "text-[#2E5A47]" : "text-red-600"
-                    }`}>
-                      {formatEUR(r.margin)}
-                    </div>
-                  </li>
-                ))}
+                      <div className="shrink-0 text-right">
+                        <div className={`font-display text-base font-bold tabular-nums ${
+                          r.collectedMargin >= 0 ? "text-[#2E5A47]" : "text-red-600"
+                        }`}>
+                          {formatEUR(r.collectedMargin)}
+                        </div>
+                        {partial || unpaid ? (
+                          <div className="text-[10px] text-stone-500">
+                            atteso {formatEUR(r.expectedMargin)}
+                          </div>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}
