@@ -1,0 +1,34 @@
+{
+  "summary": "Frontend-only verification of /margine iter27 on live preview. Seeded 5 TEST_IT27 clients in 2026-11 via Firebase REST signUp + POST /api/clients covering all iter27 spec branches (A paid contanti, B amount=0 bonifico intent, C legacy pos, D empty no-contrib, E mixed paid-contanti + amount=0 bonifico-intent). UI login + /margine selected Novembre 2026. RESULTS: Total card = + 2600,00 € · 5 lavori eseguiti (MATCHES spec total). D (empty payment_method, no payments[]) correctly NOT contributing (no auto-fallback to bonifico — regression from iter26 is intentional and verified). B (payments=[{amount:0, method:'bonifico'}], mat 100) → 900€ attributed to Bonifico (MATCHES: user intent to put invoiced-not-yet-collected margin into Bonifico works). C (payment_method='pos', payments=[]) → 800€ to POS (MATCHES). A (payments=[{500,contanti}]) → 500€ to Contanti (MATCHES). All rows render in full color (no muted/grey), clickable; opening row B pre-fills ClientFormDialog with name 'TEST_IT27 B invoiced bonifico intent'. No 'ancora da incassare' / 'non incassato' strings in DOM. 'acconto' pill correctly rendered on row E. HOWEVER, found 1 bug on scenario E (see critical).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Margine.jsx byMethod (lines 97-106)",
+        "issue": "Scenario E failed: amount=400, mat=0, payments=[{200,contanti},{0,bonifico}] → spec expects Contanti+=200 and Bonifico+=200 (residuo). Observed: Contanti+=400 (500 A + 200 E paid + 200 E residuo) and Bonifico+=0 for E. Root cause: `allPayments.find(p => _validMethod(p.method))` returns the FIRST valid-method payment, which is the already-paid {200,contanti} entry, so the residual (200€) is re-attributed to contanti instead of to the amount=0 bonifico intent entry. The find() needs to prefer an unpaid intent payment (amount<=0) or at least exclude payments already counted in paidPayments. Observed totals: Contanti 900,00 €, Bonifico 900,00 €, POS 800,00 €, Total 2600,00 €. Expected: Contanti 700, Bonifico 1100, POS 800, Total 2600.",
+        "selector": "[data-testid=\"margine-method-contanti\"], [data-testid=\"margine-method-tracciabile\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/screenshots/iter27_margine.jpeg"],
+  "action_items": [
+    "Fix Margine.jsx byMethod intentPayment lookup: change `allPayments.find(...)` to prefer payments with amount<=0 (declaration-only entries). Suggested patch: `const intentPayment = allPayments.find(p => (Number(p.amount)||0) <= 0 && _validMethod((p.method||'').trim()));` This correctly captures the amount=0 bonifico entry in mixed scenarios and preserves the Leonardo Panzironi real-world flow (single amount=0 bonifico entry still works because paidPayments is empty and residual = full expectedMargin).",
+    "After fix, re-verify scenario E produces Contanti=700, Bonifico=1100, POS=800."
+  ],
+  "critical_code_review_comments": [
+    "Margine.jsx byMethod line 99-101: `allPayments.find(p => _validMethod(p.method))` does not distinguish between a paid payment and an amount=0 intent payment. In mixed scenarios where the first payment is a paid-contanti one, the residual meant for the amount=0 bonifico declaration leaks into the contanti bucket. Must filter by `Number(p.amount) <= 0` (or equivalently exclude indexes already in paidPayments).",
+    "rows.pending (line 168) is still computed but unused in JSX — minor code hygiene opportunity, carried over from iter25/26.",
+    "A11y: ClientFormDialog still logs 'Missing Description or aria-describedby for DialogContent' when opened from a Margine row — low priority."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "4 of 5 byMethod scenarios pass (A/B/C/D); scenario E fails due to intentPayment find() picking the paid payment instead of the amount=0 intent entry"},
+  "test_credentials": "Ephemeral Firebase user via REST signUp (testuser+iter27<ts><uuid>@italserrande.test / TestPassword123!) per /app/memory/test_credentials.md.",
+  "seed_data_creation": "5 TEST_IT27 clients seeded in 2026-11 via POST /api/clients covering iter27 scenarios A/B/C/D/E. All 5 deleted after test (DELETE 200).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iter27: 4/5 scenarios pass. CRITICAL BUG in scenario E (mixed paid+intent payments): the residual margin is attributed to the method of the FIRST valid-method payment (which is the already-paid one) rather than to the amount=0 intent payment. Observed totals: Contanti 900, Bonifico 900, POS 800 — Expected: Contanti 700, Bonifico 1100, POS 800. Suggested fix: filter intentPayment by `Number(p.amount) <= 0`. Scenarios A/B/C/D all pass; the Leonardo Panzironi real-world case (single amount=0 bonifico entry, no paid payments) works correctly because paidPayments is empty. D correctly skipped (no auto-bonifico fallback — intentional regression from iter26). EUR format on this preview is compact (no thousand-separator dot).",
+  "rca of the issue": "Margine.jsx byMethod lines 99-104: `const intentPayment = allPayments.find((p) => _validMethod((p.method||'').trim()))`. In scenario E, allPayments = [{200,contanti,saldo},{0,bonifico,saldo}]. .find() returns the FIRST match ({200,contanti}), not the amount=0 bonifico entry. The residual (200€) is then added to acc.contanti, not acc.bonifico. The 'intent' semantic requires the function to find a payment that has NOT been collected yet (amount<=0) — the one that represents the user's declared future-collection method. Reproduction: on /margine with such a mixed client, Contanti bucket shows paid+residual while Bonifico bucket is empty for that row. Fix: `allPayments.find(p => (Number(p.amount)||0) <= 0 && _validMethod((p.method||'').trim()))`, with optional fallback to the previous behavior if no amount<=0 intent exists."
+}

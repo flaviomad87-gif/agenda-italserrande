@@ -92,12 +92,16 @@ export default function Margine() {
       }
 
       // Residuo = margine atteso non ancora incassato. Lo attribuiamo al
-      // metodo "annunciato" dall'utente (payment entry con amount=0 che ha
-      // già un metodo scelto) oppure al payment_method del cliente.
+      // metodo "annunciato" dall'utente: un payment entry con amount<=0 che
+      // ha già un metodo scelto (es. fattura emessa ma non ancora saldata).
+      // Fallback: payment_method del cliente. Se nessuno dei due è valido,
+      // il residuo NON contribuisce (nessuna ipotesi automatica).
       const remaining = expectedMargin - collectedMargin;
       if (remaining > 0.01) {
-        const intentPayment = allPayments.find((p) =>
-          _validMethod((p.method || "").trim()),
+        const intentPayment = allPayments.find(
+          (p) =>
+            (Number(p.amount) || 0) <= 0 &&
+            _validMethod((p.method || "").trim()),
         );
         const method = intentPayment
           ? (intentPayment.method || "").trim()
