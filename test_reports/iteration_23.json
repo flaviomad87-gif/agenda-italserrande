@@ -1,0 +1,26 @@
+{
+  "summary": "Frontend-only verification of /margine fix: removed 'ancora da incassare' badge and 'non incassato' tag per user request. All 12 UI assertions passed across 3 scenarios on live preview (https://questa-demo.preview.emergentagent.com). Seeded 2 clients in 2026-11 via API: (A) status=lavoro_eseguito, legacy payment_method=contanti, no payments[]; (B) payments=[{amount:500,method:bonifico}]. Scenario A verified: only client B shown in Dettaglio lavori, 1 lavoro incassato, totale +500€, Contanti card=0,00€, Bonifico/POS=500€, zero occurrences of 'ancora da incassare' / 'non incassato', margine-pending-badge testid absent. Scenario B: switched to Settembre 2026 -> empty-state 'Nessun lavoro incassato in settembre 2026.' rendered. Scenario C: added partial payment (300 contanti) to client A -> 'acconto' pill + 'atteso 1000,00 €' subtitle both rendered; Contanti=300, Bonifico=500, Total +800€, still no forbidden strings. Test data cleaned up (DELETE 200/200).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots/iter23_main.jpeg",
+    "/app/test_reports/screenshots/iter23_partial.jpeg"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Margine.jsx compute logic (lines 54-83) correctly short-circuits when payments.length===0, so legacy jobs with only payment_method set no longer leak into by-method totals. Verified empirically (Contanti=0 for the legacy-contanti client without payments[]).",
+    "Note: rows[].pending field (line 140) is now unused since the badge was removed and visibleRows filters out non-paid jobs; consider removing it to keep the row shape minimal (cosmetic cleanup, non-blocking).",
+    "Legacy fallback at lines 122-129 (invoice_number present -> treat as fully paid) is still exercised: it correctly keeps jobs with an invoice number in the list even when payments[] is empty, which matches the Riepilogo cash-flow convention. Not in scope of this request, left intact."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (12/12 checks across 3 scenarios)"},
+  "test_credentials": "Ephemeral Firebase user testuser+iter23c<ts>@italserrande.test / TestPassword123! (per /app/memory/test_credentials.md). Signed up via identitytoolkit REST signUp.",
+  "seed_data_creation": "Two TEST_IT23 clients in month 2026-11 (A: no payments, legacy contanti, 1000€; B: bonifico 500€). Deleted via DELETE /api/clients/{id} at end of run (both 200).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The 'ancora da incassare' badge and 'non incassato' tag are confirmed removed from /margine. byMethod totals now reflect ONLY payments[] entries. 'acconto' pill + 'atteso' subtitle still work for partial payments. Year dropdown in Margine only exposes current year back 6 (so test with current year; do NOT seed in 2027). Firebase signUp via REST + API seeding, then UI login flow, is the fastest path for frontend-only tests on this app."
+}

@@ -176,6 +176,18 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Margine: tolto badge "ancora da incassare" e tag "non incassato"
+**Richiesta utente:** "Non voglio la scritta ancora da incassare perché quelli che devono pagare ce l'ho nella sezione incassi".
+**Fix solo frontend `Margine.jsx`:**
+- Rimosso badge arancione "+ X€ ancora da incassare · saldo Y€" dalla card totale
+- Rimosso tag rosso "non incassato" dalle righe della lista
+- Lavori con `collectedMargin ≤ 0` NASCOSTI dalla lista (gestiti già nella pagina Incassi)
+- Preservati: tag "acconto" + "atteso X€" per pagamenti parziali
+- Counter aggiornato: "N lavori incassati" invece di "N lavori eseguiti"
+- Empty state: "Nessun lavoro incassato in {mese} {anno}"
+**Testing:** 12/12 test passati su 3 scenari (iter23)
+
+
 ### Feb 2026 — Fix Margine: totali per metodo basati SOLO sui pagamenti registrati
 **Bug (follow-up):** anche dopo il primo fix (usare `/api/summary.incassi_margine_by_method`), i totali per metodo restavano sbagliati per lavori con solo campo legacy `payment_method` settato (default) e nessuna entry in `payments[]`. Il backend attribuiva il margine al metodo di default anche se nessun pagamento era stato davvero registrato.
 **Fix solo frontend `Margine.jsx`:** la pagina NON chiama più `/api/summary` per i totali per metodo. Calcola localmente scorrendo `payments[]` di ogni lavoro:
