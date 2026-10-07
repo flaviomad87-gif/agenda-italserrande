@@ -176,6 +176,17 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Margine: rimessi i lavori non incassati come righe grigie
+**Richiesta utente:** "I pagamento che devo ancora incassare però vorrei vederli nel margine" (dopo averli nascosti).
+**Fix solo frontend `Margine.jsx`:**
+- Lavori non ancora incassati tornano visibili nella lista Dettaglio lavori
+- Resi in **grigio chiaro** (`text-stone-500` nome, `text-stone-400` cifra) → distinguibili a colpo d'occhio dai verdi "già incassati"
+- Mostrano il margine ATTESO (`expectedMargin`) non lo zero, così l'utente vede il valore del lavoro
+- Nessun tag "non incassato" né "ancora da incassare" (preservato il no-wording richiesto in iter23)
+- Totali per metodo invariati: calcolati solo sui pagamenti davvero registrati
+**Testing:** 10/10 test passati su 3 scenari (iter24)
+
+
 ### Feb 2026 — Margine: tolto badge "ancora da incassare" e tag "non incassato"
 **Richiesta utente:** "Non voglio la scritta ancora da incassare perché quelli che devono pagare ce l'ho nella sezione incassi".
 **Fix solo frontend `Margine.jsx`:**
