@@ -145,13 +145,6 @@ export default function Margine() {
   }, [clients]);
 
   const positive = totalMargin >= 0;
-  // Lavori con qualcosa di già incassato (margine > 0). I lavori non ancora
-  // pagati NON vanno mostrati in questa pagina: compaiono già nella sezione
-  // Incassi come saldo da riscuotere.
-  const visibleRows = useMemo(
-    () => rows.filter((r) => r.collectedMargin > 0.01),
-    [rows],
-  );
 
   return (
     <div className="space-y-4 fade-in">
@@ -205,12 +198,12 @@ export default function Margine() {
               {positive ? "+ " : "− "}{formatEUR(Math.abs(totalMargin))}
             </div>
             <div className="mt-2 text-xs text-stone-500">
-              Margine già incassato (imponibile scorporato IVA − materiali) · {visibleRows.length} {visibleRows.length === 1 ? "lavoro incassato" : "lavori incassati"}
+              Margine già incassato (imponibile scorporato IVA − materiali) · {rows.length} {rows.length === 1 ? "lavoro eseguito" : "lavori eseguiti"}
             </div>
           </section>
 
           {/* Suddivisione per metodo */}
-          {visibleRows.length > 0 && (
+          {rows.length > 0 && (
             <section>
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-stone-500">
                 Per metodo di pagamento (già incassato)
@@ -245,8 +238,11 @@ export default function Margine() {
             </section>
           )}
 
-          {/* Elenco lavori */}
-          {visibleRows.length > 0 && (
+          {/* Elenco lavori: TUTTI i lavori eseguiti del mese, inclusi quelli
+              ancora da incassare. I lavori non ancora pagati mostrano il
+              margine atteso in grigio chiaro (senza il tag "non incassato"
+              perché la gestione dei saldi aperti sta nella pagina Incassi). */}
+          {rows.length > 0 && (
             <section className="rounded-3xl border border-stone-200/60 bg-white p-4 shadow-sm">
               <div className="mb-2 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[#4A5D23]" />
@@ -255,10 +251,15 @@ export default function Margine() {
                 </span>
               </div>
               <ul className="divide-y divide-stone-100">
-                {visibleRows.map((r) => {
+                {rows.map((r) => {
                   const partial =
                     r.collectedMargin < r.expectedMargin - 0.01 &&
                     r.collectedMargin > 0;
+                  const unpaid = r.collectedMargin <= 0.01 && r.expectedMargin > 0;
+                  // Importo mostrato: se c'è stato almeno un pagamento, mostra
+                  // il margine incassato; se nulla è stato incassato, mostra
+                  // il margine ATTESO (così l'utente vede comunque il lavoro).
+                  const shownMargin = unpaid ? r.expectedMargin : r.collectedMargin;
                   return (
                     <li
                       key={r.id}
@@ -267,7 +268,10 @@ export default function Margine() {
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="truncate text-sm font-semibold text-stone-800">{r.name}</span>
+                          <span className={
+                            "truncate text-sm font-semibold " +
+                            (unpaid ? "text-stone-500" : "text-stone-800")
+                          }>{r.name}</span>
                           {partial && (
                             <span className="shrink-0 rounded-full bg-[#FBF1DE] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A1F]">
                               acconto
@@ -282,10 +286,13 @@ export default function Margine() {
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className={`font-display text-base font-bold tabular-nums ${
-                          r.collectedMargin >= 0 ? "text-[#2E5A47]" : "text-red-600"
-                        }`}>
-                          {formatEUR(r.collectedMargin)}
+                        <div className={
+                          "font-display text-base font-bold tabular-nums " +
+                          (unpaid
+                            ? "text-stone-400"
+                            : shownMargin >= 0 ? "text-[#2E5A47]" : "text-red-600")
+                        }>
+                          {formatEUR(shownMargin)}
                         </div>
                         {partial ? (
                           <div className="text-[10px] text-stone-500">
@@ -300,9 +307,9 @@ export default function Margine() {
             </section>
           )}
 
-          {visibleRows.length === 0 && (
+          {rows.length === 0 && (
             <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 py-10 text-center text-sm text-stone-500">
-              Nessun lavoro incassato in {MONTHS[month - 1].toLowerCase()} {year}.
+              Nessun lavoro eseguito registrato in {MONTHS[month - 1].toLowerCase()} {year}.
             </div>
           )}
         </>
