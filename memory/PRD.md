@@ -176,6 +176,19 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Margine: logica attribuzione metodo di pagamento in 3 passi
+**Richiesta utente:** "Si che hanno un metodo di pagamento. L'ho messo. Non deve andare in automatico con pos o bonifico se non lo inserisco". Screenshot ha rivelato: Leonardo Panzironi aveva un payment entry con `amount=0` e `method="bonifico"` (fattura emessa, saldo da arrivare) ma il filtro `amount>0` lo escludeva dal calcolo.
+**Fix solo frontend `Margine.jsx`:**
+- Rimosso l'auto-fallback a bonifico (user ha detto no)
+- Nuovo `byMethod` a 3 passi:
+  1. **Paid payments** (amount>0) → margine effettivamente incassato attribuito al loro metodo con distribuzione pro-quota dei materiali
+  2. **Residuo** (expectedMargin − collectedMargin) → cerca un **intentPayment** = payment con `amount<=0` e metodo valido → attribuisce il residuo a quel metodo
+  3. Se nessun intentPayment, usa `c.payment_method` del cliente
+  4. Se neanche quello è valido → **NON contribuisce** (niente ipotesi automatiche)
+**Bug risolto in iter28:** `intentPayment` prima pescava il primo payment con metodo valido, pescando quelli già pagati e deviando il residuo nel bucket sbagliato. Fix: filtro aggiuntivo `(Number(p.amount)||0) <= 0`.
+**Testing:** 5/5 scenari passati in iter28 (A paid-contanti, B amount=0-bonifico, C legacy-pos, D empty-no-contrib, E mixed paid+intent).
+
+
 ### Feb 2026 — Margine: lavori non incassati tornano in pieno colore e nei totali
 **Richiesta utente:** "Non voglio vederli trasparenti gli importi da incassare. Voglio vederli già nel conteggio. Ma quelli prima si trovavano nell incasso dei contanti invece devono stare nell incasso aziendale."
 **Fix solo frontend `Margine.jsx`:**
