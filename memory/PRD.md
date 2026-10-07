@@ -176,6 +176,14 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Fix Margine: totali per metodo basati SOLO sui pagamenti registrati
+**Bug (follow-up):** anche dopo il primo fix (usare `/api/summary.incassi_margine_by_method`), i totali per metodo restavano sbagliati per lavori con solo campo legacy `payment_method` settato (default) e nessuna entry in `payments[]`. Il backend attribuiva il margine al metodo di default anche se nessun pagamento era stato davvero registrato.
+**Fix solo frontend `Margine.jsx`:** la pagina NON chiama più `/api/summary` per i totali per metodo. Calcola localmente scorrendo `payments[]` di ogni lavoro:
+- Per ciascun pagamento → split IVA → imp → materials pro-quota → margine_p → accumula in `acc[method]`
+- Lavori senza `payments[]` NON contribuiscono ai totali per metodo (mostrati come "non incassato" nella lista)
+- Backend `_compute_summary` lasciato INVARIATO per compatibilità con test e altre pagine (Riepilogo, Incassi) che usano logica cash flow + legacy
+
+
 ### Feb 2026 — Fix bug Margine: mostrava più contanti di quelli incassati
 **Bug:** utente: "questo mese è iniziato da sette giorni e il margine mi dà più contante di quelli che ho incassato". `Margine.jsx` calcolava `imp − mat` sul lavoro INTERO (anche solo con acconto) e lo attribuiva tutto al metodo dell'acconto → se eseguito €1000 con acconto €300 contanti, mostrava €1000 contanti anziché €300 (meno quota materiali).
 **Fix in `pages/Margine.jsx`:**

@@ -20,7 +20,6 @@ export default function Margine() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [clients, setClients] = useState([]);
-  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 
@@ -29,14 +28,13 @@ export default function Margine() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      api.get(`/clients?month=${monthKey}`).then((r) => r.data || []).catch(() => []),
-      api.get(`/summary?month=${monthKey}`).then((r) => r.data).catch(() => null),
-    ])
-      .then(([cs, s]) => {
+    api.get(`/clients?month=${monthKey}`)
+      .then((r) => {
         if (cancelled) return;
-        setClients(cs.filter((c) => c.status === "lavoro_eseguito"));
-        setSummary(s);
+        setClients((r.data || []).filter((c) => c.status === "lavoro_eseguito"));
+      })
+      .catch(() => {
+        if (!cancelled) setClients([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -46,16 +44,43 @@ export default function Margine() {
     };
   }, [monthKey]);
 
-  // Totali per metodo di pagamento = margine REALMENTE INCASSATO (dal backend).
-  // È il valore corretto da esporre: coincide con quello mostrato in Riepilogo.
+  // Totali per metodo = margine REALMENTE INCASSATO, calcolato SOLO dai
+  // pagamenti registrati nella sezione "Pagamenti/Fatture" di ogni scheda.
+  // Non usiamo /api/summary qui perché aggrega anche lavori "legacy" senza
+  // payments[] (con solo payment_method salvato come default): questo falsa
+  // il margine per metodo quando l'utente non ha ancora registrato il pagamento
+  // reale. Riepilogo usa logica diversa (visione cash flow + legacy): non ci
+  // confrontiamo con quello qui.
   const byMethod = useMemo(() => {
-    const src = summary?.incassi_margine_by_method || {};
-    return {
-      contanti: Number(src.contanti) || 0,
-      pos: Number(src.pos) || 0,
-      bonifico: Number(src.bonifico) || 0,
+    const _split = (amount, vat, wh) => {
+      const divisor = 1 + (Number(vat || 0) - Number(wh || 0)) / 100;
+      const d = divisor <= 0 ? 1 : divisor;
+      return amount / d;
     };
-  }, [summary]);
+    const acc = { contanti: 0, pos: 0, bonifico: 0 };
+    clients.forEach((c) => {
+      const vat = c.vat_rate == null ? 0 : Number(c.vat_rate);
+      const wh = c.withholding_rate == null ? 0 : Number(c.withholding_rate);
+      const matTotal = computeMaterialsTotal(c.materials);
+      const payments = (c.payments || []).filter((p) => Number(p.amount) > 0);
+      if (payments.length === 0) return;
+      const clientImpTotal = payments.reduce(
+        (s, p) => s + _split(Number(p.amount) || 0, vat, wh),
+        0,
+      );
+      payments.forEach((p) => {
+        const imp = _split(Number(p.amount) || 0, vat, wh);
+        const share = clientImpTotal > 0 ? imp / clientImpTotal : 0;
+        const matShare = matTotal * share;
+        const marginP = imp - matShare;
+        const m = (p.method || "").trim();
+        if (m === "contanti" || m === "pos" || m === "bonifico") {
+          acc[m] += marginP;
+        }
+      });
+    });
+    return acc;
+  }, [clients]);
 
   const totalMargin = useMemo(
     () => byMethod.contanti + byMethod.pos + byMethod.bonifico,
@@ -96,9 +121,9 @@ export default function Margine() {
         });
       } else if (
         c.status === "lavoro_eseguito" &&
-        (c.payment_method || c.invoice_number)
+        (c.invoice_number || "").trim()
       ) {
-        // Legacy: considerato saldato
+        // Legacy esplicito con numero fattura: considerato saldato.
         collectedImp = expectedImp;
         collectedMargin = expectedMargin;
       }
