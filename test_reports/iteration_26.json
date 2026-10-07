@@ -1,0 +1,20 @@
+{
+  "summary": "Frontend-only verification of /margine iter26 on live preview. Seeded 5 TEST_IT26 clients in 2026-11 via Firebase REST + /api/clients covering all byMethod branches: (A) paid 500€ with payments[contanti]; (B) legacy 1000€ payment_method=bonifico, no payments[]; (C) legacy 800€ payment_method=contanti, no payments[]; (D) legacy 600€ payment_method='' (empty); (E) legacy 400€ with no payment_method field at all. After UI login and selecting Novembre 2026, every spec assertion passed: TOTAL CARD shows '+ 3300,00 €' with '5 lavori eseguiti'; CONTANTI bucket = 1300,00 € (A 500 + C 800); BONIFICO/POS = 2000,00 € (Bonifico 2000,00 · POS 0,00 — composed of B 1000 + D 600 fallback + E 400 fallback). All 5 rows render in full color (name 'truncate text-sm font-semibold text-stone-800', amount 'font-display text-base font-bold tabular-nums text-[#2E5A47]') including D (empty payment_method) and E (no payment_method). No 'ancora da incassare' or 'non incassato' strings anywhere in DOM. Each row has data-testid 'margine-row-{id}' with inner <button data-testid='margine-row-open-{id}'>; clicking row A opens ClientFormDialog with name input pre-filled 'TEST_IT26 A paid contanti'. All 5 TEST_IT26 clients cleaned up via DELETE 200.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/test_reports/screenshots/iter26_margine.jpeg"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Margine.jsx byMethod (lines 56-98): fallback 'else' branch correctly attributes payments[]-empty jobs with empty/invalid payment_method to acc.bonifico, matching user intent ('conto aziendale' = Bonifico/POS by default). 'contanti'/'pos' explicit methods still route to their own buckets. Behavior verified on all 5 seeded scenarios.",
+    "Margine.jsx rows (lines 109-166): fully-unpaid rows (payments[].length===0) fall back to expectedMargin at full color — isPending retained but not used for visual muting. 'partial' pill still only fires when collectedMargin < expectedMargin AND > 0 (none of the 5 scenarios triggered it, as expected).",
+    "Minor cleanup opportunity (unchanged from iter25): rows[].pending (line 159) is still computed but no longer consumed in JSX; could be removed for code hygiene.",
+    "A11y warning observed in console: 'Missing Description or aria-describedby for DialogContent' when ClientFormDialog opens — low priority but worth adding a Radix DialogDescription for a11y compliance."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (all iter26 assertions pass across all 5 scenarios)"},
+  "test_credentials": "Ephemeral Firebase user via REST signUp (testuser+iter26<ts><uuid>@italserrande.test / TestPassword123!) per /app/memory/test_credentials.md.",
+  "seed_data_creation": "5 TEST_IT26 clients seeded in 2026-11 via POST /api/clients covering all byMethod fallback branches (paid+payments, legacy+bonifico, legacy+contanti, legacy+empty, legacy+no_method). All 5 deleted after test (DELETE 200).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iter26 confirmed on preview: /margine byMethod now routes payments[]-empty jobs with empty/invalid/missing payment_method to the Bonifico bucket as default ('conto aziendale'). Explicit 'contanti'/'pos' still route correctly. Totals match spec exactly: Contanti 1300 + Bonifico/POS 2000 = 3300 for the 5 scenarios A/B/C/D/E. All rows in full color, clickable, and dialog pre-filled correctly. EUR format on this preview is compact ('3300,00 €') without thousand-separator dot. The user's original production data (6 jobs in ottobre 2026 — Leonardo 760, Leonardo 370, Pannone 240 legacy-no-method + Paola/Antonio/Pub piso paid) should now all contribute to the totals per the same fallback logic."
+}

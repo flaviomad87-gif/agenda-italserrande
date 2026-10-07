@@ -47,53 +47,62 @@ export default function Margine() {
     };
   }, [monthKey]);
 
-  // Totali per metodo = margine attribuito a Contanti/Bonifico/POS, basato:
-  //   • sui pagamenti registrati in payments[] (prioritari) con il loro metodo;
-  //   • oppure, se un lavoro eseguito non ha payments[] (dato "legacy"),
-  //     sul payment_method salvato sulla scheda del cliente.
-  // In questo modo anche i lavori ancora da incassare (ma marcati con il
-  // metodo che il cliente USERÀ) finiscono nel bucket giusto.
+  // Totali per metodo = margine attribuito a Contanti/Bonifico/POS, basato su:
+  //   • pagamenti con amount>0 (prioritari): usano il loro metodo per il
+  //     margine effettivamente incassato;
+  //   • pagamento con amount=0 ma METODO scelto (fattura emessa ma non ancora
+  //     saldata): il metodo salvato indica dove verrà il saldo → attribuisce
+  //     il margine ATTESO residuo a quel bucket;
+  //   • se non ci sono né pagamenti né payment_method sulla scheda, il lavoro
+  //     NON contribuisce ai totali (niente ipotesi automatiche).
   const byMethod = useMemo(() => {
     const _split = (amount, vat, wh) => {
       const divisor = 1 + (Number(vat || 0) - Number(wh || 0)) / 100;
       const d = divisor <= 0 ? 1 : divisor;
       return amount / d;
     };
+    const _validMethod = (m) =>
+      m === "contanti" || m === "pos" || m === "bonifico";
     const acc = { contanti: 0, pos: 0, bonifico: 0 };
     clients.forEach((c) => {
       const vat = c.vat_rate == null ? 0 : Number(c.vat_rate);
       const wh = c.withholding_rate == null ? 0 : Number(c.withholding_rate);
       const matTotal = computeMaterialsTotal(c.materials);
-      const payments = (c.payments || []).filter((p) => Number(p.amount) > 0);
-      if (payments.length > 0) {
-        const clientImpTotal = payments.reduce(
+      const expectedMargin = (Number(c.amount) || 0) - matTotal;
+      const allPayments = c.payments || [];
+      const paidPayments = allPayments.filter((p) => Number(p.amount) > 0);
+
+      // Margine effettivamente incassato: viene dai paidPayments e usa i loro
+      // metodi. Teniamo conto della distribuzione pro-quota dei materiali.
+      let collectedMargin = 0;
+      if (paidPayments.length > 0) {
+        const clientImpTotal = paidPayments.reduce(
           (s, p) => s + _split(Number(p.amount) || 0, vat, wh),
           0,
         );
-        payments.forEach((p) => {
+        paidPayments.forEach((p) => {
           const imp = _split(Number(p.amount) || 0, vat, wh);
           const share = clientImpTotal > 0 ? imp / clientImpTotal : 0;
           const matShare = matTotal * share;
           const marginP = imp - matShare;
+          collectedMargin += marginP;
           const m = (p.method || "").trim();
-          if (m === "contanti" || m === "pos" || m === "bonifico") {
-            acc[m] += marginP;
-          }
+          if (_validMethod(m)) acc[m] += marginP;
         });
-      } else {
-        // Nessun pagamento registrato → usa il payment_method del cliente
-        // (preferenza/legacy). Attribuisce il margine ATTESO al bucket indicato.
-        // Default: se il metodo non è specificato (empty), lo contiamo come
-        // "Bonifico/POS" perché per l'utente è il "conto aziendale" di default.
-        const m = (c.payment_method || "").trim();
-        const amt = Number(c.amount) || 0;
-        const marginExpected = amt - matTotal;
-        if (m === "contanti" || m === "pos") {
-          acc[m] += marginExpected;
-        } else {
-          // "bonifico" esplicito oppure vuoto/non valido → bonifico come default
-          acc.bonifico += marginExpected;
-        }
+      }
+
+      // Residuo = margine atteso non ancora incassato. Lo attribuiamo al
+      // metodo "annunciato" dall'utente (payment entry con amount=0 che ha
+      // già un metodo scelto) oppure al payment_method del cliente.
+      const remaining = expectedMargin - collectedMargin;
+      if (remaining > 0.01) {
+        const intentPayment = allPayments.find((p) =>
+          _validMethod((p.method || "").trim()),
+        );
+        const method = intentPayment
+          ? (intentPayment.method || "").trim()
+          : (c.payment_method || "").trim();
+        if (_validMethod(method)) acc[method] += remaining;
       }
     });
     return acc;
