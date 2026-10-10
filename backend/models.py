@@ -378,7 +378,7 @@ class TimeEntryCreate(BaseModel):
     date: str
     clock_in: Optional[str] = None
     clock_out: Optional[str] = None
-    break_minutes: int = 60
+    break_minutes: Optional[int] = None
     notes: Optional[str] = ""
 
 

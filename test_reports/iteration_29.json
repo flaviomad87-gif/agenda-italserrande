@@ -1,0 +1,31 @@
+{
+  "summary": "Backend-only testing of iter29 idempotency fix for POST /api/time-entries. Core fix VERIFIED (3/6): no duplicates are created on double-POST (S1), merge of clock_out onto existing entry works (S2 clock_in preserved + id preserved), PUT still works (S4), GET filters regression OK (S5). 3 tests failed revealing a RELATED bug in the merge/fallback: TimeEntryCreate.break_minutes is declared as `int = 60` (non-optional) in /app/backend/models.py line 381, so Pydantic always populates it with 60 even when the frontend omits it. Consequence: (a) on CREATE the employee default_break_minutes fallback never applies (always 60) — S3 fail; (b) on idempotent POST merge, break_minutes is always overwritten to 60 — S2/S6 fail. The main duplicate-prevention goal is achieved, but the merge is NOT fully 'preserve existing' as the review request requires.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/time-entries", "issue": "break_minutes in TimeEntryCreate is non-Optional with default 60 (models.py:381). This makes payload.break_minutes always non-None, so (1) the employee default_break_minutes fallback at employees.py:154 never fires, and (2) idempotent POST at employees.py:137-138 overwrites a previously saved break_minutes with 60 on every subsequent POST that omits the field. This re-introduces the exact 'ore ballerine' symptom the user reported, because every re-open of the timbratura changes break_minutes 30/45 → 60, changing worked minutes.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter29_time_entries_idempotency.py",
+    "/app/test_reports/pytest/iter29_results.xml"
+  ],
+  "action_items": [
+    "In /app/backend/models.py: change `class TimeEntryCreate` field `break_minutes: int = 60` to `break_minutes: Optional[int] = None`. This single change makes employees.py:137 (`if payload.break_minutes is not None`) and employees.py:154 (`else emp.get('default_break_minutes', 60)`) actually work as intended by the idempotency fix.",
+    "After the model fix, re-run /app/backend/tests/test_iter29_time_entries_idempotency.py — expected 6/6 pass."
+  ],
+  "critical_code_review_comments": [
+    "models.py TimeEntryCreate.break_minutes default=60 silently defeats both the per-employee default_break_minutes fallback AND the idempotent merge preservation. The server-side logic at employees.py:137,154 is correct, but the model layer makes those branches dead code.",
+    "Consider also making TimeEntryCreate.clock_in / clock_out / notes handling consistent: they are Optional[str]=None so merge works for them; break_minutes is the odd one out.",
+    "Potential race: concurrent double-tap POSTs could still both pass the find_one check and insert two docs. A unique compound index on (user_id, employee_id, date) in db.time_entries would make the idempotency guarantee race-safe at the DB layer."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter29_time_entries_idempotency.py"],
+  "success_rate": {"backend": "3/6 (50%) — core no-duplicate guarantee passes; break_minutes merge/fallback fails due to model default", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Ephemeral Firebase user via REST signUp (testuser+i29<ts><uuid>@italserrande.test / TestPassword123!).",
+  "seed_data_creation": "Created 1 TEST_IT29 employee (daily_hours=8, default_break_minutes=45) and 5 time entries in 2027-07. All cleaned up in module teardown (fixture `emp_id`).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iter29: idempotency POST merge works for id/clock_in/clock_out, but break_minutes is clobbered because TimeEntryCreate.break_minutes default is 60 (non-Optional). After main agent flips it to Optional[int]=None, re-run test_iter29_time_entries_idempotency.py — all 6 scenarios should pass. The test uses an employee with default_break_minutes=45 and a scenario (S6) with explicit break=30 to catch both regressions. Also consider adding a unique index on (user_id, employee_id, date) for race safety.",
+  "rca of the issue": "User-reported bug: 'ogni volta che apre e chiude la timbratura il bilancio ore diventa più negativo'. Original cause (fixed in this iteration): POST /time-entries was non-idempotent, so double-tap or widget+edit flows created duplicate rows per (employee_id, date). Frontend dedup via Map could prefer an incomplete duplicate (clock_in only) over the complete one, zeroing out a worked day and making the balance drift negative. Fix applied: employees.py now does find_one by (user_id, employee_id, date) and $set-merges the provided fields instead of inserting. Residual bug found by this testing: because TimeEntryCreate.break_minutes defaults to 60 (not None), every re-POST silently sets break_minutes to 60, so a 45-min or 30-min break day will drift to 60 after any UI re-open — same symptom as before, smaller magnitude (±15–30 min/day). Mitigation: change the Pydantic field to Optional[int] = None so the merge branch truly preserves and the create branch falls back to employee.default_break_minutes."
+}
