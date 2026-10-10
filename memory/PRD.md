@@ -176,6 +176,15 @@ Al termine dei 3 step, apre `ClientFormDialog` pre-riempito con i 3 valori per l
 **Fix:** in `ProssimiLavori.jsx` i pulsanti "Vista settimana", "Stampa", "Voce" mostrano solo l'icona sotto 640px (con `aria-label`/`title`); "Nuovo lavoro" resta con testo essendo il CTA principale. `shrink-0` + `flex-nowrap` per evitare taglio.
 
 
+### Feb 2026 — Fix bilancio ore sempre più negativo (timbrature duplicate)
+**Bug utente:** "ogni volta che apro e chiudo la timbratura mi dà più ore che deve recuperare". Il bilancio ore del dipendente diventava sempre più negativo dopo ogni ciclo clock-in/clock-out.
+**Causa:** la `POST /api/time-entries` non era idempotente. Un doppio salvataggio (widget + edit, doppio tap, ecc.) creava DUPLICATI nel DB. Il frontend deduplicava via `Map(employee_id|date)` ma poteva "vincere" il duplicato incompleto (solo clock_in, senza clock_out) → giornata non conteggiata → delta accumulato negativo.
+**Fix in `backend/routes/employees.py`:** POST ora cerca entry esistente per `(user_id, employee_id, date)` e se trovata fa `$set` merge dei campi forniti invece di `insert_one`. Resto invariato per retrocompat con il flusso create.
+**Fix secondario in `backend/models.py`:** `TimeEntryCreate.break_minutes` da `int = 60` a `Optional[int] = None` → senza questo il merge sovrascriveva sempre break_minutes a 60, azzerando pause custom tipo 45min → stesso sintomo ma di magnitudine minore.
+**Fix difensivo in `frontend/pages/OreLavoro.jsx`:** `entriesByEmpDate` Map ora preferisce entry con sia clock_in sia clock_out quando esistono duplicati residui pre-fix.
+**Testing:** iter30 6/6 passati (idempotency, merge preservation, default fallback, PUT invariato, GET filters OK).
+
+
 ### Feb 2026 — Margine: logica attribuzione metodo di pagamento in 3 passi
 **Richiesta utente:** "Si che hanno un metodo di pagamento. L'ho messo. Non deve andare in automatico con pos o bonifico se non lo inserisco". Screenshot ha rivelato: Leonardo Panzironi aveva un payment entry con `amount=0` e `method="bonifico"` (fattura emessa, saldo da arrivare) ma il filtro `amount>0` lo escludeva dal calcolo.
 **Fix solo frontend `Margine.jsx`:**
