@@ -106,9 +106,45 @@ async def list_time_entries(
 
 @router.post("/time-entries", response_model=TimeEntry)
 async def create_time_entry(payload: TimeEntryCreate, user=Depends(get_current_user)):
+    """Crea una nuova timbratura per il dipendente sul giorno indicato.
+
+    Idempotente per (user_id, employee_id, date): se esiste già una timbratura
+    per quel giorno, la aggiorna invece di creare un duplicato. Questo evita
+    doppi conteggi del delta quando il frontend chiama POST due volte per
+    sbaglio (es. mentre la UI non è ancora sincronizzata dopo la prima POST).
+    """
     emp = await db.employees.find_one({"id": payload.employee_id, "user_id": user["uid"]}, {"_id": 0})
     if not emp:
         raise HTTPException(404, "Employee not found")
+
+    # Idempotency: se esiste già una entry per (employee_id, date), aggiornala.
+    existing = await db.time_entries.find_one(
+        {
+            "user_id": user["uid"],
+            "employee_id": payload.employee_id,
+            "date": payload.date,
+        },
+        {"_id": 0},
+    )
+    if existing:
+        updates = {"updated_at": datetime.now(timezone.utc)}
+        # Imposta solo i campi forniti nel payload. Mantiene i valori esistenti
+        # per i campi non specificati (comportamento "merge").
+        if payload.clock_in is not None:
+            updates["clock_in"] = payload.clock_in
+        if payload.clock_out is not None:
+            updates["clock_out"] = payload.clock_out
+        if payload.break_minutes is not None:
+            updates["break_minutes"] = payload.break_minutes
+        if payload.notes is not None and payload.notes != "":
+            updates["notes"] = payload.notes
+        await db.time_entries.update_one(
+            {"id": existing["id"], "user_id": user["uid"]},
+            {"$set": updates},
+        )
+        existing.update(updates)
+        return existing
+
     entry = TimeEntry(
         user_id=user["uid"],
         employee_id=payload.employee_id,

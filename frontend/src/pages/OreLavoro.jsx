@@ -61,7 +61,24 @@ export default function OreLavoro() {
   const entriesByEmpDate = useMemo(() => {
     const map = new Map();
     entries.forEach((e) => {
-      map.set(`${e.employee_id}|${e.date}`, e);
+      const key = `${e.employee_id}|${e.date}`;
+      const prev = map.get(key);
+      if (!prev) {
+        map.set(key, e);
+        return;
+      }
+      // Se esistono duplicati per lo stesso (dipendente, giorno), preferiamo
+      // quello che ha SIA clock_in SIA clock_out (giornata completa). Se nessuno
+      // dei due è completo, teniamo quello con più informazioni (clock_in prima
+      // di clock_out). In questo modo i duplicati residui non falsano il delta.
+      const prevComplete = !!(prev.clock_in && prev.clock_out);
+      const curComplete = !!(e.clock_in && e.clock_out);
+      if (curComplete && !prevComplete) {
+        map.set(key, e);
+      } else if (!curComplete && !prevComplete) {
+        // Entrambi incompleti: preferisci quello con clock_in presente.
+        if (!prev.clock_in && e.clock_in) map.set(key, e);
+      }
     });
     return map;
   }, [entries]);
