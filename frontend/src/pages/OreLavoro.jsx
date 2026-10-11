@@ -93,9 +93,12 @@ export default function OreLavoro() {
         const en = entriesByEmpDate.get(key);
         if (en && en.clock_in && en.clock_out) {
           const w = workedMinutes(en);
+          const wk = isWeekend(d);
           workedTotal += w;
-          workedDays += 1;
-          total += dayDelta(en, emp.daily_hours);
+          // Le giornate "contrattuali" contano solo i feriali, cosi' la base
+          // mostrata (es. "7 giornate · base 8h/g") riflette l'aspettativa reale.
+          if (!wk) workedDays += 1;
+          total += dayDelta(en, emp.daily_hours, wk);
         }
       });
       return { emp, deltaMinutes: total, workedTotal, workedDays };
@@ -277,7 +280,7 @@ function DayRow({ day, dateIso, entry, employee, isWk, onChange }) {
   }, [entry, employee.default_break_minutes]);
 
   const worked = entry ? workedMinutes(entry) : 0;
-  const delta = entry ? dayDelta(entry, employee.daily_hours) : 0;
+  const delta = entry ? dayDelta(entry, employee.daily_hours, isWk) : 0;
 
   const save = async () => {
     if (!inTime && !outTime) {

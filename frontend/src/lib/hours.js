@@ -50,10 +50,14 @@ export const formatMinutes = (mins, { withSign = false } = {}) => {
   return `${sign}${h}h ${String(m).padStart(2, "0")}'`;
 };
 
-/** Delta giornaliero: ore lavorate − ore contrattuali (in minuti). */
-export const dayDelta = (entry, dailyHours) => {
+/** Delta giornaliero: ore lavorate − ore contrattuali (in minuti).
+ *  Nel weekend (sab/dom) le ore contrattuali non si applicano: tutte le ore
+ *  lavorate contano come recupero positivo (bonus). Se non si lavora, delta = 0.
+ */
+export const dayDelta = (entry, dailyHours, isWeekend = false) => {
   const worked = workedMinutes(entry);
   if (worked === 0) return 0;
+  if (isWeekend) return worked;
   return worked - Math.round((dailyHours || 8) * 60);
 };
 
