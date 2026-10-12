@@ -15,7 +15,7 @@ export const newUUID = () =>
     : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 // Endpoint di creazione che accettano un id idempotente client-side.
-const CREATE_ROUTES = ["/clients", "/expenses", "/advances", "/recurring-expenses"];
+const CREATE_ROUTES = ["/clients", "/expenses", "/advances", "/recurring-expenses", "/materials"];
 
 // Allega automaticamente l'ID token Firebase + inietta id client-side per i creates
 api.interceptors.request.use(async (config) => {

@@ -395,3 +395,30 @@ DEFAULT_EMPLOYEES = [
     {"name": "Alfonso Pomponio", "sort_order": 0},
     {"name": "Bruno Pucci", "sort_order": 1},
 ]
+
+
+# ---------- Magazzino (lista materiale officina) ----------
+
+class StockItemBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str
+    quantity: float = 0.0
+    notes: Optional[str] = ""
+
+
+class StockItemCreate(StockItemBase):
+    id: Optional[str] = None  # idempotency key opzionale
+
+
+class StockItemUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: Optional[str] = None
+    quantity: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class StockItem(StockItemBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

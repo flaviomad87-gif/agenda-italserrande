@@ -15,6 +15,7 @@ import {
   BriefcaseBusiness,
   TrendingUp,
   Truck,
+  Package,
   Menu,
   X,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const secondaryNav = [
   { to: "/ore-lavoro", label: "Ore Lavoro", icon: BriefcaseBusiness, testId: "nav-ore-lavoro" },
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
   { to: "/fornitori", label: "Fornitori", icon: Truck, testId: "nav-fornitori" },
+  { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino" },
   // Riepilogo temporaneamente nascosto su richiesta utente: calcoli non
   // ancora allineati alle sue aspettative. La pagina e le rotte restano
   // funzionanti; per riabilitarla basta ripristinare questa voce.
