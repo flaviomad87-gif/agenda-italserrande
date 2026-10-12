@@ -1,12 +1,12 @@
-// Service worker v3 — pre-cache completa dell'app shell per offline robusto.
+// Service worker v4 — pre-cache completa dell'app shell per offline robusto.
 // Strategia:
 //   1. install → fetch /asset-manifest.json e pre-cacha TUTTI i bundle JS/CSS dell'app
 //   2. fetch  → HTML network-first con fallback affidabile a /index.html cached
 //                static cache-first con revalidate in background
 //   3. message → SKIP_WAITING per attivazione immediata di nuove versioni
 
-const APP_CACHE = "agenda-italserrande-app-v3";
-const HTML_CACHE = "agenda-italserrande-html-v3";
+const APP_CACHE = "agenda-italserrande-app-v4";
+const HTML_CACHE = "agenda-italserrande-html-v4";
 
 // Risorse minime sempre necessarie
 const CORE_ASSETS = [
