@@ -13,6 +13,17 @@ import {
   Loader2,
   PackageOpen,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../components/ui/dialog";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
 
 /**
  * Pagina Magazzino: lista materiale presente in officina.
@@ -378,95 +389,107 @@ function AddDialog({
   onSubmit,
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
-      onClick={onClose}
-      data-testid="materials-add-dialog"
-    >
-      <div
-        className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent
+        className="max-h-[92dvh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-md"
+        style={{ scrollPaddingBottom: "25vh", scrollPaddingTop: "2rem" }}
+        data-testid="materials-add-dialog"
       >
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-bold">Nuovo materiale</h2>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 hover:bg-stone-100"
-            aria-label="Chiudi"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl">Nuovo materiale</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
+          className="space-y-4"
+          onFocusCapture={(e) => {
+            // Fix Android Chrome: quando si apre la tastiera virtuale il dialog
+            // a volte resetta lo scroll in alto. Ripristiniamo la vista
+            // sull'input focalizzato dopo che la tastiera e' aperta.
+            const target = e.target;
+            if (!target || !(target instanceof HTMLElement)) return;
+            if (!["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+            window.setTimeout(() => {
+              try {
+                target.scrollIntoView({ block: "center", behavior: "smooth" });
+              } catch {
+                /* ignore */
+              }
+            }, 350);
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="mat-name" className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">
               Nome
-            </span>
-            <input
+            </Label>
+            <Input
+              id="mat-name"
               autoFocus
               value={name}
               onChange={(e) => onName(e.target.value)}
               placeholder="Es. Avvolgibile PVC 150cm"
-              className="mt-1 h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm text-stone-800 focus:border-[#4A5D23] focus:outline-none"
               data-testid="materials-new-name"
             />
-          </label>
+          </div>
 
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">
-              Quantità
-            </span>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="mat-qty" className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+              Quantita'
+            </Label>
+            <Input
+              id="mat-qty"
               type="number"
               inputMode="decimal"
               step="0.5"
               min="0"
               value={qty}
               onChange={(e) => onQty(e.target.value)}
-              className="mt-1 h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm tabular-nums text-stone-800 focus:border-[#4A5D23] focus:outline-none"
+              className="tabular-nums"
               data-testid="materials-new-qty"
             />
-          </label>
+          </div>
 
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+          <div className="space-y-1.5">
+            <Label htmlFor="mat-notes" className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">
               Note (opzionale)
-            </span>
-            <textarea
+            </Label>
+            <Textarea
+              id="mat-notes"
               value={notes}
               onChange={(e) => onNotes(e.target.value)}
               rows={3}
-              placeholder="Marca, misure, scaffale…"
-              className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-[#4A5D23] focus:outline-none"
+              placeholder="Marca, misure, scaffale..."
               data-testid="materials-new-notes"
             />
-          </label>
-        </div>
+          </div>
 
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="inline-flex h-11 items-center gap-1 rounded-xl border border-stone-300 px-4 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
-          >
-            Annulla
-          </button>
-          <button
-            onClick={onSubmit}
-            disabled={saving}
-            className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[#4A5D23] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#3C4C1C] disabled:opacity-50"
-            data-testid="materials-new-submit"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            Aggiungi
-          </button>
-        </div>
-      </div>
-    </div>
+          <DialogFooter className="gap-2 pt-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={saving}
+            >
+              Annulla
+            </Button>
+            <Button
+              type="submit"
+              disabled={saving}
+              className="bg-[#4A5D23] hover:bg-[#3C4C1C]"
+              data-testid="materials-new-submit"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Aggiungi
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
