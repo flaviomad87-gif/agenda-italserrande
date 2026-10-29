@@ -12,6 +12,11 @@ root.render(
 
 // PWA service worker — auto-update quando arriva una nuova versione
 if ("serviceWorker" in navigator) {
+  // Snapshot del controller PRIMA della registrazione: se null al load vuol
+  // dire che e' la prima installazione; evita il reload extra causato da
+  // clients.claim() quando il SW prende il controllo per la prima volta.
+  const hadControllerAtLoad = Boolean(navigator.serviceWorker.controller);
+
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/sw.js")
@@ -29,10 +34,15 @@ if ("serviceWorker" in navigator) {
       })
       .catch((err) => console.warn("SW registration failed:", err));
 
-    // Quando il SW prende il controllo, ricarica per usare gli asset nuovi
+    // Quando il SW prende il controllo, ricarica per usare gli asset nuovi.
+    // Al primo install (nessun controller precedente) NON ricarichiamo:
+    // il reload sarebbe inutile e confonderebbe l'utente.
     let refreshing = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (refreshing) return;
+      if (refreshing || !hadControllerAtLoad) {
+        refreshing = true;
+        return;
+      }
       refreshing = true;
       window.location.reload();
     });

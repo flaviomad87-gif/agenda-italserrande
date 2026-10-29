@@ -76,22 +76,31 @@ async def adjust_material_quantity(
     delta: float,
     user=Depends(get_current_user),
 ):
-    """Incrementa/decrementa la quantità di `delta` (es. +1, -1).
-    Idempotente dal punto di vista semantico: client passa il delta,
-    il server applica $inc atomicamente. Non va mai sotto 0.
+    """Incrementa/decrementa la quantita' di `delta` in modo ATOMICO.
+
+    Usa una pipeline update MongoDB (singola operazione) cosi' due dispositivi
+    o la replay della coda offline non perdono aggiornamenti. Clamp a 0.
     """
-    doc = await db.materials.find_one(
-        {"id": material_id, "user_id": user["uid"]}, {"_id": 0}
-    )
-    if not doc:
-        raise HTTPException(404, "Materiale non trovato")
-    new_qty = max(0.0, float(doc.get("quantity") or 0.0) + float(delta or 0.0))
     res = await db.materials.find_one_and_update(
         {"id": material_id, "user_id": user["uid"]},
-        {"$set": {"quantity": new_qty, "updated_at": _now_iso()}},
+        [
+            {
+                "$set": {
+                    "quantity": {
+                        "$max": [
+                            0.0,
+                            {"$add": [{"$ifNull": ["$quantity", 0.0]}, float(delta or 0.0)]},
+                        ]
+                    },
+                    "updated_at": _now_iso(),
+                }
+            }
+        ],
         return_document=True,
         projection={"_id": 0},
     )
+    if not res:
+        raise HTTPException(404, "Materiale non trovato")
     return res
 
 

@@ -91,6 +91,7 @@ export default function Magazzino() {
   };
 
   const adjust = async (item, delta) => {
+    if (item._optimistic) return; // Evita 404 su righe non ancora salvate
     const prevQty = item.quantity || 0;
     const nextQty = Math.max(0, prevQty + delta);
     if (nextQty === prevQty) return;
@@ -98,10 +99,27 @@ export default function Magazzino() {
       prev.map((p) => (p.id === item.id ? { ...p, quantity: nextQty } : p)),
     );
     try {
-      await api.post(`/materials/${item.id}/adjust`, null, { params: { delta } });
+      const res = await api.post(`/materials/${item.id}/adjust`, null, {
+        params: { delta },
+      });
+      // Sincronizza con il valore autoritativo del server (gestisce race condition
+      // con altri device o replay della coda offline)
+      if (res?.data?.quantity !== undefined) {
+        setItems((prev) =>
+          prev.map((p) =>
+            p.id === item.id ? { ...p, quantity: res.data.quantity } : p,
+          ),
+        );
+      }
     } catch {
+      // Rollback relativo (per -delta) invece che assoluto: cosi' tap veloci
+      // concorrenti non si annullano a vicenda in caso di errore su uno
       setItems((prev) =>
-        prev.map((p) => (p.id === item.id ? { ...p, quantity: prevQty } : p)),
+        prev.map((p) =>
+          p.id === item.id
+            ? { ...p, quantity: Math.max(0, (p.quantity || 0) - delta) }
+            : p,
+        ),
       );
       toast.error("Errore");
     }
@@ -241,15 +259,17 @@ const formatQty = (q) => {
 function MaterialRow({ item, onAdjust, onDelete, onEdit }) {
   const qty = item.quantity ?? 0;
   const low = qty === 0;
+  const pending = Boolean(item._optimistic);
 
   return (
     <li
-      className="flex items-center gap-2 px-3 py-2"
+      className={`flex items-center gap-2 px-3 py-2 ${pending ? "opacity-60" : ""}`}
       data-testid={`material-row-${item.id}`}
     >
       <button
         onClick={onEdit}
-        className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-stone-900 hover:text-[#4A5D23]"
+        disabled={pending}
+        className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-stone-900 hover:text-[#4A5D23] disabled:cursor-wait"
         data-testid={`material-name-${item.id}`}
         title="Modifica nome"
       >
@@ -259,7 +279,7 @@ function MaterialRow({ item, onAdjust, onDelete, onEdit }) {
       <div className="flex items-center gap-1">
         <button
           onClick={() => onAdjust(-1)}
-          disabled={qty <= 0}
+          disabled={qty <= 0 || pending}
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-300 bg-white text-stone-700 shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-stone-50"
           data-testid={`material-decrement-${item.id}`}
           aria-label="Diminuisci"
@@ -274,7 +294,8 @@ function MaterialRow({ item, onAdjust, onDelete, onEdit }) {
         </div>
         <button
           onClick={() => onAdjust(1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4A5D23] text-white shadow-sm transition active:scale-95 hover:bg-[#3C4C1C]"
+          disabled={pending}
+          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4A5D23] text-white shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-[#3C4C1C]"
           data-testid={`material-increment-${item.id}`}
           aria-label="Aumenta"
         >
@@ -285,7 +306,8 @@ function MaterialRow({ item, onAdjust, onDelete, onEdit }) {
       <div className="ml-1 flex items-center gap-0.5">
         <button
           onClick={onEdit}
-          className="rounded-md p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+          disabled={pending}
+          className="rounded-md p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 disabled:opacity-40"
           data-testid={`material-edit-${item.id}`}
           aria-label="Modifica"
         >
@@ -293,7 +315,8 @@ function MaterialRow({ item, onAdjust, onDelete, onEdit }) {
         </button>
         <button
           onClick={onDelete}
-          className="rounded-md p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-500"
+          disabled={pending}
+          className="rounded-md p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
           data-testid={`material-delete-${item.id}`}
           aria-label="Elimina"
         >

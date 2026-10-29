@@ -1,0 +1,38 @@
+{
+  "summary": "Backend + frontend test of Magazzino (materials CRUD/adjust/clamp/idempotency/isolation), auth on all main endpoints, time-entries idempotency, clients zero-amount payments preservation + search, suppliers summary, monthly/year summary, weekend bonus logic (dayDelta + Ore Lavoro UI), Margine split, SW v6, console errors on 8 main pages (mobile 390x844). Everything requested works: 29/29 pytest pass, all UI flows pass, no console errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/summary?month=", "issue": "Doesn't match the Margine page. If a job has amount=1000 and materials=200 and its only payment is amount=0, method='bonifico', the backend returns incassi_margine_by_method.bonifico=0 and still takes the 200 of materials off the balance (balance=-200). The frontend Margine.jsx gives the 800 'expected residual' margin to bonifico. So Riepilogo (backend) and Margine (frontend) show different numbers for the same month."},
+      {"endpoint": "POST /api/materials/{id}/adjust", "issue": "The docstring says the update is an atomic $inc, but the code does find_one and then $set. Two concurrent adjusts (two devices, or offline queue replay) can lose an update. Fix: a single find_one_and_update with an aggregation pipeline, e.g. [{$set:{quantity:{$max:[0,{$add:['$quantity',delta]}]}}}]."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Margine / Ore Lavoro / Spese", "issues": ["Month and year pickers are native <select> elements, not Shadcn Select (inconsistent with the rest of the Shadcn UI)."]},
+      {"screen": "Margine", "issues": ["The card says 'Margine già incassato' and the section says 'già incassato', but the total includes expected margin from payments with amount=0 (not collected yet). The wording is misleading."]},
+      {"screen": "Ore Lavoro", "issues": ["A worked Saturday shows '0 giornate · 30' lavorate' in the summary card. Weekend days are not counted as giornate (probably intended, but it can confuse users)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter31_materials_magazzino.py", "/app/test_reports/pytest/iter31.xml"],
+  "action_items": [
+    "Make /api/summary (summary_service._compute_summary) use the same rule as Margine.jsx for 0-amount payments that have a method (residual expected margin goes to that method), or change the Margine labels so they don't say 'già incassato'.",
+    "Make the materials adjust endpoint atomic: one find_one_and_update with a pipeline update that clamps to 0."
+  ],
+  "critical_code_review_comments": [
+    "routes/materials.py adjust: not atomic (read then write), see above.",
+    "Magazzino.jsx adjust(): if the request fails, it rolls back to prevQty from the closure. With several fast taps, one failure can undo the other successful increments. It is better to refetch, or to roll back by -delta.",
+    "Magazzino.jsx: +/- on an optimistic row (id 'tmp-...') before the POST resolves calls /materials/tmp-.../adjust, gets a 404 and shows an 'Errore' toast. Disable the buttons while _optimistic is true.",
+    "index.js SW: the controllerchange listener reloads the page. On the first install, clients.claim() also fires controllerchange, so first-time visitors get one extra reload. Only reload when a previous controller existed.",
+    "Review request named the endpoints /api/summary/month and /api/suppliers. The real ones are /api/summary?month= and /api/suppliers/summary?month=. Tests used the real endpoints."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter31_materials_magazzino.py"],
+  "success_rate": {"backend": "100% (29/29)", "frontend": "100% (all requested flows passed)"},
+  "test_credentials": "Ephemeral Firebase users created via signUp REST (pattern testuser+i31...@italserrande.test / TestPassword123!). No fixed credentials.",
+  "seed_data_creation": "Created test clients, a Saturday time entry and materials for an ephemeral UI user. All deleted afterwards. pytest creates and deletes its own data in month 2027-04.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Verified: materials CRUD, clamp at 0, idempotent POST by id, two-user isolation (B posting A's id gets its own doc), 401/403 without token on 11 endpoints, time-entries merge on the same employee+date, zero-amount bonifico payment preserved, search, suppliers summary grouping. dayDelta(sat 30min, 8, true)=30 and weekday=-450 (node check), Ore Lavoro UI shows +30'. Margine UI: bonifico 800 (0-amount intent payment) and contanti 300 (legacy payment_method fallback). Magazzino mobile: dialog add, optimistic +/- (5 rapid taps persisted correctly), search, edit, delete, persistence after reload. SW v6 active with caches app-v6/html-v6. No console errors on /prossimi-lavori, /agenda, /ore-lavoro, /margine, /clienti, /spese, /fornitori, /magazzino."
+}
