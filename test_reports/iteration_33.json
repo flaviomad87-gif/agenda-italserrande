@@ -1,0 +1,29 @@
+{
+  "summary": "Retest of the rebuilt Rilievi Sezionali form and PDF. Backend: 11/11 tests pass in the new test_iter33_rilievi_modulo.py, which keeps all iter32 cases and adds: booleans default to null, oblo_h/oblo_w persist and can be updated, PUT with null clears motore/sblocco/client_id, and a full UI-shaped form round-trips. The old test_iter32 file still passes 7/7. UI on desktop 1920: the form sections appear in the order Intestazione, Vista interna, Tipo, Dettagli, Accessori, Note. The panel image loads (705x255). All 28 rilievo-input-<slug> testids exist. Data defaults to today. Tipo A-D buttons show the jamb drawings. Tapping an active Sì/No button clears it (UI checked, and DB shows null after the PUT). The first Invia PDF does a POST, the dialog stays open, the title switches to 'Modifica rilievo' and Elimina appears; the second Invia PDF does a PUT, with no duplicate row. The download fallback works and the toast shows. The sticky footer is flush with the dialog bottom (padding-bottom 0) and no bleed was seen. /rilievi rows show the date as 31/10/2026. PDF: page 1 was rendered with pymupdf and compared side by side with the user's original scan. It is a faithful, straight vector redraw: same header, perspective drawing, h/H/L/HT boxes, mazzette, Pezzi, Tipo A-D jambs, table, si/no grid, Note and MODELLO PANNELLO image. Values print in blue bold in the right boxes, the chosen Tipo C is circled, the TIPO box shows C, and the X marks sit in the correct si/no cells (null leaves both empty). One small overlap was found (see minor issue). Job dialog on mobile 390: prefill works (riferimento cliente = job name, destinazione = address), Enter saves only the rilievo (only POST rilievi-sezionali, the parent job dialog is not submitted), client_id is linked, the list shows '31/10/2026 L 3000 × H 2400 · Tipo A', reopening shows 'Modifica rilievo', and clearing Motore No then Salva does a PUT so motore becomes null. No horizontal overflow (372/372; document 390/390). No page errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "PDF (rilievoPdf.js drawTabella)", "issues": [
+        "In 'Vs.riferimento Cliente' the value starts at x=231 inside the 68pt-wide column (228-296) with maxW=290, so the vertical table line at x=296 cuts through the text (seen with 'TEST_Bianchi Mario': the line crosses 'Bianchi'). A longer name (about 28+ chars) can also run into the 'Maniglia' label and si/no boxes, which start around x=430. Fix: start the value at x=300 like Destinazione merce and use maxW of about 125 (up to the Maniglia label), or shrink/wrap it to fit."
+      ]},
+      {"screen": "SezionaleRilievoDialog", "issues": ["The Data field is still the native input type=date and not the shadcn calendar. Low priority."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter33_rilievi_modulo.py", "/app/backend/tests/test_iter32_rilievi_sezionali.py", "/app/test_reports/pytest/pytest_iter33.xml", "/app/tests/seed_iter33.py", "/app/tests/verify_iter33.py"],
+  "action_items": [
+    "Minor: in rilievoPdf.js move the 'Vs.riferimento Cliente' value out of the narrow column (x=300) and cap its width so long names do not overlap the table line or the Maniglia row"
+  ],
+  "critical_code_review_comments": [
+    "PUT now uses exclude_unset=True, so explicit nulls are saved. Side effect: a string field sent as null (e.g. ditta: null) is stored as null, not ''. The response model allows it (Optional[str]), so this is harmless.",
+    "The UI PUT sends the whole form, including id/user_id/created_at. They are ignored by extra='ignore' on SezionaleRilievoUpdate, which is fine.",
+    "Note text in the PDF is cut at 10 lines with no ellipsis or overflow warning. Acceptable."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter33_rilievi_modulo.py", "/app/tests/seed_iter33.py", "/app/tests/verify_iter33.py"],
+  "success_rate": {"backend": "100%", "frontend": "100% (1 minor PDF cosmetic overlap)"},
+  "seed_data_creation": "Ephemeral Firebase user testuser+i33ui...@italserrande.test with pending client 'TEST_Cliente Rilievo'. All rilievi and the client were deleted afterwards.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest backend/tests/test_iter33_rilievi_modulo.py. Seed with python tests/seed_iter33.py (writes /tmp/iter33_seed.json); verify/clean with tests/verify_iter33.py [clean]. Pending clients must be deleted directly via /api/clients/{id}, because /api/clients does not list them. To render the PDF: pymupdf page.get_pixmap(dpi=110). The original module is at the customer-assets URL in the review request."
+}

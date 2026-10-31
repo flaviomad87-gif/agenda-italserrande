@@ -262,7 +262,7 @@ function drawTabella(p, f) {
   p.text("Profondita del garage mm:", 96, 810, 8.5);
   p.value(f.profondita_garage, 262, 810, 64, 10, "center");
   p.text("Vs.riferimento Cliente:", 72, 824, 8.5);
-  p.value(f.riferimento_cliente, 231, 824, 290, 10);
+  p.value(f.riferimento_cliente, 262, 824, 64, 10, "center");
   p.text("Destinazione merce:", 80, 841, 8.5);
   p.value(f.destinazione_merce, 300, 841, 388, 10);
 

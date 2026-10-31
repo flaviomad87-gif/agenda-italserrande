@@ -317,3 +317,16 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 ## Hosting
 - Main API: `https://agenda-italserrande-api.onrender.com`
 - Bulk email: `https://bulk-email-backend-kcny.onrender.com`
+
+### Giu 2026 — Rilievi Sezionali (MODULO RILIEVI)
+- Modulo digitale identico al modulo cartaceo del fornitore (campi, ordine, etichette). Pagina `/rilievi` + sezione "Rilievi sezionali" nella scheda lavoro (pulsante Nuovo rilievo + elenco rilievi collegati, prefill riferimento cliente/destinazione).
+- PDF = ridisegno vettoriale pulito (dritto, senza pieghe) del modulo originale, valori in blu; Tipo scelto cerchiato, X nelle caselle si/no; immagine MODELLO PANNELLO ripulita (`lib/panelModelsImg.js`). File: `lib/rilievoPdf.js`.
+- Condivisione nativa (WhatsApp/email) via Web Share API, fallback download. Intestazione Ditta/Via/Tel/Fax/email ricordata in localStorage.
+- Backend `/api/rilievi-sezionali` CRUD: si/no tri-state (null/true/false), campi oblo_h/oblo_w, fax; PUT accetta null.
+- Fix: import duplicato FileText in AppShell che rompeva la build. SW cache v9.
+- Test: iteration_32/33 100% backend+frontend.
+
+## Backlog
+- P2 Cestino (soft delete 30gg)
+- P3 Pulizia DB legacy (payment_method)
+- P3 Spostare logica margini da Margine.jsx a backend
