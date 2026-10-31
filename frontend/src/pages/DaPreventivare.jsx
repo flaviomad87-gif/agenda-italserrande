@@ -189,10 +189,6 @@ export default function DaPreventivare() {
         </button>
       </div>
 
-      <div className="no-print">
-        <PreventiviAppSection onCreateJob={createJobFromQuote} refreshKey={prevRefresh} />
-      </div>
-
       <div className="print-only mb-4 border-b border-stone-300 pb-3">
         <h2 className="font-display text-xl font-bold">Italserrande — Lavori da preventivare</h2>
         <p className="text-xs text-stone-600">
@@ -312,6 +308,10 @@ export default function DaPreventivare() {
           ))}
         </ul>
       )}
+
+      <div className="no-print">
+        <PreventiviAppSection onCreateJob={createJobFromQuote} refreshKey={prevRefresh} />
+      </div>
 
       <ClientFormDialog
         open={openClient}

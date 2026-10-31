@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Link2, Loader2, RefreshCw, CalendarPlus, CheckCircle2, LogOut } from "lucide-react";
+import { ExternalLink, Link2, Loader2, RefreshCw, CalendarPlus, CheckCircle2, LogOut, ChevronDown } from "lucide-react";
 import { api } from "../lib/api";
 import { formatEUR } from "../lib/utils";
 import { fmtDate } from "../lib/rilievoPdf";
@@ -29,6 +29,13 @@ export default function PreventiviAppSection({ onCreateJob, refreshKey }) {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("open");
   const [connectOpen, setConnectOpen] = useState(false);
+  // Chiusa di default: si apre solo quando serve, per non spingere giu' il resto
+  const [expanded, setExpanded] = useState(() => localStorage.getItem("prev_section_open") === "1");
+  const toggle = () =>
+    setExpanded((v) => {
+      localStorage.setItem("prev_section_open", v ? "0" : "1");
+      return !v;
+    });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,15 +60,22 @@ export default function PreventiviAppSection({ onCreateJob, refreshKey }) {
     return quotes.filter((q) => q.status !== "rejected" && !links[q.id]);
   }, [quotes, links, filter]);
 
+  const openCount = quotes.filter((q) => q.status !== "rejected" && !links[q.id]).length;
+
   if (user === undefined) return null;
 
   return (
     <section className="space-y-3 rounded-3xl border border-blue-200/70 bg-blue-50/40 p-4" data-testid="prev-app-section">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">App Preventivi</div>
-          <p className="text-xs text-stone-500">{user ? user.email : "Non collegata"}</p>
-        </div>
+        <button type="button" onClick={user ? toggle : undefined} className="flex min-w-0 items-center gap-2 text-left" data-testid="prev-toggle">
+          {user && <ChevronDown className={`h-5 w-5 shrink-0 text-blue-700 transition-transform ${expanded ? "rotate-180" : ""}`} />}
+          <div className="min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+              App Preventivi{user && !loading ? ` · ${openCount} da gestire` : ""}
+            </div>
+            <p className="truncate text-xs text-stone-500">{user ? user.email : "Non collegata"}</p>
+          </div>
+        </button>
         <div className="flex gap-1.5">
           <a href={PREVENTIVI_URL} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1 rounded-full border border-blue-300 bg-white px-3 text-xs font-semibold text-blue-700 hover:bg-blue-50" data-testid="prev-open-app">
             <ExternalLink className="h-3.5 w-3.5" /> Apri app
@@ -83,7 +97,7 @@ export default function PreventiviAppSection({ onCreateJob, refreshKey }) {
         </div>
       </div>
 
-      {user && (
+      {user && expanded && (
         <>
           <div className="flex gap-1.5" data-testid="prev-filters">
             {FILTERS.map(([k, label]) => (

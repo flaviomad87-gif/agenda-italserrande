@@ -347,3 +347,4 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Nel lavoro: "Apri preventivo N° X" se collegato, altrimenti "Crea preventivo nell'app" (bozza con stessi default dell'app, numerazione max(counter, numeri)+1) e "Apri app Preventivi".
 - Backend: campo client `quote_ref`, GET `/api/clients/quote-refs`.
 - Test iteration_36: stato non collegato OK; flussi da collegati NON testati (servono credenziali reali dell'utente).
+- Fix UX: in /da-preventivare i lavori dell'agenda stanno in alto; il riquadro "App Preventivi" è in fondo e chiuso di default (tocca il titolo per aprirlo, mostra "N da gestire", stato ricordato).
