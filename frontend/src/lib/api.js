@@ -65,7 +65,7 @@ api.interceptors.response.use(
     const isMutation = ["post", "put", "delete"].includes(method);
     const isNetworkError = !error.response || error.code === "ERR_NETWORK" || error.message === "Network Error";
     const isReplay = cfg.headers && cfg.headers["X-Drain-Replay"];
-    if (isMutation && isNetworkError && !isReplay) {
+    if (isMutation && isNetworkError && !isReplay && !(cfg.data instanceof FormData)) {
       // Estrai il body
       let body = cfg.data;
       if (typeof body === "string") {

@@ -27,6 +27,7 @@ import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
 import ClientRilievi from "./ClientRilievi";
+import JobPhotos from "./JobPhotos";
 import { Switch } from "./ui/switch";
 import { it } from "date-fns/locale";
 import { format as formatDate } from "date-fns";
@@ -85,10 +86,12 @@ const migrateLegacy = (data) => {
 export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, onDuplicate, defaultPending = false, defaultAwaiting = false }) {
   const [form, setForm] = useState(empty(date));
   const editing = Boolean(initial?.id);
+  const [draftId, setDraftId] = useState(newUUID);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
+      if (!initial?.id) setDraftId(newUUID());
       const base = empty(date);
       if (defaultPending && !initial) base.pending = true;
       if (defaultAwaiting && !initial) {
@@ -122,7 +125,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
         source: m.source || "conto_aziendale",
       }))
       .filter((m) => m.amount > 0 || (m.description && m.description.trim()));
-    const id = editing ? initial.id : newUUID();
+    const id = editing ? initial.id : draftId;
     const payload = {
       ...form,
       id,
@@ -404,6 +407,8 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               />
             </div>
           </div>
+
+          <JobPhotos clientId={editing ? initial.id : draftId} />
 
           <div>
             <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Note</Label>

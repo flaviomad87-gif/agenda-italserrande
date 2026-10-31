@@ -31,6 +31,7 @@ from routes.expenses import router as expenses_router
 from routes.health import router as health_router
 from routes.materials import router as materials_router
 from routes.rilievi import router as rilievi_router
+from routes.photos import router as photos_router
 from routes.summary import router as summary_router
 
 # Re-export per retro-compatibilità con i test che fanno `from server import _compute_summary`.
@@ -50,6 +51,7 @@ api.include_router(summary_router)
 api.include_router(employees_router)
 api.include_router(materials_router)
 api.include_router(rilievi_router)
+api.include_router(photos_router)
 
 # ---------- Mount + middleware ----------
 
