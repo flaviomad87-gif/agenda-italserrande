@@ -304,7 +304,7 @@ function drawNote(p, doc, f) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9.5 * S);
     doc.setTextColor(...BLUE);
-    const lines = doc.splitTextToSize(txt, 320 * S).slice(0, 10);
+    const lines = doc.splitTextToSize(txt, 300 * S).slice(0, 10);
     lines.forEach((ln, i) => doc.text(ln, 34 * S, (874 + i * 12) * S + OY));
     doc.setTextColor(0, 0, 0);
   }

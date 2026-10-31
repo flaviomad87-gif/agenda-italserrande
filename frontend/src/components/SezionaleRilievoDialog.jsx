@@ -317,6 +317,12 @@ function TipoPicker({ value, onChange }) {
   );
 }
 
+// Sostituisce solo la sigla iniziale, mantenendo l'eventuale testo dopo
+const swapCode = (value, code) => {
+  const rest = String(value || "").trim().replace(/^(S[1-5]|D1)\b\s*/i, "");
+  return [code, rest].filter(Boolean).join(" ");
+};
+
 // Tocca un pannello sull'immagine per scriverne la sigla nel campo Modello
 function PanelPicker({ value, onChange }) {
   const current = panelCode(value);
@@ -331,7 +337,7 @@ function PanelPicker({ value, onChange }) {
           <button
             key={m.code}
             type="button"
-            onClick={() => onChange(current === m.code ? "" : m.code)}
+            onClick={() => onChange(swapCode(value, current === m.code ? "" : m.code))}
             style={{ left: `${m.from * 100}%`, width: `${(m.to - m.from) * 100}%` }}
             className={`absolute inset-y-0 rounded-md border-2 transition-colors ${
               current === m.code ? "border-[#4A5D23] bg-[#4A5D23]/15" : "border-transparent active:bg-stone-900/5"

@@ -330,3 +330,6 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - P2 Cestino (soft delete 30gg)
 - P3 Pulizia DB legacy (payment_method)
 - P3 Spostare logica margini da Margine.jsx a backend
+
+### Giu 2026 — Scelta modello pannello col tocco
+- Nel rilievo l'immagine MODELLO PANNELLO ha 6 zone toccabili (S5, S4, S3, S1, S2, D1): scrive solo la sigla nel campo Modello (l'eventuale testo dopo la sigla resta), ritocco = rimuove. Nel PDF il pannello scelto è cerchiato in blu. File: `lib/panelModelsImg.js` (PANEL_MODELS, panelCode), `SezionaleRilievoDialog.jsx` (PanelPicker), `lib/rilievoPdf.js`. Test iteration_34 OK.

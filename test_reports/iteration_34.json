@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend test of the tappable PanelPicker in the 'Modello pannello' image in SezionaleRilievoDialog, and of the PDF circle. Mobile 390: the image renders at 304x110 and the 6 zones (S5, S4, S3, S1, S2, D1) sit at the fractions 0.04-0.175 ... 0.74-0.89 with full height. An overlay of these zones on the source JPEG shows each zone over its panel. Tap S1: Modello becomes 'S1' with a green border and an 'S1' badge. Tap D1: 'D1', and S1 is no longer highlighted. Tap D1 again: '' with no highlight. Typing 's4 bianco' highlights S4. 'S1bianco' highlights nothing, which is expected because the regex requires a word boundary. No horizontal overflow (390/390). Desktop 1920: tapped each code and clicked Invia PDF each time. The first click did a POST, later ones did a PUT with no duplicates. The download fallback and its toast work. Salva closes the dialog. Reopening the row shows Modello 'S2' highlighted and Colore kept, and the DB has modello='S2'. PDF: page 1 of all 7 downloads (6 codes + empty) was rendered with pymupdf. Each code draws a blue ellipse around the right panel on the MODELLO PANNELLO image, mostly including its label, and the empty modello draws no ellipse. No console or page errors. The test data (rilievo + pending client) was deleted.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "SezionaleRilievoDialog PanelPicker", "issues": [
+        "Tapping a zone replaces the whole Modello value. With 'S4 bianco' typed, tapping S4 clears the field (the free text is lost), and tapping another zone replaces it with just the code. This matches the spec ('ONLY the code'), but a user could lose typed text without noticing. Optional: keep the text after the code.",
+        "On mobile each zone is about 41px wide x 110px tall. That is fine, but it is close to the minimum touch-target width."
+      ]},
+      {"screen": "PDF drawNote", "issues": [
+        "The ellipse is fairly large (ry=60, reaching y 876-996) and only partly encloses the slanted labels: the left part of 'S5' and the tail of the S1/S2 labels fall outside. The S5 ellipse's left edge is around x=351, which can touch a long note line (the note column ends at x=354). Cosmetic only."
+      ]}
+    ]
+  },
+  "test_report_links": ["/app/tests/seed_iter33.py", "/app/tests/verify_iter33.py", "/app/test_reports/iter34_pdf_panels.png"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "panelCode uses /^(S[1-5]|D1)\\b/i, so 'S1bianco' is not detected. This is acceptable.",
+    "The PDF ellipse center uses a hard-coded -10pt shift to take in the slanted labels. If PANEL_MODELS fractions change, the PDF and the UI can drift apart. Consider a per-panel label offset."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100%"},
+  "seed_data_creation": "Ephemeral Firebase user testuser+i33ui...@italserrande.test (seed_iter33.py) and the rilievo 'TEST_Panel Picker'. Both were deleted, including the pending client, which was removed via /api/clients/{id}.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "PanelPicker testids: rilievo-panel-models-img and rilievo-panel-{S5,S4,S3,S1,S2,D1}; the selected zone has class border-[#4A5D23] and a badge span. The PDF image is drawn at x 362-700, y 878-1000 (716x1000 design units). Crop with S=595.28/716 and OY=(841.89-1000*S)/2."
+}
