@@ -1,0 +1,37 @@
+{
+  "summary": "Tested job photos (Emergent Object Storage) end to end. Backend: 12/12 pytest pass against the public URL. Covered: upload of JPEG and PNG returning exactly the fields id, client_id, content_type, size and created_at; list in upload order; file bytes returned byte-identical with the correct content-type; text/pdf, empty and >12MB files rejected with 400; missing 'file' field gives 422; no auth gives 401/403; another user gets an empty list and 404 on file/delete; soft delete gives 404 on file and the photo is no longer listed, and a second delete gives 404; draft flow (upload photos to a uuid, then POST /clients with the same id lists the photos). UI at 390px, on /prossimi-lavori, ClientFormDialog: the photo section, camera input (capture=environment) and gallery input (multiple) are all present. The empty state shows. set_input_files with 2 images shows an uploading spinner tile, then 2 thumbnails with images. A 2000px JPEG is compressed to 1600px. Viewer: counter 1/2, next/prev wrap around, close keeps the job dialog open. Delete via confirm leaves 1 thumbnail and closes the viewer. Persistence after a page reload works. New job: a photo added before saving is still there after saving and reopening (same photo id). A second new job starts empty, so the draft id is regenerated. Editing notes and saving still persists ('TEST note foto' confirmed via API). The /rilievi page loads. No horizontal overflow (390/390) and no console or page errors. Test data was cleaned up.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/clients/{id}", "issue": "Deleting a job does not soft-delete its job_photos: there are no photo references in routes/clients.py. Files and docs stay orphaned."},
+      {"endpoint": "POST /api/clients/{client_id}/photos", "issue": "Any client_id is accepted, which is needed for drafts. But if the user cancels a new job after adding photos, those photos stay orphaned in storage and DB forever. Consider a cleanup on cancel, or a periodic sweep of photos whose client_id does not exist."},
+      {"endpoint": "POST /api/clients/{client_id}/photos", "issue": "The whole file is read into memory before the 12MB check. Acceptable for the MVP."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "JobPhotos", "issues": [
+        "Uploads run one after another and the uploading counter goes up one file at a time, so with N photos only one spinner tile shows at a time instead of N placeholders. Cosmetic only.",
+        "blobCache is a module-level Map whose objectURLs are never revoked. This is a small memory leak over a long session.",
+        "Upload errors show a generic toast ('Foto non caricata, riprova') and ignore the backend detail (for example 'Formato immagine non supportato')."
+      ]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter35_job_photos.py", "/app/test_reports/pytest/pytest_iter35.xml"],
+  "action_items": [
+    "Optional: cascade soft-delete of job_photos when a client is deleted",
+    "Optional: clean up draft photos when a new job dialog is cancelled without saving"
+  ],
+  "critical_code_review_comments": [
+    "ClientFormDialog.jsx is about 800 lines (more than 700). Consider splitting it.",
+    "The photos list is capped with to_list(200) and there is no per-job limit on uploads."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter35_job_photos.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Ephemeral Firebase users plus TEST_ clients and photos; all deleted after the tests.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Photo tests are in test_iter35_job_photos.py (they need PIL). UI: log in with a user seeded by /app/tests/seed_iter33.py, open pending-card-<id> on /prossimi-lavori, and call set_input_files on [data-testid=job-photos-gallery-input]. The window.confirm for delete has to be auto-accepted with a dialog handler."
+}

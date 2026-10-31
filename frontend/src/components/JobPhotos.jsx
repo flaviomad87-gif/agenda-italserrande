@@ -73,8 +73,8 @@ export default function JobPhotos({ clientId }) {
         blobCache.set(res.data.id, URL.createObjectURL(file));
         setUrls((prev) => ({ ...prev, [res.data.id]: blobCache.get(res.data.id) }));
         setPhotos((prev) => [...prev, res.data]);
-      } catch {
-        toast.error("Foto non caricata, riprova");
+      } catch (err) {
+        toast.error(err?.response?.data?.detail || "Foto non caricata, riprova");
       } finally {
         setUploading((n) => n - 1);
       }

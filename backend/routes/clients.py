@@ -268,6 +268,7 @@ async def delete_client(client_id: str, user=Depends(get_current_user)):
     res = await db.clients.delete_one({"id": client_id, "user_id": user["uid"]})
     if res.deleted_count == 0:
         raise HTTPException(404, "Cliente non trovato")
+    await db.job_photos.update_many({"user_id": user["uid"], "client_id": client_id}, {"$set": {"is_deleted": True}})
     return {"ok": True}
 
 

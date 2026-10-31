@@ -333,3 +333,10 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 
 ### Giu 2026 — Scelta modello pannello col tocco
 - Nel rilievo l'immagine MODELLO PANNELLO ha 6 zone toccabili (S5, S4, S3, S1, S2, D1): scrive solo la sigla nel campo Modello (l'eventuale testo dopo la sigla resta), ritocco = rimuove. Nel PDF il pannello scelto è cerchiato in blu. File: `lib/panelModelsImg.js` (PANEL_MODELS, panelCode), `SezionaleRilievoDialog.jsx` (PanelPicker), `lib/rilievoPdf.js`. Test iteration_34 OK.
+
+### Giu 2026 — Foto del luogo nei lavori
+- Nella scheda lavoro, sotto Indirizzo/Telefono: sezione "Foto del luogo" con Scatta (fotocamera) e Galleria (multipla). Miniature, visore a schermo intero con avanti/indietro ed elimina.
+- Foto compresse lato client (max 1600px JPEG), salvate su Emergent Object Storage (`backend/storage.py`), riferimenti in Mongo `job_photos` (soft delete). Endpoint: GET/POST/DELETE `/api/clients/{id}/photos`, GET `/api/photos/{id}/file`, DELETE `/api/photos/{id}`. Eliminando un lavoro le foto vengono eliminate; chiudendo un lavoro nuovo senza salvare le foto della bozza vengono scartate.
+- Lavori nuovi: id bozza pre-generato (draftId) così si possono aggiungere foto prima di salvare.
+- Richiede `EMERGENT_LLM_KEY` nel backend (anche su Render!). Upload non va in coda offline.
+- Test iteration_35: backend 12/12, frontend OK.

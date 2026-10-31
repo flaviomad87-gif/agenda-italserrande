@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -87,10 +87,17 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
   const [form, setForm] = useState(empty(date));
   const editing = Boolean(initial?.id);
   const [draftId, setDraftId] = useState(newUUID);
+  const savedRef = useRef(false);
+  // Chiudendo un lavoro nuovo senza salvarlo, scarta le foto caricate nella bozza
+  const handleOpenChange = (o) => {
+    if (!o && !editing && !savedRef.current) api.delete(`/clients/${draftId}/photos`).catch(() => {});
+    onOpenChange(o);
+  };
   const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
+      savedRef.current = false;
       if (!initial?.id) setDraftId(newUUID());
       const base = empty(date);
       if (defaultPending && !initial) base.pending = true;
@@ -155,6 +162,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
     onSaved?.(optimistic);
     window.__refreshUnpaidBadge?.();
     window.__refreshPendingBadge?.();
+    savedRef.current = true;
     onOpenChange(false);
     try {
       const res = editing
@@ -203,7 +211,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-h-[92dvh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl border-stone-200/70 bg-white p-6 sm:max-w-lg"
         style={{ scrollPaddingBottom: "25vh", scrollPaddingTop: "2rem" }}
@@ -782,7 +790,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="h-12 rounded-xl"
               >
                 Annulla

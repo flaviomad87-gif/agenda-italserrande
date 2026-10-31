@@ -75,3 +75,11 @@ async def delete_photo(photo_id: str, user=Depends(get_current_user)):
     if res.matched_count == 0:
         raise HTTPException(404, "Foto non trovata")
     return {"ok": True}
+
+
+@router.delete("/clients/{client_id}/photos")
+async def delete_job_photos(client_id: str, user=Depends(get_current_user)):
+    res = await db.job_photos.update_many(
+        {"user_id": user["uid"], "client_id": client_id, "is_deleted": False}, {"$set": {"is_deleted": True}}
+    )
+    return {"ok": True, "deleted": res.modified_count}
