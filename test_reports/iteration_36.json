@@ -1,0 +1,25 @@
+{
+  "summary": "Tested the link with the Preventivi app in the unconnected state. Backend: 7/7 pytest pass. quote_ref is saved on POST and updated or cleared on PUT. It defaults to '' and null becomes ''. GET /api/clients/quote-refs returns only {id,name,quote_ref} for the current user's clients that have a non-empty quote_ref. It is not shadowed by /clients/{id}, returns 401/403 without auth, and other users' data is isolated. The to-quote regression passes. UI at desktop 1920: the sidebar nav-app-preventivi link points to https://preventiviitalserrande.netlify.app with target=_blank. On /da-preventivare, prev-app-section shows 'Non collegata' with prev-open-app (correct href, _blank) and prev-connect-button. The connect dialog with wrong credentials shows the toast 'Email o password non corrette' and stays not connected. Mobile 390: menu-nav-app-preventivi is correct. Job with quote_ref='abc'/'021': job-quote-open reads 'Apri preventivo N° 021', href .../quote/abc, _blank, and the create button is hidden. Plain job: job-quote-open-app href is correct. job-quote-create with a name opens prev-connect-dialog and the job dialog stays open, even after submitting wrong credentials in the nested dialog and pressing Escape. With an empty name it shows the toast 'Inserisci prima il nome del cliente' and no connect dialog. Regression: add-to-quote creates a job (count 2→3) and markQuoted moves it with a toast (3→2). No horizontal overflow (390/390) on the page or in the dialog. The only console error is the expected 400 from Firebase signIn with wrong credentials. NOT TESTED, because no Preventivi credentials were available: the connected-state quote list and filters, 'Crea lavoro' from a quote, draft quote creation, refresh and disconnect.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter36_quote_ref.py", "/app/test_reports/pytest/pytest_iter36.xml", "/app/tests/seed_iter36.py"],
+  "action_items": [
+    "Optional: in JobQuoteLink.create, when editing, the PUT sends {...initial, quote_ref, quote_number}. This persists the stale 'initial' snapshot and silently overwrites any fields saved elsewhere in between, though unsaved form edits are kept in local state. Consider PUT {...initial, ...form, quote_ref, quote_number}, or a PATCH of only the quote fields.",
+    "Optional: createQuoteFromJob computes the next number client-side (max(counter, quotes)+1) without a transaction. Concurrent creation from both apps could produce duplicate numbers. Consider a Firestore runTransaction on meta/settings."
+  ],
+  "critical_code_review_comments": [
+    "The Preventivi Firebase config (apiKey etc.) is hardcoded in preventiviApp.js. Firebase web keys are public, but for consistency consider moving them to env vars (REACT_APP_PREVENTIVI_*).",
+    "Firestore access depends on the Preventivi project's security rules allowing users/{uid}/quotes and meta/settings for the signed-in user. This is unverified (no credentials).",
+    "ClientFormDialog.jsx is still over 800 lines."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter36_quote_ref.py", "/app/tests/seed_iter36.py"],
+  "success_rate": {"backend": "100%", "frontend": "100% (unconnected-state flows); connected-state untested"},
+  "seed_data_creation": "An ephemeral agenda Firebase user and TEST_ clients, all deleted. No accounts were created in the Preventivi Firebase project (only a failed sign-in with nonexistent emails).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Seed with python /app/tests/seed_iter36.py, which writes /tmp/iter36_seed.json with a linked job (quote_ref abc, number 021) and a plain to_quote job. The save button in ClientFormDialog is data-testid=client-save-button. The connected-state flows need real Preventivi credentials from the user."
+}

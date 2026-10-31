@@ -340,3 +340,10 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Lavori nuovi: id bozza pre-generato (draftId) così si possono aggiungere foto prima di salvare.
 - Richiede `EMERGENT_LLM_KEY` nel backend (anche su Render!). Upload non va in coda offline.
 - Test iteration_35: backend 12/12, frontend OK.
+
+### Giu 2026 — Collegamento app Preventivi (https://preventiviitalserrande.netlify.app)
+- App Preventivi = altro progetto Emergent, Firebase separato `app-preventivi-aa253`, Firestore `users/{uid}/quotes/{id}` (number, date, status draft/sent/accepted/rejected, clientName, clientAddress, subject, lineItems[{id,description,amount,vatRate}], paymentTerms, footerNote, notes, createdAt, updatedAt) + `users/{uid}/meta/settings` {counter, company}. Rotte: /quote/:id, /quote/new.
+- Agenda: `lib/preventiviApp.js` (seconda istanza Firebase "preventivi", login email/password una volta, sessione persistente). Voce menu "App Preventivi" (link esterno). In /da-preventivare sezione "App Preventivi": elenco preventivi (filtri Da gestire/Accettati/Tutti), Apri, "Crea lavoro" (precompila nome, indirizzo, importo, IVA, N° preventivo, quote_ref → Prossimi lavori), badge "In agenda" se collegato.
+- Nel lavoro: "Apri preventivo N° X" se collegato, altrimenti "Crea preventivo nell'app" (bozza con stessi default dell'app, numerazione max(counter, numeri)+1) e "Apri app Preventivi".
+- Backend: campo client `quote_ref`, GET `/api/clients/quote-refs`.
+- Test iteration_36: stato non collegato OK; flussi da collegati NON testati (servono credenziali reali dell'utente).
