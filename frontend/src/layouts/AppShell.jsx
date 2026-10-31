@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { PREVENTIVI_URL } from "../lib/preventiviApp";
 import {
   Calendar,
   Receipt,
@@ -17,6 +18,7 @@ import {
   Truck,
   Package,
   Menu,
+  ExternalLink,
   X,
 } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -33,6 +35,19 @@ const primaryNav = [
   { to: "/incassi", label: "Incassi", icon: Wallet, testId: "nav-incassi", badgeKey: "unpaid" },
   { to: "/agenda", label: "Agenda", icon: Calendar, testId: "nav-agenda" },
 ];
+
+const PreventiviLink = ({ className, testId }) => (
+  <a
+    href={PREVENTIVI_URL}
+    target="_blank"
+    rel="noopener noreferrer"
+    data-testid={testId}
+    className={className}
+  >
+    <ExternalLink className="h-5 w-5 text-blue-600" />
+    App Preventivi
+  </a>
+);
 
 // Voci secondarie — accessibili tramite hamburger menu
 const secondaryNav = [
@@ -211,6 +226,7 @@ export default function AppShell() {
               badge={badgeFor(it.badgeKey)}
             />
           ))}
+          <PreventiviLink testId="nav-app-preventivi" className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-200/60" />
         </nav>
       </aside>
 
@@ -261,6 +277,7 @@ export default function AppShell() {
                   {it.label}
                 </button>
               ))}
+              <PreventiviLink testId="menu-nav-app-preventivi" className="flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-stone-700 hover:bg-stone-100" />
             </div>
           </div>
         </div>

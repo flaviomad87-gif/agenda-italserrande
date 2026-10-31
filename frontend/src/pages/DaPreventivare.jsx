@@ -6,6 +6,8 @@ import { sendClientToWhatsApp } from "../lib/whatsapp";
 import ClientFormDialog from "../components/ClientFormDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
 import AppointmentBadge from "../components/AppointmentBadge";
+import PreventiviAppSection from "../components/PreventiviAppSection";
+import { quoteTotal } from "../lib/preventiviApp";
 import {
   Plus,
   MapPin,
@@ -25,6 +27,24 @@ export default function DaPreventivare() {
   const [openClient, setOpenClient] = useState(false);
   const [editing, setEditing] = useState(null);
   const [actingId, setActingId] = useState(null);
+  const [prevRefresh, setPrevRefresh] = useState(0);
+
+  // Preventivo dell'app Preventivi -> nuovo lavoro in "Prossimi lavori", gia' compilato e collegato
+  const createJobFromQuote = (q) => {
+    setEditing({
+      date: isoDate(),
+      name: q.clientName || "",
+      address: q.clientAddress || "",
+      amount: quoteTotal(q),
+      vat_rate: q.lineItems?.[0]?.vatRate ?? 22,
+      quote_number: q.number || "",
+      quote_ref: q.id,
+      status: "preventivo",
+      pending: true,
+      to_quote: false,
+    });
+    setOpenClient(true);
+  };
 
   const load = async () => {
     const c = apiGetWithCache(`/clients/to-quote`);
@@ -53,6 +73,7 @@ export default function DaPreventivare() {
   };
 
   const onClientSaved = async (item) => {
+    if (item?.quote_ref) setPrevRefresh((n) => n + 1);
     if (item) {
       if (!item.to_quote || !item.pending) {
         setItems((prev) => prev.filter((p) => p.id !== item.id));
@@ -166,6 +187,10 @@ export default function DaPreventivare() {
         >
           <Plus className="h-4 w-4" /> Nuovo sopralluogo
         </button>
+      </div>
+
+      <div className="no-print">
+        <PreventiviAppSection onCreateJob={createJobFromQuote} refreshKey={prevRefresh} />
       </div>
 
       <div className="print-only mb-4 border-b border-stone-300 pb-3">

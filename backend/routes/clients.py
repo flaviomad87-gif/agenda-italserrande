@@ -76,6 +76,14 @@ async def list_awaiting_clients(user=Depends(get_current_user)):
     return docs
 
 
+@router.get("/clients/quote-refs")
+async def list_quote_refs(user=Depends(get_current_user)):
+    """Lavori collegati a un preventivo dell'app Preventivi: [{id, name, quote_ref}]."""
+    return await db.clients.find(
+        {"user_id": user["uid"], "quote_ref": {"$nin": [None, ""]}}, {"_id": 0, "id": 1, "name": 1, "quote_ref": 1}
+    ).to_list(5000)
+
+
 @router.get("/clients/to-quote", response_model=List[Client])
 async def list_to_quote_clients(user=Depends(get_current_user)):
     """Clienti 'da preventivare', ordinati per sort_order (manuale) e poi creazione."""

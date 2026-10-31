@@ -28,6 +28,7 @@ import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
 import ClientRilievi from "./ClientRilievi";
 import JobPhotos from "./JobPhotos";
+import JobQuoteLink from "./JobQuoteLink";
 import { Switch } from "./ui/switch";
 import { it } from "date-fns/locale";
 import { format as formatDate } from "date-fns";
@@ -43,6 +44,7 @@ const empty = (date) => ({
   vat_rate: "",
   withholding_rate: "",
   quote_number: "",
+  quote_ref: "",
   payments: [],
   materials: [],
   pending: false,
@@ -691,6 +693,9 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
               className="mt-2 h-12 rounded-xl"
               data-testid="client-quote-number-input"
             />
+            <div className="mt-2">
+              <JobQuoteLink form={form} update={update} editing={editing} initial={initial} />
+            </div>
           </div>
 
           {/* Costo materiali STIMATO (solo per preventivi): non entra nel riepilogo mensile.

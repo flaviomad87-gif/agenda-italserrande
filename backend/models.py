@@ -126,6 +126,7 @@ class ClientBase(BaseModel):
     vat_rate: Optional[float] = None  # aliquota IVA in % (None = senza IVA)
     withholding_rate: Optional[float] = None  # ritenuta d'acconto in % sull'imponibile (None = nessuna)
     quote_number: Optional[str] = ""
+    quote_ref: Optional[str] = ""  # id del preventivo nell'app Preventivi collegata
     invoice_number: Optional[str] = ""  # legacy (kept for backward compat)
     payments: List[Payment] = Field(default_factory=list)
     materials: List[Material] = Field(default_factory=list)
@@ -145,7 +146,7 @@ class ClientBase(BaseModel):
         if not isinstance(data, dict):
             return data
         # String fields: None → ""
-        for key in ("name", "address", "phone", "notes", "quote_number",
+        for key in ("name", "address", "phone", "notes", "quote_number", "quote_ref",
                     "invoice_number", "payment_method", "status",
                     "appointment_note"):
             if data.get(key) is None:
