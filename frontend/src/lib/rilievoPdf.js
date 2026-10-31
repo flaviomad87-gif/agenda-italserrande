@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { PANEL_MODELS_IMG } from "./panelModelsImg";
+import { PANEL_MODELS_IMG, PANEL_MODELS, panelCode } from "./panelModelsImg";
 
 // Ricostruzione vettoriale del "MODULO RILIEVI" originale (coordinate in pt
 // del foglio originale 716x1000, scalate su A4).
@@ -310,6 +310,11 @@ function drawNote(p, doc, f) {
   }
   p.text("MODELLO PANNELLO", 552, 872, 8.5, { align: "center" });
   p.image(PANEL_MODELS_IMG, 362, 878, 700, 1000);
+  const sel = PANEL_MODELS.find((m) => m.code === panelCode(f.modello));
+  if (sel) {
+    const x1 = 362 + sel.from * 338, x2 = 362 + sel.to * 338;
+    p.ellipse((x1 + x2) / 2 - 10, 936, (x2 - x1) / 2 + 14, 60);
+  }
 }
 
 export function buildRilievoPdf(f) {

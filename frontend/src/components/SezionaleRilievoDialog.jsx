@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { buildRilievoPdf, rilievoFileName } from "../lib/rilievoPdf";
-import { PANEL_MODELS_IMG } from "../lib/panelModelsImg";
+import { PANEL_MODELS_IMG, PANEL_MODELS, panelCode } from "../lib/panelModelsImg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -161,12 +161,7 @@ export default function SezionaleRilievoDialog({ open, onOpenChange, rilievo, de
               <Field label="Modello" {...f("modello")} />
               <Field label="Colore" {...f("colore")} />
             </Row>
-            <img
-              src={PANEL_MODELS_IMG}
-              alt="Modello pannello"
-              className="w-full rounded-lg border border-stone-200 bg-white"
-              data-testid="rilievo-panel-models-img"
-            />
+            <PanelPicker value={form.modello} onChange={(v) => update("modello", v)} />
             <Row3>
               <Field label="Oblò No" numeric {...f("oblo")} />
               <Field label="Oblò H" numeric {...f("oblo_h")} />
@@ -318,6 +313,38 @@ function TipoPicker({ value, onChange }) {
           </svg>
         </button>
       ))}
+    </div>
+  );
+}
+
+// Tocca un pannello sull'immagine per scriverne la sigla nel campo Modello
+function PanelPicker({ value, onChange }) {
+  const current = panelCode(value);
+  return (
+    <div className="space-y-1">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
+        Modello pannello <span className="font-normal normal-case tracking-normal text-stone-400">· tocca per scegliere</span>
+      </div>
+      <div className="relative overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <img src={PANEL_MODELS_IMG} alt="Modello pannello" className="block w-full select-none" draggable={false} data-testid="rilievo-panel-models-img" />
+        {PANEL_MODELS.map((m) => (
+          <button
+            key={m.code}
+            type="button"
+            onClick={() => onChange(current === m.code ? "" : m.code)}
+            style={{ left: `${m.from * 100}%`, width: `${(m.to - m.from) * 100}%` }}
+            className={`absolute inset-y-0 rounded-md border-2 transition-colors ${
+              current === m.code ? "border-[#4A5D23] bg-[#4A5D23]/15" : "border-transparent active:bg-stone-900/5"
+            }`}
+            aria-label={`Modello ${m.code}`}
+            data-testid={`rilievo-panel-${m.code}`}
+          >
+            {current === m.code && (
+              <span className="absolute left-1/2 top-1 -translate-x-1/2 rounded bg-[#4A5D23] px-1.5 text-[11px] font-bold text-white">{m.code}</span>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
