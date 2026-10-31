@@ -422,3 +422,120 @@ class StockItem(StockItemBase):
     user_id: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+
+# ---------- Rilievi Porte Sezionali ----------
+# Modulo rilievi per la produzione delle porte sezionali, compilato in loco
+# dal cliente/installatore e poi inviato come PDF al fornitore.
+
+class SezionaleRilievoBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    # Header
+    rif: Optional[str] = ""
+    data: Optional[str] = ""  # ISO date YYYY-MM-DD
+    ditta: Optional[str] = ""
+    via: Optional[str] = ""
+    citta: Optional[str] = ""
+    tel: Optional[str] = ""
+    fax: Optional[str] = ""
+    email: Optional[str] = ""
+
+    # Misure foro muro (mm)
+    ht: Optional[str] = ""
+    h: Optional[str] = ""
+    l: Optional[str] = ""
+    architrave: Optional[str] = ""
+    veletta: Optional[str] = ""
+    mazzetta_sx: Optional[str] = ""
+    mazzetta_dx: Optional[str] = ""
+    spallette_sx: Optional[str] = ""
+    spallette_dx: Optional[str] = ""
+    spallette_sx1: Optional[str] = ""
+    spallette_dx1: Optional[str] = ""
+    profondita_garage: Optional[str] = ""
+
+    # Pannello
+    pezzi: Optional[str] = ""
+    tipo: Optional[str] = ""  # A | B | C | D
+    modello: Optional[str] = ""  # S1..S5 o testo libero
+    colore: Optional[str] = ""
+    oblo: Optional[str] = ""
+
+    # Portina
+    portina: bool = False
+    portina_h: Optional[str] = ""
+    portina_w: Optional[str] = ""
+    manigliore_antipanico: bool = False
+    maniglia: bool = False
+
+    # Motorizzazione/accessori
+    motore: bool = False
+    fotocell: bool = False
+    lampeg: bool = False
+    montag: bool = False
+    sblocco: bool = False
+
+    # Cliente/consegna
+    riferimento_cliente: Optional[str] = ""
+    destinazione_merce: Optional[str] = ""
+    note: Optional[str] = ""
+
+    # Collegamenti
+    client_id: Optional[str] = None  # id del lavoro/cliente a cui e' collegato
+
+
+class SezionaleRilievoCreate(SezionaleRilievoBase):
+    id: Optional[str] = None
+
+
+class SezionaleRilievoUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    # Tutti i campi opzionali; accettiamo qualsiasi sottoinsieme
+    rif: Optional[str] = None
+    data: Optional[str] = None
+    ditta: Optional[str] = None
+    via: Optional[str] = None
+    citta: Optional[str] = None
+    tel: Optional[str] = None
+    fax: Optional[str] = None
+    email: Optional[str] = None
+    ht: Optional[str] = None
+    h: Optional[str] = None
+    l: Optional[str] = None
+    architrave: Optional[str] = None
+    veletta: Optional[str] = None
+    mazzetta_sx: Optional[str] = None
+    mazzetta_dx: Optional[str] = None
+    spallette_sx: Optional[str] = None
+    spallette_dx: Optional[str] = None
+    spallette_sx1: Optional[str] = None
+    spallette_dx1: Optional[str] = None
+    profondita_garage: Optional[str] = None
+    pezzi: Optional[str] = None
+    tipo: Optional[str] = None
+    modello: Optional[str] = None
+    colore: Optional[str] = None
+    oblo: Optional[str] = None
+    portina: Optional[bool] = None
+    portina_h: Optional[str] = None
+    portina_w: Optional[str] = None
+    manigliore_antipanico: Optional[bool] = None
+    maniglia: Optional[bool] = None
+    motore: Optional[bool] = None
+    fotocell: Optional[bool] = None
+    lampeg: Optional[bool] = None
+    montag: Optional[bool] = None
+    sblocco: Optional[bool] = None
+    riferimento_cliente: Optional[str] = None
+    destinazione_merce: Optional[str] = None
+    note: Optional[str] = None
+    client_id: Optional[str] = None
+
+
+class SezionaleRilievo(SezionaleRilievoBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

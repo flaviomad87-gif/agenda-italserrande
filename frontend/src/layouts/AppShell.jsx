@@ -42,6 +42,7 @@ const secondaryNav = [
   { to: "/spese", label: "Spese", icon: Receipt, testId: "nav-spese" },
   { to: "/fornitori", label: "Fornitori", icon: Truck, testId: "nav-fornitori" },
   { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino" },
+  { to: "/rilievi", label: "Rilievi sezionali", icon: FileText, testId: "nav-rilievi" },
   // Riepilogo temporaneamente nascosto su richiesta utente: calcoli non
   // ancora allineati alle sue aspettative. La pagina e le rotte restano
   // funzionanti; per riabilitarla basta ripristinare questa voce.

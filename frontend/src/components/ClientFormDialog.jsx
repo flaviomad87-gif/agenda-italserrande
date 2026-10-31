@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -21,10 +22,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { toast } from "sonner";
 import { api, newUUID } from "../lib/api";
-import { Trash2, Clock, CalendarCheck, Hourglass, Copy, CalendarClock, FileText, Receipt } from "lucide-react";
+import { Trash2, Clock, CalendarCheck, Hourglass, Copy, CalendarClock, FileText, Receipt, Ruler } from "lucide-react";
 import { VAT_RATES, WITHHOLDING_RATES, computeWithVat, formatEUR } from "../lib/utils";
 import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
+import ClientRilievi from "./ClientRilievi";
 import { Switch } from "./ui/switch";
 import { it } from "date-fns/locale";
 import { format as formatDate } from "date-fns";
@@ -83,6 +85,7 @@ const migrateLegacy = (data) => {
 export default function ClientFormDialog({ open, onOpenChange, date, initial, onSaved, onDeleted, onDuplicate, defaultPending = false, defaultAwaiting = false }) {
   const [form, setForm] = useState(empty(date));
   const editing = Boolean(initial?.id);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
@@ -729,6 +732,8 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
             jobDate={form.date || date}
             onChange={(m) => update("materials", m)}
           />
+
+          <ClientRilievi client={editing ? { id: initial.id, name: form.name, address: form.address } : null} />
 
           <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             {editing ? (
