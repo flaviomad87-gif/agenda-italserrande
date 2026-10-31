@@ -64,7 +64,7 @@ async def update_rilievo(
     payload: SezionaleRilievoUpdate,
     user=Depends(get_current_user),
 ):
-    patch = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
+    patch = payload.model_dump(exclude_unset=True)
     if not patch:
         existing = await db.rilievi_sezionali.find_one(
             {"id": rilievo_id, "user_id": user["uid"]}, {"_id": 0}

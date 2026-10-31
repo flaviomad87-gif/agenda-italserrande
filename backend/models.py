@@ -462,20 +462,22 @@ class SezionaleRilievoBase(BaseModel):
     modello: Optional[str] = ""  # S1..S5 o testo libero
     colore: Optional[str] = ""
     oblo: Optional[str] = ""
+    oblo_h: Optional[str] = ""
+    oblo_w: Optional[str] = ""
 
     # Portina
-    portina: bool = False
+    portina: Optional[bool] = None
     portina_h: Optional[str] = ""
     portina_w: Optional[str] = ""
-    manigliore_antipanico: bool = False
-    maniglia: bool = False
+    manigliore_antipanico: Optional[bool] = None
+    maniglia: Optional[bool] = None
 
     # Motorizzazione/accessori
-    motore: bool = False
-    fotocell: bool = False
-    lampeg: bool = False
-    montag: bool = False
-    sblocco: bool = False
+    motore: Optional[bool] = None
+    fotocell: Optional[bool] = None
+    lampeg: Optional[bool] = None
+    montag: Optional[bool] = None
+    sblocco: Optional[bool] = None
 
     # Cliente/consegna
     riferimento_cliente: Optional[str] = ""
@@ -518,6 +520,8 @@ class SezionaleRilievoUpdate(BaseModel):
     modello: Optional[str] = None
     colore: Optional[str] = None
     oblo: Optional[str] = None
+    oblo_h: Optional[str] = None
+    oblo_w: Optional[str] = None
     portina: Optional[bool] = None
     portina_h: Optional[str] = None
     portina_w: Optional[str] = None

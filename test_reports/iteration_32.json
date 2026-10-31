@@ -1,0 +1,40 @@
+{
+  "summary": "Rilievi Sezionali feature tested end-to-end. Backend: 7/7 pytest passed (auth, create+get, idempotent POST by id, newest-first sort, client_id filter, partial PUT with false booleans + fax persisting, empty PUT, 404s, delete, two-user isolation). Frontend (390px mobile + 1920 desktop): hamburger menu-nav-rilievi and desktop nav-rilievi open /rilievi. Tested: empty state; new rilievo filled with header/measures/tipo C/toggles/note; Salva closes the dialog and the row appears; reopening shows the saved values; unchecking motore persists after a reload; header saved to localStorage rilievo_header_v1 and prefilled (ditta/fax) on the next new rilievo while measures stay blank; Invia PDF falls back to downloading rilievo-sezionale-TEST_Bianchi.pdf (a valid %PDF-1.3, 18KB) with a toast; pressing Invia PDF twice gives POST then PUT (toasts 'Rilievo creato' then 'Rilievo salvato'; only 1 new row); search filters and shows the 'Nessun risultato' empty state; Elimina with confirm removes the row. Job dialog: a new job shows client-rilievi-hint and a disabled button. An existing job shows client-rilievi-empty, then Nuovo rilievo prefills riferimento cliente = job name and destinazione = job address. Pressing Enter (submit) inside the rilievo saves it into client-rilievi-list with client_id linked, and the parent job dialog stays open and is not submitted (job not modified or duplicated). The linked item reopens with the Elimina button, edit and save update the list item, and share downloads rilievo-sezionale-TEST_Cliente_Rilievo.pdf. Mobile dialog: scrollWidth == clientWidth (no horizontal overflow), scrollHeight 2254 vs 774 (scrolls), footer buttons visible at y=737. No page JS errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/rilievi-sezionali/{id}", "issue": "The patch drops every None value, so client_id can never be unlinked (set to null) once it is set. Not a blocker today because the UI has no unlink action."},
+      {"endpoint": "POST /api/rilievi-sezionali", "issue": "The idempotency check is per user, so user B posting user A's id creates a second document with the same 'id' in the collection. Data stays isolated, but there is no unique index on (user_id, id)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "SezionaleRilievoDialog", "issues": [
+        "The sticky footer sits at bottom-0 inside a p-5 scroll container, so form inputs show through in the ~20px under the footer while scrolling (seen on desktop). Fix: add pb-5/-mb-5 to the footer or remove the container's bottom padding.",
+        "The Data field uses the native browser date picker (input type=date) and not the shadcn calendar used elsewhere in the app.",
+        "After the first save via Invia PDF the dialog stays open but its title still says 'Nuovo rilievo sezionale' and there is no Elimina button until it is reopened."
+      ]},
+      {"screen": "ClientRilievi list / Rilievi cards", "issues": ["The date is shown raw in ISO form (2026-10-31) and not as dd/MM/yyyy like the rest of the Italian UI."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter32_rilievi_sezionali.py", "/app/test_reports/pytest/pytest_iter32.xml", "/app/tests/seed_iter32.py", "/app/tests/verify_iter32.py"],
+  "action_items": [
+    "Optional: fix the sticky footer bleed-through in SezionaleRilievoDialog",
+    "Optional: show dates as dd/MM/yyyy in the rilievi lists; consider the shadcn date picker",
+    "Optional: after the first save, switch the dialog to edit mode (title + Elimina)",
+    "Optional: allow unlinking client_id in PUT (handle explicit null)"
+  ],
+  "critical_code_review_comments": [
+    "Nested form inside ClientFormDialog is handled correctly: the inner form sits in a portal and calls stopPropagation on submit and focusCapture (verified that the parent dialog stays open)",
+    "Toggles for maniglia/maniglione are hidden when portina is off, but their stored values remain and the PDF prints them as si/no checkboxes regardless of portina. Acceptable.",
+    "No limit or pagination in the list (to_list(2000)). Fine for an MVP."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter32_rilievi_sezionali.py", "/app/tests/seed_iter32.py", "/app/tests/verify_iter32.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Ephemeral Firebase user testuser+i32ui...@italserrande.test with 1 pending client TEST_Cliente Rilievo; all rilievi and the client were deleted afterwards.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Rilievi tests: pytest tests/test_iter32_rilievi_sezionali.py. UI selectors: menu-nav-rilievi (mobile), nav-rilievi (desktop), rilievi-add, rilievo-row-<id>, rilievo-input-<slug> (e.g. vs-riferimento-cliente, destinazione-merce, telefono, l-larghezza-foro), rilievo-toggle-<slug>, rilievo-share/save/cancel/delete (delete uses window.confirm). Job dialog: open via pending-card-<id> on /prossimi-lavori; add-pending-button for a new job. Pending clients are listed by /api/clients/pending, not /api/clients."
+}

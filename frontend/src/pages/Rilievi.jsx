@@ -11,6 +11,7 @@ import {
   Ruler,
 } from "lucide-react";
 import SezionaleRilievoDialog from "../components/SezionaleRilievoDialog";
+import { fmtDate } from "../lib/rilievoPdf";
 
 /**
  * Pagina Rilievi Sezionali: lista dei moduli compilati per porte sezionali
@@ -173,7 +174,7 @@ function RilievoCard({ rilievo, onClick }) {
             {r.data && (
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="h-3 w-3" />
-                {r.data}
+                {fmtDate(r.data)}
               </span>
             )}
             {r.citta && (

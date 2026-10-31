@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Ruler, ChevronRight } from "lucide-react";
 import { api } from "../lib/api";
 import SezionaleRilievoDialog from "./SezionaleRilievoDialog";
+import { fmtDate } from "../lib/rilievoPdf";
 
 export default function ClientRilievi({ client }) {
   const [items, setItems] = useState([]);
@@ -66,7 +67,7 @@ export default function ClientRilievi({ client }) {
                 data-testid={`client-rilievo-item-${r.id}`}
               >
                 <span className="min-w-0 truncate">
-                  <span className="font-medium text-stone-800">{r.data || "Senza data"}</span>
+                  <span className="font-medium text-stone-800">{r.data ? fmtDate(r.data) : "Senza data"}</span>
                   <span className="ml-2 text-xs text-stone-500">
                     {[r.l && `L ${r.l}`, r.h && `H ${r.h}`].filter(Boolean).join(" × ")}
                     {r.tipo ? ` · Tipo ${r.tipo}` : ""}
