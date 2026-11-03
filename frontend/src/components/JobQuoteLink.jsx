@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink, FilePlus2, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
-import { createQuoteFromJob, prevErrorMessage, quoteUrl, PREVENTIVI_URL } from "../lib/preventiviApp";
+import { createQuoteAndOpen, prevErrorMessage, quoteUrl, PREVENTIVI_URL } from "../lib/preventiviApp";
 import { PreventiviConnectDialog, usePreventiviUser } from "./PreventiviConnect";
 
 // Nel lavoro: apre il preventivo collegato oppure ne crea una bozza nell'app Preventivi
@@ -16,7 +16,7 @@ export default function JobQuoteLink({ form, update, editing, initial }) {
     if (!user) return setConnectOpen(true);
     setBusy(true);
     try {
-      const q = await createQuoteFromJob(form);
+      const q = await createQuoteAndOpen(form);
       update("quote_ref", q.id);
       update("quote_number", q.number);
       if (editing) await api.put(`/clients/${initial.id}`, { ...initial, quote_ref: q.id, quote_number: q.number });

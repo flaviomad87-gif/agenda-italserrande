@@ -77,8 +77,8 @@ export async function createQuoteFromJob(job) {
     number: String(n).padStart(3, "0"),
     date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
     status: "draft",
-    clientName: job.name || "",
-    clientAddress: job.address || "",
+    clientName: (job.name || "").trim().toUpperCase(),
+    clientAddress: (job.address || "").trim().toUpperCase(),
     subject: "OFFERTA",
     lineItems: [{ id: crypto.randomUUID(), description: "", amount: Number(job.amount) || 0, vatRate: 22 }],
     paymentTerms:
@@ -91,6 +91,19 @@ export async function createQuoteFromJob(job) {
   await setDoc(doc(db, "users", u, "quotes", id), quote, { merge: false });
   await setDoc(settingsRef, { counter: n }, { merge: true });
   return { id, ...quote };
+}
+
+// Apre la scheda subito (al tocco, cosi' il browser non la blocca) e la indirizza al preventivo creato
+export async function createQuoteAndOpen(job) {
+  const w = window.open("", "_blank");
+  try {
+    const q = await createQuoteFromJob(job);
+    if (w) w.location.href = quoteUrl(q.id);
+    return q;
+  } catch (err) {
+    w?.close();
+    throw err;
+  }
 }
 
 export const STATUS = {

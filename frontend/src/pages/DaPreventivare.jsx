@@ -7,6 +7,7 @@ import ClientFormDialog from "../components/ClientFormDialog";
 import WhatsAppIcon from "../components/icons/WhatsAppIcon";
 import AppointmentBadge from "../components/AppointmentBadge";
 import PreventiviAppSection from "../components/PreventiviAppSection";
+import MakeQuoteButton from "../components/MakeQuoteButton";
 import { quoteTotal } from "../lib/preventiviApp";
 import {
   Plus,
@@ -281,6 +282,10 @@ export default function DaPreventivare() {
                       <ArrowDown className="h-3.5 w-3.5" />
                     </button>
                   </div>
+                  <MakeQuoteButton
+                    client={c}
+                    onLinked={(u) => setItems((prev) => prev.map((p) => (p.id === u.id ? u : p)))}
+                  />
                   <button
                     type="button"
                     onClick={(e) => markQuoted(e, c)}

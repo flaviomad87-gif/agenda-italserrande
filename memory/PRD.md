@@ -348,3 +348,4 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Backend: campo client `quote_ref`, GET `/api/clients/quote-refs`.
 - Test iteration_36: stato non collegato OK; flussi da collegati NON testati (servono credenziali reali dell'utente).
 - Fix UX: in /da-preventivare i lavori dell'agenda stanno in alto; il riquadro "App Preventivi" è in fondo e chiuso di default (tocca il titolo per aprirlo, mostra "N da gestire", stato ricordato).
+- Bozze create dall'agenda: clientName e clientAddress in MAIUSCOLO. Nuovo pulsante "Fai preventivo" su ogni card di /da-preventivare (crea bozza, collega quote_ref, apre il preventivo; diventa "Apri preventivo N° X").
