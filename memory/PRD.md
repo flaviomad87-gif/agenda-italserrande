@@ -360,3 +360,11 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 
 ### Giu 2026 — Link gestionale fatture
 - /da-fatturare: pulsante "Gestionale" in alto e "Fattura" su ogni lavoro → apre https://asit.studiodigitale.cloud/wt00010885/cliente.sto; "Fattura" copia anche nome/indirizzo/telefono in MAIUSCOLO negli appunti da incollare nel gestionale.
+
+### Giu 2026 — Preventivi DENTRO l'agenda (piattaforma unica) + tema blu
+- Tema predefinito "Blu Italserrande" (#0047AB, come app Preventivi); migrazione una tantum da verde-classico (localStorage theme_blu_v1).
+- Backend `routes/quotes.py`: CRUD `/api/quotes` (soft delete), numerazione progressiva (max(counter, numeri)+1), nome/indirizzo MAIUSCOLO, `/api/quotes/import` (idempotente per source_id, ricollega quote_ref dei lavori), `/api/quote-settings` (dati azienda + templateLayout, default Italserrande S.r.l.).
+- Frontend `lib/quoteDoc.jsx`: porting fedele del template dell'app originale (JC/YC: header logo+dati, Cliente/Preventivo/Data, Descrizione/Importo €/C. Iva, OGGETTO, firma, Tot. Imponibile IVA ESCLUSA, Modalità di pagamento, Note; auto-fit/multipagina) + PDF via html2canvas+jsPDF (Preventivo-N-ANNO.pdf). Font IBM Plex Sans/Mono + Chivo. Logo /italserrande-logo.png.
+- Pagina `/preventivi/:id` (QuoteEditor): modifica/anteprima, stati, righe, Invia PDF (share/download, bozza→inviato), Crea lavoro, elimina.
+- /da-preventivare: sezione "Preventivi" interna (filtri, cerca, Nuovo preventivo, Crea lavoro, In agenda) + "Importa dalla vecchia app Preventivi" (login Firebase app vecchia una volta). "Fai preventivo" sulle card e "Crea preventivo" nel lavoro ora creano nell'agenda.
+- Esempio PDF originale: /app/memory/prev_app/sample.pdf; bundle originale in /app/memory/prev_app/.

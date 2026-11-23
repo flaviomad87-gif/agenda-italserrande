@@ -270,3 +270,34 @@ html[data-theme="vintage"] [class*="bg-\\[\\#EAF3EF\\]"] { background-color: #eb
 html[data-theme="vintage"] .bg-white { background-color: #fbf6ea !important; }
 html[data-theme="vintage"] [class*="text-\\[\\#4A5D23\\]"],
 html[data-theme="vintage"] [class*="text-\\[\\#2E5A47\\]"] { color: #7c4a2e !important; }
+
+/* BLU ITALSERRANDE — stesso blu dell'app preventivi */
+html[data-theme="blu-italserrande"] { --bg-app: #f7f9fc; }
+html[data-theme="blu-italserrande"] body { background: #f7f9fc; }
+html[data-theme="blu-italserrande"] [class*="bg-\\[\\#4A5D23\\]"] { background-color: #0047ab !important; }
+html[data-theme="blu-italserrande"] [class*="bg-\\[\\#3C4B1C\\]"],
+html[data-theme="blu-italserrande"] [class*="bg-\\[\\#3C4C1C\\]"] { background-color: #003a8c !important; }
+html[data-theme="blu-italserrande"] [class*="bg-\\[\\#2E5A47\\]"] { background-color: #0b2e66 !important; }
+html[data-theme="blu-italserrande"] [class*="bg-\\[\\#EAF3EF\\]"] { background-color: #e8f0fb !important; }
+html[data-theme="blu-italserrande"] [class*="bg-\\[\\#F9F8F6\\]"],
+html[data-theme="blu-italserrande"] [class*="bg-\\[\\#F3F2F0\\]"] { background-color: #f7f9fc !important; }
+html[data-theme="blu-italserrande"] [class*="text-\\[\\#4A5D23\\]"],
+html[data-theme="blu-italserrande"] [class*="text-\\[\\#2E5A47\\]"],
+html[data-theme="blu-italserrande"] [class*="text-\\[\\#3C4B1C\\]"] { color: #0047ab !important; }
+html[data-theme="blu-italserrande"] [class*="border-\\[\\#4A5D23\\]"],
+html[data-theme="blu-italserrande"] [class*="border-\\[\\#2E5A47\\]"] { border-color: #0047ab !important; }
+html[data-theme="blu-italserrande"] [class*="ring-\\[\\#4A5D23\\]"] { --tw-ring-color: #0047ab !important; }
+html[data-theme="blu-italserrande"] [class*="hover\\:bg-\\[\\#3C4C1C\\]"]:hover,
+html[data-theme="blu-italserrande"] [class*="hover\\:bg-\\[\\#3C4B1C\\]"]:hover { background-color: #003a8c !important; }
+
+/* Documento preventivo A4 (identico all'app Preventivi) */
+.a4-page,.a4-page-doc{background:#fff;color:#000;font-family:"IBM Plex Sans",sans-serif;font-size:10.5pt;height:297mm;line-height:1.45;overflow:hidden;position:relative;width:210mm}
+.a4-page{border:1px solid #e5e7eb;box-shadow:0 2px 4px #0000000a,0 12px 32px #0000001a;margin:0 auto 14mm}
+.a4-page:last-child{margin-bottom:0}
+.a4-page h1,.a4-page-doc h1{font-family:Chivo,sans-serif}
+.a4-page-content{display:flex;flex-direction:column;height:100%;padding:18mm 16mm;position:relative;width:100%}
+.a4-page-top{flex:0 0 auto}
+.a4-page-footer{margin-top:auto;padding-top:8mm}
+.a4-page-number{bottom:6mm;color:#9ca3af;font-family:"IBM Plex Mono",monospace;font-size:8pt;position:absolute;right:8mm}
+.a4-page .font-mono,.a4-page-doc .font-mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.a4-page .font-heading,.a4-page-doc .font-heading{font-family:Chivo,sans-serif}

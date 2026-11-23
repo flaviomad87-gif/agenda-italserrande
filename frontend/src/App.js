@@ -24,6 +24,7 @@ const Margine = lazy(() => import("./pages/Margine"));
 const Fornitori = lazy(() => import("./pages/Fornitori"));
 const Magazzino = lazy(() => import("./pages/Magazzino"));
 const Rilievi = lazy(() => import("./pages/Rilievi"));
+const QuoteEditor = lazy(() => import("./pages/QuoteEditor"));
 const PrintArchive = lazy(() => import("./pages/PrintArchive"));
 
 const FullPageSpinner = () => (
@@ -85,6 +86,7 @@ function App() {
                 <Route path="/fornitori" element={<Fornitori />} />
                 <Route path="/magazzino" element={<Magazzino />} />
                 <Route path="/rilievi" element={<Rilievi />} />
+                <Route path="/preventivi/:id" element={<QuoteEditor />} />
                 <Route path="/archivio/:month" element={<PrintArchive />} />
               </Route>
               <Route path="*" element={<Navigate to="/prossimi-lavori" replace />} />

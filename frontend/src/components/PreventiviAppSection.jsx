@@ -1,165 +1,157 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ExternalLink, Link2, Loader2, RefreshCw, CalendarPlus, CheckCircle2, LogOut, ChevronDown } from "lucide-react";
+import { Plus, CalendarPlus, CheckCircle2, ChevronDown, Download, Loader2, Search } from "lucide-react";
 import { api } from "../lib/api";
-import { formatEUR } from "../lib/utils";
-import { fmtDate } from "../lib/rilievoPdf";
-import {
-  PREVENTIVI_URL,
-  STATUS,
-  disconnectPreventivi,
-  listQuotes,
-  prevErrorMessage,
-  quoteTotal,
-  quoteUrl,
-} from "../lib/preventiviApp";
+import { QUOTE_STATUS, money, qDate, quoteTotal } from "../lib/quoteDoc";
+import { listQuotes, prevErrorMessage } from "../lib/preventiviApp";
+import { getDoc, doc, getFirestore } from "firebase/firestore";
+import { getApps } from "firebase/app";
 import { PreventiviConnectDialog, usePreventiviUser } from "./PreventiviConnect";
 
-const FILTERS = [
-  ["open", "Da gestire"],
-  ["accepted", "Accettati"],
-  ["all", "Tutti"],
-];
+const FILTERS = [["open", "Da gestire"], ["accepted", "Accettati"], ["all", "Tutti"]];
 
-// Preventivi letti dall'app Preventivi, dentro la scheda "Da preventivare"
+export async function createQuote(prefill = {}) {
+  const res = await api.post("/quotes", {
+    clientName: (prefill.name || "").toUpperCase(),
+    clientAddress: (prefill.address || "").toUpperCase(),
+    lineItems: [{ id: crypto.randomUUID(), description: "", amount: Number(prefill.amount) || 0, vatRate: 22 }],
+    client_id: prefill.id || null,
+  });
+  return res.data;
+}
+
+// Preventivi dentro l'agenda (scheda Preventivi)
 export default function PreventiviAppSection({ onCreateJob, refreshKey }) {
-  const user = usePreventiviUser();
+  const nav = useNavigate();
   const [quotes, setQuotes] = useState([]);
   const [links, setLinks] = useState({});
-  const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("open");
-  const [connectOpen, setConnectOpen] = useState(false);
-  // Chiusa di default: si apre solo quando serve, per non spingere giu' il resto
-  const [expanded, setExpanded] = useState(() => localStorage.getItem("prev_section_open") === "1");
-  const toggle = () =>
-    setExpanded((v) => {
-      localStorage.setItem("prev_section_open", v ? "0" : "1");
-      return !v;
-    });
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(() => localStorage.getItem("prev_section_open") !== "0");
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
-      const [q, refs] = await Promise.all([listQuotes(), api.get("/clients/quote-refs").then((r) => r.data)]);
-      setQuotes(q);
-      setLinks(Object.fromEntries((refs || []).map((r) => [r.quote_ref, r])));
-    } catch (err) {
-      toast.error(prevErrorMessage(err));
+      const [q, r] = await Promise.all([api.get("/quotes"), api.get("/clients/quote-refs")]);
+      setQuotes(q.data || []);
+      setLinks(Object.fromEntries((r.data || []).map((x) => [x.quote_ref, x])));
+    } catch {
+      toast.error("Errore nel caricamento dei preventivi");
     } finally {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    if (user) load();
-  }, [user, load, refreshKey]);
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const shown = useMemo(() => {
-    if (filter === "all") return quotes;
-    if (filter === "accepted") return quotes.filter((q) => q.status === "accepted");
-    return quotes.filter((q) => q.status !== "rejected" && !links[q.id]);
-  }, [quotes, links, filter]);
-
+    const s = search.trim().toUpperCase();
+    return quotes
+      .filter((q) => (filter === "all" ? true : filter === "accepted" ? q.status === "accepted" : q.status !== "rejected" && !links[q.id]))
+      .filter((q) => !s || `${q.number} ${q.clientName} ${q.clientAddress}`.toUpperCase().includes(s));
+  }, [quotes, links, filter, search]);
   const openCount = quotes.filter((q) => q.status !== "rejected" && !links[q.id]).length;
 
-  if (user === undefined) return null;
+  const toggle = () => setExpanded((v) => { localStorage.setItem("prev_section_open", v ? "0" : "1"); return !v; });
+  const newQuote = async () => {
+    try { nav(`/preventivi/${(await createQuote()).id}`); } catch { toast.error("Errore"); }
+  };
 
   return (
     <section className="space-y-3 rounded-3xl border border-blue-200/70 bg-blue-50/40 p-4" data-testid="prev-app-section">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <button type="button" onClick={user ? toggle : undefined} className="flex min-w-0 items-center gap-2 text-left" data-testid="prev-toggle">
-          {user && <ChevronDown className={`h-5 w-5 shrink-0 text-blue-700 transition-transform ${expanded ? "rotate-180" : ""}`} />}
-          <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
-              App Preventivi{user && !loading ? ` · ${openCount} da gestire` : ""}
-            </div>
-            <p className="truncate text-xs text-stone-500">{user ? user.email : "Non collegata"}</p>
+      <div className="flex items-center justify-between gap-2">
+        <button type="button" onClick={toggle} className="flex min-w-0 items-center gap-2 text-left" data-testid="prev-toggle">
+          <ChevronDown className={`h-5 w-5 shrink-0 text-blue-700 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+            Preventivi{!loading ? ` · ${openCount} da gestire` : ""}
           </div>
         </button>
-        <div className="flex gap-1.5">
-          <a href={PREVENTIVI_URL} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1 rounded-full border border-blue-300 bg-white px-3 text-xs font-semibold text-blue-700 hover:bg-blue-50" data-testid="prev-open-app">
-            <ExternalLink className="h-3.5 w-3.5" /> Apri app
-          </a>
-          {user ? (
-            <>
-              <IconBtn onClick={load} label="Aggiorna" testId="prev-refresh">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              </IconBtn>
-              <IconBtn onClick={() => window.confirm("Scollegare l'app Preventivi?") && disconnectPreventivi()} label="Scollega" testId="prev-disconnect">
-                <LogOut className="h-4 w-4" />
-              </IconBtn>
-            </>
-          ) : (
-            <button type="button" onClick={() => setConnectOpen(true)} className="inline-flex h-9 items-center gap-1 rounded-full bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700" data-testid="prev-connect-button">
-              <Link2 className="h-3.5 w-3.5" /> Collega
-            </button>
-          )}
-        </div>
+        <button type="button" onClick={newQuote} className="inline-flex h-9 items-center gap-1 rounded-full bg-[#0047AB] px-3 text-xs font-semibold text-white hover:bg-[#003A8C]" data-testid="quote-new-button">
+          <Plus className="h-3.5 w-3.5" /> Nuovo preventivo
+        </button>
       </div>
-
-      {user && expanded && (
+      {expanded && (
         <>
-          <div className="flex gap-1.5" data-testid="prev-filters">
+          <div className="flex flex-wrap items-center gap-1.5" data-testid="prev-filters">
             {FILTERS.map(([k, label]) => (
-              <button key={k} type="button" onClick={() => setFilter(k)} className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${filter === k ? "bg-blue-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`} data-testid={`prev-filter-${k}`}>
-                {label}
-              </button>
+              <button key={k} type="button" onClick={() => setFilter(k)} className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${filter === k ? "bg-[#0047AB] text-white" : "bg-white text-stone-600"}`} data-testid={`prev-filter-${k}`}>{label}</button>
             ))}
+            <div className="relative ml-auto">
+              <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca" className="h-8 w-32 rounded-full border border-stone-200 bg-white pl-7 pr-2 text-xs" data-testid="prev-search" />
+            </div>
           </div>
           {shown.length === 0 && !loading ? (
             <p className="py-2 text-sm text-stone-500" data-testid="prev-empty">Nessun preventivo qui.</p>
           ) : (
             <ul className="space-y-2" data-testid="prev-list">
-              {shown.map((q) => (
-                <QuoteRow key={q.id} q={q} linked={links[q.id]} onCreateJob={onCreateJob} />
-              ))}
+              {shown.slice(0, 60).map((q) => <QuoteRow key={q.id} q={q} linked={links[q.id]} onOpen={() => nav(`/preventivi/${q.id}`)} onCreateJob={onCreateJob} />)}
             </ul>
           )}
+          <ImportOld onDone={load} />
         </>
       )}
-      <PreventiviConnectDialog open={connectOpen} onOpenChange={setConnectOpen} />
     </section>
   );
 }
 
-function QuoteRow({ q, linked, onCreateJob }) {
-  const st = STATUS[q.status] || STATUS.draft;
+function QuoteRow({ q, linked, onOpen, onCreateJob }) {
+  const st = QUOTE_STATUS.find((s) => s.value === q.status) || QUOTE_STATUS[0];
   return (
-    <li className="rounded-2xl border border-stone-200 bg-white p-3" data-testid={`prev-quote-${q.id}`}>
+    <li className="cursor-pointer rounded-2xl border border-stone-200 bg-white p-3" onClick={onOpen} data-testid={`prev-quote-${q.id}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-display font-bold">N° {q.number}</span>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${st.cls}`}>{st.label}</span>
+            <span className={`border px-2 py-0.5 text-[10px] font-semibold uppercase ${st.cls}`}>{st.label}</span>
           </div>
           <div className="truncate text-sm font-medium text-stone-800">{q.clientName || "Senza nome"}</div>
           {q.clientAddress && <div className="truncate text-xs text-stone-500">{q.clientAddress}</div>}
-          <div className="text-xs text-stone-400">{fmtDate(q.date)}</div>
+          <div className="text-xs text-stone-400">{qDate(q.date)}</div>
         </div>
-        <div className="shrink-0 text-right font-display font-bold tabular-nums">{formatEUR(quoteTotal(q))}</div>
-      </div>
-      <div className="mt-2 flex flex-wrap justify-end gap-1.5">
-        <a href={quoteUrl(q.id)} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center gap-1 rounded-full border border-stone-300 px-3 text-xs font-semibold text-stone-700 hover:bg-stone-50" data-testid={`prev-quote-open-${q.id}`}>
-          <ExternalLink className="h-3.5 w-3.5" /> Apri
-        </a>
-        {linked ? (
-          <span className="inline-flex h-8 items-center gap-1 rounded-full bg-emerald-50 px-3 text-xs font-semibold text-emerald-700" data-testid={`prev-quote-linked-${q.id}`}>
-            <CheckCircle2 className="h-3.5 w-3.5" /> In agenda
-          </span>
-        ) : (
-          <button type="button" onClick={() => onCreateJob(q)} className="inline-flex h-8 items-center gap-1 rounded-full bg-[#4A5D23] px-3 text-xs font-semibold text-white hover:bg-[#3C4C1C]" data-testid={`prev-quote-create-job-${q.id}`}>
-            <CalendarPlus className="h-3.5 w-3.5" /> Crea lavoro
-          </button>
-        )}
+        <div className="shrink-0 text-right">
+          <div className="font-display font-bold tabular-nums">€ {money(quoteTotal(q))}</div>
+          {linked ? (
+            <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700" data-testid={`prev-quote-linked-${q.id}`}><CheckCircle2 className="h-3.5 w-3.5" /> In agenda</span>
+          ) : (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onCreateJob(q); }} className="mt-2 inline-flex h-8 items-center gap-1 rounded-full bg-[#4A5D23] px-3 text-xs font-semibold text-white" data-testid={`prev-quote-create-job-${q.id}`}>
+              <CalendarPlus className="h-3.5 w-3.5" /> Crea lavoro
+            </button>
+          )}
+        </div>
       </div>
     </li>
   );
 }
 
-function IconBtn({ onClick, label, testId, children }) {
+// Importa una volta tutti i preventivi e i dati azienda dalla vecchia app Preventivi
+function ImportOld({ onDone }) {
+  const user = usePreventiviUser();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (!user) return setOpen(true);
+    setBusy(true);
+    try {
+      const old = await listQuotes();
+      const app = getApps().find((a) => a.name === "preventivi");
+      const s = (await getDoc(doc(getFirestore(app), "users", user.uid, "meta", "settings"))).data() || {};
+      const quotes = old.map(({ id, ...q }) => ({ ...q, source_id: id }));
+      const res = await api.post("/quotes/import", { quotes, company: s.company || null, counter: s.counter || 0 });
+      toast.success(`Importati ${res.data.imported} preventivi`);
+      onDone();
+    } catch (err) {
+      toast.error(err?.response ? "Errore nell'importazione" : prevErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <button type="button" onClick={onClick} aria-label={label} title={label} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-600 hover:bg-stone-50" data-testid={testId}>
-      {children}
-    </button>
+    <div className="flex justify-end">
+      <button type="button" onClick={run} disabled={busy} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 underline-offset-2 hover:underline" data-testid="prev-import-button">
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Importa dalla vecchia app Preventivi
+      </button>
+      <PreventiviConnectDialog open={open} onOpenChange={setOpen} />
+    </div>
   );
 }

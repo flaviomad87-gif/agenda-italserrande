@@ -9,9 +9,16 @@
 
 export const THEMES = [
   {
+    id: "blu-italserrande",
+    label: "Blu Italserrande",
+    description: "Stesso blu dei preventivi (predefinito)",
+    isDark: false,
+    swatch: ["#0047AB", "#F7F9FC", "#0B2E66"],
+  },
+  {
     id: "verde-classico",
     label: "Verde Classico",
-    description: "Elegante e professionale (predefinito)",
+    description: "Elegante e professionale",
     isDark: false,
     swatch: ["#4A5D23", "#F9F8F6", "#B8683D"],
   },
@@ -52,7 +59,7 @@ export const THEMES = [
   },
 ];
 
-export const DEFAULT_THEME = "verde-classico";
+export const DEFAULT_THEME = "blu-italserrande";
 const STORAGE_KEY = "agenda_theme";
 
 /** Applica un tema al document.documentElement */
@@ -79,5 +86,14 @@ export function getSavedTheme() {
 
 /** Da chiamare al primo mount dell'app */
 export function initTheme() {
+  // Passaggio unico al blu: chi aveva il verde predefinito passa al nuovo tema blu
+  try {
+    if (!localStorage.getItem("theme_blu_v1")) {
+      localStorage.setItem("theme_blu_v1", "1");
+      if (getSavedTheme() === "verde-classico") localStorage.setItem(STORAGE_KEY, DEFAULT_THEME);
+    }
+  } catch {
+    /* private mode */
+  }
   applyTheme(getSavedTheme());
 }
