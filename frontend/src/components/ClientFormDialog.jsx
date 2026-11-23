@@ -493,15 +493,19 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
                           />
                         </PopoverContent>
                       </Popover>
-                      <Input
-                        type="time"
-                        value={timeStr}
-                        onChange={(e) => setTimePart(e.target.value)}
-                        className="h-12 rounded-xl"
-                        data-testid="client-appointment-time"
-                        disabled={!validDate}
-                        placeholder="09:00"
-                      />
+                      {validDate ? (
+                        <Input
+                          type="time"
+                          value={timeStr}
+                          onChange={(e) => setTimePart(e.target.value)}
+                          className="h-12 rounded-xl"
+                          data-testid="client-appointment-time"
+                        />
+                      ) : (
+                        <div className="flex h-12 items-center rounded-xl border border-dashed border-stone-300 px-3 text-sm text-stone-400" data-testid="client-appointment-time-hint">
+                          Scegli prima il giorno
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

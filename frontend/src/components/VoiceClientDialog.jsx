@@ -85,6 +85,8 @@ export default function VoiceClientDialog({ open, onOpenChange, onComplete }) {
         setListening(false);
         if (e.error === "not-allowed") {
           toast.error("Permesso microfono negato. Abilitalo nelle impostazioni del browser.");
+        } else if (e.error === "service-not-allowed") {
+          toast.error("Su iPhone attiva Dettatura e Siri in Impostazioni > Generali > Tastiera.");
         } else if (e.error !== "aborted") {
           toast.error(`Errore dettatura: ${e.error}`);
         }

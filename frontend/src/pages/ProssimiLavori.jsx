@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api, apiGetWithCache } from "../lib/api";
 import { isoDate, formatEUR, googleMapsUrl } from "../lib/utils";
@@ -54,13 +54,16 @@ export default function ProssimiLavori() {
     }
   }, [location, navigate]);
 
+  // Scarta le risposte arrivate fuori ordine (su iPhone una lettura vecchia poteva cancellare il lavoro appena creato)
+  const loadSeq = useRef(0);
   const load = async () => {
+    const seq = ++loadSeq.current;
     const c = apiGetWithCache(`/clients/pending`);
-    if (c.cached) setItems(c.cached);
+    if (c.cached && seq === 1) setItems(c.cached);
     setLoading(!c.cached);
     try {
       const data = await c.fresh;
-      setItems(data || []);
+      if (seq === loadSeq.current) setItems(data || []);
     } catch {
       if (!c.cached) toast.error("Impossibile caricare i prossimi lavori");
     } finally {
@@ -79,12 +82,21 @@ export default function ProssimiLavori() {
     window.__refreshUnpaidBadge?.();
   };
 
-  const onClientSaved = async (item) => {
-    if (item && (!item.pending || item.awaiting_materials)) {
-      // Promosso in Agenda o spostato in 'In attesa' → rimuovilo dalla lista Prossimi
+  const onClientSaved = (item) => {
+    if (!item) return refreshAll();
+    if (!item.pending || item.awaiting_materials || item.to_quote) {
+      // Promosso in Agenda o spostato in 'In attesa' / 'Da preventivare' → rimuovilo dalla lista Prossimi
       setItems((prev) => prev.filter((p) => p.id !== item.id));
+    } else {
+      setItems((prev) => {
+        const idx = prev.findIndex((p) => p.id === item.id);
+        if (idx === -1) return [...prev, item];
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...item };
+        return next;
+      });
     }
-    await refreshAll();
+    window.__refreshPendingBadge?.();
   };
   const onClientDeleted = async (id) => {
     setItems((prev) => prev.filter((p) => p.id !== id));

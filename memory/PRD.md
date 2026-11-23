@@ -349,3 +349,10 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Test iteration_36: stato non collegato OK; flussi da collegati NON testati (servono credenziali reali dell'utente).
 - Fix UX: in /da-preventivare i lavori dell'agenda stanno in alto; il riquadro "App Preventivi" è in fondo e chiuso di default (tocca il titolo per aprirlo, mostra "N da gestire", stato ricordato).
 - Bozze create dall'agenda: clientName e clientAddress in MAIUSCOLO. Nuovo pulsante "Fai preventivo" su ogni card di /da-preventivare (crea bozza, collega quote_ref, apre il preventivo; diventa "Apri preventivo N° X").
+
+### Giu 2026 — Fix iPhone (WebKit)
+- Prossimi lavori: lavoro appena creato spariva dalla lista su iPhone (race tra due ricariche: la lettura vecchia sovrascriveva). Ora upsert locale + scarto risposte fuori ordine (loadSeq).
+- Appuntamento: senza giorno scelto mostra "Scegli prima il giorno" al posto del campo ora disabilitato (su iOS sembrava 12:30 bloccato).
+- CSS iOS per input date/time (niente sforamenti, altezza minima), touch-action manipulation; viewport maximum-scale=1 (niente zoom automatico sui campi).
+- Dettatura: messaggio specifico per errore iOS "service-not-allowed".
+- Script di verifica WebKit iPhone: /app/tests/ios_check.py (PLAYWRIGHT_BROWSERS_PATH=/pw-browsers).

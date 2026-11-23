@@ -65,6 +65,26 @@ h4,
   * {
     @apply border-border;
   }
+  /* iPhone/Safari: campi data/ora non sforano, hanno altezza anche vuoti e testo a sinistra */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 1.5em;
+  }
+  /* Niente ritardo/evidenziazione grigia al tocco su iOS */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 /* Empty state fade-in */
