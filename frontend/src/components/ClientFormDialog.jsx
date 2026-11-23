@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { toast } from "sonner";
 import { api, newUUID } from "../lib/api";
@@ -90,6 +89,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
   const editing = Boolean(initial?.id);
   const [draftId, setDraftId] = useState(newUUID);
   const savedRef = useRef(false);
+  const [calOpen, setCalOpen] = useState(false);
   // Chiudendo un lavoro nuovo senza salvarlo, scarta le foto caricate nella bozza
   const handleOpenChange = (o) => {
     if (!o && !editing && !savedRef.current) api.delete(`/clients/${draftId}/photos`).catch(() => {});
@@ -100,6 +100,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
   useEffect(() => {
     if (open) {
       savedRef.current = false;
+      setCalOpen(false);
       if (!initial?.id) setDraftId(newUUID());
       const base = empty(date);
       if (defaultPending && !initial) base.pending = true;
@@ -471,28 +472,33 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
                   };
                   return (
                     <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_110px]">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            data-testid="client-appointment-date-btn"
-                            className="flex h-12 items-center justify-start rounded-xl border border-stone-200 bg-white px-3 text-left text-sm font-medium capitalize text-stone-700 hover:bg-stone-50"
-                          >
-                            <CalendarClock className="mr-2 h-4 w-4 text-[#2E5A47]" />
-                            {dateBtnLabel}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={validDate || undefined}
-                            onSelect={setDatePart}
-                            locale={it}
-                            weekStartsOn={1}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setCalOpen((v) => !v)}
+                          data-testid="client-appointment-date-btn"
+                          className="flex h-12 w-full items-center justify-start rounded-xl border border-stone-200 bg-white px-3 text-left text-sm font-medium capitalize text-stone-700 hover:bg-stone-50"
+                        >
+                          <CalendarClock className="mr-2 h-4 w-4 text-[#2E5A47]" />
+                          {dateBtnLabel}
+                        </button>
+                        {/* Calendario in linea (non a comparsa): su iPhone il popup dentro la finestra non si apriva */}
+                        {calOpen && (
+                          <div className="mt-2 flex justify-center rounded-xl border border-stone-200 bg-white" data-testid="client-appointment-calendar">
+                            <Calendar
+                              mode="single"
+                              selected={validDate || undefined}
+                              defaultMonth={validDate || undefined}
+                              onSelect={(d) => {
+                                setDatePart(d);
+                                setCalOpen(false);
+                              }}
+                              locale={it}
+                              weekStartsOn={1}
+                            />
+                          </div>
+                        )}
+                      </div>
                       {validDate ? (
                         <Input
                           type="time"

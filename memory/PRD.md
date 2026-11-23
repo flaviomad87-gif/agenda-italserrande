@@ -356,3 +356,4 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - CSS iOS per input date/time (niente sforamenti, altezza minima), touch-action manipulation; viewport maximum-scale=1 (niente zoom automatico sui campi).
 - Dettatura: messaggio specifico per errore iOS "service-not-allowed".
 - Script di verifica WebKit iPhone: /app/tests/ios_check.py (PLAYWRIGHT_BROWSERS_PATH=/pw-browsers).
+- Appuntamento: il calendario a comparsa (Radix Popover dentro Dialog) non si apriva su iPhone reale → sostituito con calendario IN LINEA sotto il pulsante "Scegli giorno" (si chiude dopo la scelta). Nessun Popover dentro i Dialog.
