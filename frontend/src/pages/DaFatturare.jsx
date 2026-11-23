@@ -16,6 +16,21 @@ import {
   Printer,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ExternalLink } from "lucide-react";
+
+const GESTIONALE_URL = "https://asit.studiodigitale.cloud/wt00010885/cliente.sto";
+
+// Copia i dati del cliente (da incollare nel gestionale) prima di aprirlo
+const copyForInvoice = (c) => {
+  const text = [c.name, c.address, c.phone].filter(Boolean).join("\n").toUpperCase();
+  navigator.clipboard?.writeText(text).then(
+    () => toast.success("Dati cliente copiati: incollali nel gestionale"),
+    () => {},
+  );
+};
+
+const gestionaleBtn =
+  "inline-flex items-center gap-1.5 rounded-full border border-purple-300 bg-white px-3 py-1.5 text-xs font-semibold text-purple-700 shadow-sm transition hover:bg-purple-50 active:scale-95";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -148,6 +163,15 @@ export default function DaFatturare() {
       </div>
 
       <div className="flex justify-end gap-2 no-print">
+        <a
+          href={GESTIONALE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="open-gestionale-button"
+          className="inline-flex items-center gap-1.5 rounded-full bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700"
+        >
+          <ExternalLink className="h-4 w-4" /> Gestionale
+        </a>
         <button
           onClick={() => window.print()}
           data-testid="print-to-invoice-button"
@@ -264,6 +288,16 @@ export default function DaFatturare() {
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Fatturato
                   </button>
+                  <a
+                    href={GESTIONALE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => { e.stopPropagation(); copyForInvoice(c); }}
+                    data-testid={`to-invoice-gestionale-${c.id}`}
+                    className={gestionaleBtn}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Fattura
+                  </a>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); sendClientToWhatsApp(c); }}

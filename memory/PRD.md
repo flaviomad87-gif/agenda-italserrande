@@ -357,3 +357,6 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Dettatura: messaggio specifico per errore iOS "service-not-allowed".
 - Script di verifica WebKit iPhone: /app/tests/ios_check.py (PLAYWRIGHT_BROWSERS_PATH=/pw-browsers).
 - Appuntamento: il calendario a comparsa (Radix Popover dentro Dialog) non si apriva su iPhone reale → sostituito con calendario IN LINEA sotto il pulsante "Scegli giorno" (si chiude dopo la scelta). Nessun Popover dentro i Dialog.
+
+### Giu 2026 — Link gestionale fatture
+- /da-fatturare: pulsante "Gestionale" in alto e "Fattura" su ogni lavoro → apre https://asit.studiodigitale.cloud/wt00010885/cliente.sto; "Fattura" copia anche nome/indirizzo/telefono in MAIUSCOLO negli appunti da incollare nel gestionale.
