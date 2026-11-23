@@ -88,9 +88,11 @@ export function getSavedTheme() {
 export function initTheme() {
   // Passaggio unico al blu: chi aveva il verde predefinito passa al nuovo tema blu
   try {
-    if (!localStorage.getItem("theme_blu_v1")) {
-      localStorage.setItem("theme_blu_v1", "1");
-      if (getSavedTheme() === "verde-classico") localStorage.setItem(STORAGE_KEY, DEFAULT_THEME);
+    // v2: anche chi aveva gia' avuto il passaggio v1 ma era rimasto sul verde (installazioni/telefoni diversi)
+    if (!localStorage.getItem("theme_blu_v2")) {
+      localStorage.setItem("theme_blu_v2", "1");
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved || saved === "verde-classico") localStorage.setItem(STORAGE_KEY, DEFAULT_THEME);
     }
   } catch {
     /* private mode */
