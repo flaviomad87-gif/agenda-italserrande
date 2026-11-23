@@ -9,6 +9,10 @@ import { Label } from "../components/ui/label";
 import ClientFormDialog from "../components/ClientFormDialog";
 import { QuotePages, QUOTE_STATUS, VAT_RATES, buildQuotePdf, money, quoteFileName, quoteTotal } from "../lib/quoteDoc";
 
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const newItem = () => ({ id: crypto.randomUUID(), description: "", amount: 0, vatRate: 22 });
 const UP = new Set(["clientName", "clientAddress"]);
 
@@ -83,18 +87,22 @@ export default function QuoteEditor() {
 
   const remove = async () => {
     if (!window.confirm(`Eliminare il preventivo N° ${q.number}?`)) return;
-    await api.delete(`/quotes/${id}`);
-    toast.success("Preventivo eliminato");
-    nav("/da-preventivare");
+    try {
+      await api.delete(`/quotes/${id}`);
+      toast.success("Preventivo eliminato");
+      nav("/da-preventivare");
+    } catch {
+      toast.error("Errore, riprova");
+    }
   };
 
   const jobPrefill = {
-    date: new Date().toISOString().slice(0, 10), name: q.clientName, address: q.clientAddress, amount: quoteTotal(q),
+    date: localToday(), name: q.clientName, address: q.clientAddress, amount: quoteTotal(q),
     vat_rate: q.lineItems?.[0]?.vatRate ?? 22, quote_number: q.number, quote_ref: q.id, pending: true, to_quote: false,
   };
 
   return (
-    <div className="space-y-4 pb-28 fade-in" data-testid="quote-editor-page">
+    <div className="space-y-4 pb-28" data-testid="quote-editor-page">
       <div className="flex items-center justify-between gap-2">
         <button type="button" onClick={() => nav("/da-preventivare")} className="inline-flex items-center gap-1 text-sm font-semibold text-stone-600" data-testid="quote-back">
           <ArrowLeft className="h-4 w-4" /> Preventivi
@@ -125,12 +133,12 @@ export default function QuoteEditor() {
       )}
 
       <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-stone-200 bg-white/95 px-3 py-2 backdrop-blur md:bottom-0 md:left-64">
-        <div className="mx-auto flex max-w-3xl flex-wrap justify-end gap-2">
+        <div className="mx-auto flex max-w-3xl items-center justify-end gap-1.5">
           <ActBtn onClick={remove} cls="text-red-600 hover:bg-red-50" icon={Trash2} label="" testId="quote-delete" />
           {linked ? (
             <span className="inline-flex h-11 items-center gap-1 px-2 text-xs font-semibold text-emerald-700" data-testid="quote-linked"><CheckCircle2 className="h-4 w-4" /> In agenda</span>
           ) : (
-            <ActBtn onClick={async () => (await save(true)) && setJobOpen(true)} cls="border border-stone-300 text-stone-700 hover:bg-stone-50" icon={CalendarPlus} label="Crea lavoro" testId="quote-create-job" />
+            <ActBtn onClick={async () => (await save(true)) && setJobOpen(true)} cls="border border-stone-300 text-stone-700 hover:bg-stone-50" icon={CalendarPlus} label="Lavoro" testId="quote-create-job" />
           )}
           <ActBtn onClick={sharePdf} busy={busy === "pdf"} cls="bg-[#B8683D] text-white hover:bg-[#9F5630]" icon={Share2} label="Invia PDF" testId="quote-share-pdf" />
           <ActBtn onClick={() => save()} busy={busy === "save"} cls="bg-[#4A5D23] text-white hover:bg-[#3C4C1C]" icon={Save} label="Salva" testId="quote-save" />
@@ -210,16 +218,26 @@ function TextBlock({ label, v, on, k, rows }) {
 // Anteprima A4 ridotta alla larghezza dello schermo
 function ScaledPreview({ quote, company }) {
   const ref = useRef(null);
+  const inner = useRef(null);
   const [scale, setScale] = useState(0.45);
+  const [h, setH] = useState(0);
   useEffect(() => {
-    const fit = () => ref.current && setScale(Math.min(1, ref.current.clientWidth / 794));
+    const fit = () => {
+      if (ref.current) setScale(Math.min(1, ref.current.clientWidth / 794));
+      if (inner.current) setH(inner.current.offsetHeight);
+    };
     fit();
+    const ro = new ResizeObserver(fit);
+    if (inner.current) ro.observe(inner.current);
     window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
   }, []);
   return (
-    <div ref={ref} className="w-full overflow-hidden" data-testid="quote-preview">
-      <div style={{ width: "210mm", transform: `scale(${scale})`, transformOrigin: "top left", marginBottom: `calc(-1 * (1 - ${scale}) * 100%)` }}>
+    <div ref={ref} className="w-full overflow-hidden" style={{ height: h ? h * scale : undefined }} data-testid="quote-preview">
+      <div ref={inner} style={{ width: "210mm", transform: `scale(${scale})`, transformOrigin: "top left" }}>
         <QuotePages quote={quote} company={company} />
       </div>
     </div>
@@ -236,7 +254,7 @@ function TabBtn({ on, onClick, icon: Icon, label, testId }) {
 
 function ActBtn({ onClick, busy, cls, icon: Icon, label, testId }) {
   return (
-    <button type="button" onClick={onClick} disabled={!!busy} className={`inline-flex h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition-colors disabled:opacity-60 ${cls}`} data-testid={testId}>
+    <button type="button" onClick={onClick} disabled={!!busy} className={`inline-flex h-11 shrink-0 items-center gap-1 rounded-xl px-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${cls}`} data-testid={testId}>
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />} {label}
     </button>
   );

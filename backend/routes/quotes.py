@@ -117,12 +117,15 @@ async def create_quote(payload: QuoteIn, user=Depends(get_current_user)):
 
 @router.put("/quotes/{quote_id}")
 async def update_quote(quote_id: str, payload: QuoteIn, user=Depends(get_current_user)):
-    patch = payload.model_dump(exclude={"id", "source_id", "createdAt"})
+    patch = payload.model_dump(exclude_unset=True, exclude={"id", "source_id", "createdAt"})
     patch["updatedAt"] = _now()
     if not patch.get("number"):
-        patch.pop("number")
+        patch.pop("number", None)
+    for k in ("clientName", "clientAddress"):
+        if k in patch:
+            patch[k] = (patch[k] or "").strip().upper()
     res = await db.quotes.find_one_and_update(
-        {"id": quote_id, "user_id": user["uid"]}, {"$set": patch}, return_document=True, projection={"_id": 0, "user_id": 0}
+        {"id": quote_id, "user_id": user["uid"], "is_deleted": {"$ne": True}}, {"$set": patch}, return_document=True, projection={"_id": 0, "user_id": 0}
     )
     if not res:
         raise HTTPException(404, "Preventivo non trovato")
@@ -149,6 +152,8 @@ async def import_quotes(payload: ImportIn, user=Depends(get_current_user)):
         if await db.quotes.find_one({"user_id": uid, "source_id": src}):
             continue
         doc.update({"id": str(uuid.uuid4()), "source_id": src, "user_id": uid})
+        doc["clientName"] = (doc.get("clientName") or "").strip().upper()
+        doc["clientAddress"] = (doc.get("clientAddress") or "").strip().upper()
         doc["createdAt"] = doc.get("createdAt") or _now()
         doc["updatedAt"] = doc.get("updatedAt") or doc["createdAt"]
         await db.quotes.insert_one(doc)

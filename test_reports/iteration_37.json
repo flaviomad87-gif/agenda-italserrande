@@ -1,0 +1,45 @@
+{
+  "summary": "Iter37: tested the quotes features inside the agenda. Backend: 9 pytest checks on /api/quotes CRUD, numbering, upper-casing, idempotency, soft-delete clearing the client's quote_ref, user isolation, import (idempotent, counter, relinking jobs, company) and quote-settings; 8/9 pass. Frontend: full flow on WebKit with iPhone 13 emulation (390px): Fai preventivo, editor, preview, PDF, filters and search, Crea lavoro from a row, job-quote-create and job-quote-open, delete. Found and fixed 2 real bugs: (1) the blue theme (and every other theme's colour overrides) never applied because of double-escaped CSS selectors; (2) the editor's fixed Salva/Invia PDF bar was pushed off-screen by the fade-in transform. Retested after both fixes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/quotes/{id}", "issue": "Updates a soft-deleted quote and returns 200. The filter is missing is_deleted != True."},
+      {"endpoint": "PUT /api/quotes/{id}", "issue": "Uses the full QuoteIn model, so a partial PUT (e.g. {status:'sent'}) resets lineItems, paymentTerms and clientName to defaults. It also does not upper-case clientName or clientAddress (only the frontend does)."},
+      {"endpoint": "POST /api/quotes", "issue": "Duplicate numbers are allowed when a number is given explicitly. The default date uses server local time (datetime.now()), not the user's timezone."},
+      {"endpoint": "POST /api/quotes/import", "issue": "Imported clientName and clientAddress are not upper-cased."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "index.css theme overrides (all themes)", "issue": "FIXED by testing agent. Selectors like [class*=\"bg-\\\\[\\\\#4A5D23\\\\]\"] contained literal backslashes, so they never matched. With the default theme set to blu-italserrande, buttons, nav and background stayed green/beige on Prossimi, Agenda and the editor. Fix: unescaped the brackets, # and : inside the quoted attribute selectors. Verified: Esegui oggi, Timbra ingresso, Giorno and the active bottom-nav item are now blue.", "selector": "html[data-theme=...] [class*=...]", "priority": "HIGH"},
+      {"component": "QuoteEditor action bar", "issue": "FIXED by testing agent. The root div had the fade-in class, whose animation keeps transform: translateY(0) after it ends (fill-mode both). That makes the position:fixed bar behave like absolute: barTop was 1248px in a 664px viewport, so Salva and Invia PDF were invisible without scrolling to the bottom. Removed fade-in from the editor root; the bar now sits just above the bottom nav (top 479, bottom 592).", "selector": "[data-testid=quote-editor-page]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Blue theme", "issues": ["Terracotta #B8683D has no blu-italserrande override, so Nuovo lavoro, Invia PDF, the badge counters and the date text stay orange/brown.", "[class*=\"bg-[#3C4C1C]\"] also matches 'hover:bg-[#3C4C1C]', so buttons with that hover class always show the darker #003a8c instead of #0047ab."]},
+      {"screen": "QuoteEditor 390px", "issues": ["The action bar wraps into 2 rows (113px tall): Invia PDF on one row, Salva on the next.", "Bottom nav 'Preventivi' is not highlighted on /preventivi/:id.", "ScaledPreview's negative marginBottom uses a % of width (calc(-(1-scale)*100%)), not of page height, so the space under the A4 preview is wrong."]},
+      {"screen": "PDF vs sample.pdf", "issues": ["The layout matches the sample very closely (header, logo, Cliente / Preventivo: / Data box, Descrizione / Importo € / C. Iva table, OGGETTO, Tot. Imponibile (IVA ESCLUSA), Modalità di pagamento). Only the page margins are slightly larger and the content slightly smaller than in the sample."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter37_quotes.py", "/app/tests/iter37_ui.py", "/app/tests/iter37_bar.py", "/app/tests/iter37_css.py", "/app/test_reports/pytest/iter37.xml"],
+  "action_items": [
+    "Review the CSS selector fix in index.css (backslashes removed) and add blu-italserrande overrides for #B8683D, plus a proper base vs hover distinction.",
+    "PUT /api/quotes: add is_deleted != True to the filter, upper-case clientName and clientAddress on the server, and consider exclude_unset for partial updates.",
+    "Upper-case clientName and clientAddress on import too.",
+    "Check other pages where fixed elements sit inside a .fade-in container (same transform containing-block problem).",
+    "UI import button 'Importa dalla vecchia app Preventivi' NOT tested (needs the user's real old-app credentials)."
+  ],
+  "critical_code_review_comments": [
+    "quotes.py update_quote uses model_dump() of the full model, so defaults overwrite stored fields on partial payloads.",
+    "QuoteEditor remove(): api.delete has no try/catch, so an error gives no toast.",
+    "jobPrefill date uses new Date().toISOString() (UTC). Around midnight in Italy it can be the wrong day.",
+    "The 'In HTML <span> cannot be a child of <option>' console error comes from the visual-editor instrumentation (x-excluded span), not from app code."
+  ],
+  "updated_files": ["/app/frontend/src/index.css", "/app/frontend/src/pages/QuoteEditor.jsx", "/app/backend/tests/test_iter37_quotes.py", "/app/tests/iter37_ui.py", "/app/tests/iter37_bar.py", "/app/tests/iter37_css.py"],
+  "success_rate": {"backend": "89% (8/9)", "frontend": "100% of flows pass after 2 fixes (blue theme and the editor action bar were broken before the fixes)"},
+  "seed_data_creation": "Ephemeral Firebase users only. Their quotes, clients and Firebase accounts were deleted afterwards; empty quote_settings docs for those ephemeral uids may remain.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run WebKit flows with `python /app/tests/iter37_ui.py` (it uses ios_check.main; Chromium is not installed). Backend: pytest /app/backend/tests/test_iter37_quotes.py -p no:xdist. The sandbox clock is 2026-11-23. The preview's 'Preventivo:' label matches sample.pdf (it is not 'Preventivo N°').",
+  "rca of the issue": "Theme: in a quoted CSS attribute value, '\\\\[' means a literal backslash followed by '[', so the substring never appears in a class attribute. Checked in isolation with WebKit set_content (/app/tests/iter37_css.py): the double-escaped rule did not apply, the plain rule did. Action bar: .fade-in uses 'animation ... both', which keeps a transform after the animation. A transformed ancestor becomes the containing block for position:fixed children, so the bar sat at the bottom of the 1409px page instead of the viewport."
+}
