@@ -92,7 +92,10 @@ async def list_quotes(user=Depends(get_current_user)):
 
 @router.get("/quotes/{quote_id}")
 async def get_quote(quote_id: str, user=Depends(get_current_user)):
-    doc = await db.quotes.find_one({"id": quote_id, "user_id": user["uid"], "is_deleted": {"$ne": True}}, {"_id": 0, "user_id": 0})
+    q = {"user_id": user["uid"], "is_deleted": {"$ne": True}}
+    doc = await db.quotes.find_one({**q, "id": quote_id}, {"_id": 0, "user_id": 0})
+    if not doc:  # lavoro collegato con l'id della vecchia app Preventivi
+        doc = await db.quotes.find_one({**q, "source_id": quote_id}, {"_id": 0, "user_id": 0})
     if not doc:
         raise HTTPException(404, "Preventivo non trovato")
     return doc

@@ -26,16 +26,22 @@ export default function QuoteEditor() {
   const [busy, setBusy] = useState("");
   const [jobOpen, setJobOpen] = useState(false);
 
-  useEffect(() => {
-    Promise.all([api.get(`/quotes/${id}`), api.get("/quote-settings"), api.get("/clients/quote-refs")])
-      .then(([a, b, c]) => {
-        setQ(a.data);
-        setCompany(b.data.company);
-        setLinked((c.data || []).find((r) => r.quote_ref === id) || null);
-      })
-      .catch(() => toast.error("Preventivo non trovato"));
-  }, [id]);
+  const [error, setError] = useState("");
 
+  useEffect(() => {
+    setError("");
+    api
+      .get(`/quotes/${id}`)
+      .then((a) => {
+        setQ(a.data);
+        if (a.data.id !== id) nav(`/preventivi/${a.data.id}`, { replace: true });
+      })
+      .catch((e) => setError(e?.response?.status === 404 ? "notfound" : "network"));
+    api.get("/quote-settings").then((b) => setCompany(b.data.company)).catch(() => setCompany({ name: "Italserrande S.r.l." }));
+    api.get("/clients/quote-refs").then((c) => setLinked((c.data || []).find((r) => r.quote_ref === id) || null)).catch(() => {});
+  }, [id, nav]);
+
+  if (error) return <QuoteMissing kind={error} onBack={() => nav("/da-preventivare")} />;
   if (!q || !company) return <div className="p-6 text-stone-500">Caricamento…</div>;
 
   const set = (k, v) => setQ((p) => ({ ...p, [k]: UP.has(k) ? v.toUpperCase() : v }));
@@ -151,6 +157,22 @@ export default function QuoteEditor() {
         initial={jobPrefill}
         onSaved={(item) => item?.id && setLinked({ id: item.id })}
       />
+    </div>
+  );
+}
+
+function QuoteMissing({ kind, onBack }) {
+  return (
+    <div className="mx-auto max-w-md space-y-4 rounded-3xl border border-stone-200 bg-white p-6 text-center" data-testid="quote-missing">
+      <h1 className="font-display text-2xl font-bold">{kind === "notfound" ? "Preventivo non ancora nell'agenda" : "Connessione assente"}</h1>
+      <p className="text-sm text-stone-600">
+        {kind === "notfound"
+          ? "Questo lavoro è collegato a un preventivo della vecchia app Preventivi. Vai in Preventivi, apri il riquadro blu e tocca \"Importa dalla vecchia app Preventivi\": poi si aprirà da qui."
+          : "Il server non risponde (può servire qualche secondo se era in pausa). Riprova tra poco."}
+      </p>
+      <button type="button" onClick={onBack} className="inline-flex h-11 items-center gap-1 rounded-xl bg-[#0047AB] px-4 text-sm font-semibold text-white" data-testid="quote-missing-back">
+        <ArrowLeft className="h-4 w-4" /> Vai a Preventivi
+      </button>
     </div>
   );
 }
