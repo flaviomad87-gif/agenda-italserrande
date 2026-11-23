@@ -274,7 +274,16 @@ html[data-theme="vintage"] [class*="text-[#2E5A47]"] { color: #7c4a2e !important
 /* BLU ITALSERRANDE — stesso blu dell'app preventivi */
 html[data-theme="blu-italserrande"] { --bg-app: #f7f9fc; }
 html[data-theme="blu-italserrande"] body { background: #f7f9fc; }
-html[data-theme="blu-italserrande"] [class*="bg-[#4A5D23]"] { background-color: #0047ab !important; }
+html[data-theme="blu-italserrande"] [class~="bg-[#4A5D23]"] { background-color: #0047ab !important; }
+html[data-theme="blu-italserrande"] [class~="bg-[#4A5D23]/10"],
+html[data-theme="blu-italserrande"] [class~="bg-[#4A5D23]/15"],
+html[data-theme="blu-italserrande"] [class~="bg-[#F8EBE4]"],
+html[data-theme="blu-italserrande"] [class~="bg-[#E5EFE9]"] { background-color: #e8f0fb !important; }
+html[data-theme="blu-italserrande"] [class~="bg-[#EAE7DE]"],
+html[data-theme="blu-italserrande"] [class~="bg-[#FBF1DE]"] { background-color: #eef2f8 !important; }
+html[data-theme="blu-italserrande"] [class*="border-[#4A5D23]/"],
+html[data-theme="blu-italserrande"] [class*="border-[#2E5A47]/"],
+html[data-theme="blu-italserrande"] [class*="border-[#B8683D]/"] { border-color: rgba(0, 71, 171, 0.3) !important; }
 html[data-theme="blu-italserrande"] [class~="bg-[#3C4B1C]"],
 html[data-theme="blu-italserrande"] [class~="bg-[#3C4C1C]"] { background-color: #003a8c !important; }
 html[data-theme="blu-italserrande"] [class~="bg-[#B8683D]"] { background-color: #0b2e66 !important; }
@@ -285,12 +294,13 @@ html[data-theme="blu-italserrande"] [class*="bg-[#2E5A47]"] { background-color: 
 html[data-theme="blu-italserrande"] [class*="bg-[#EAF3EF]"] { background-color: #e8f0fb !important; }
 html[data-theme="blu-italserrande"] [class*="bg-[#F9F8F6]"],
 html[data-theme="blu-italserrande"] [class*="bg-[#F3F2F0]"] { background-color: #f7f9fc !important; }
-html[data-theme="blu-italserrande"] [class*="text-[#4A5D23]"],
+html[data-theme="blu-italserrande"] [class~="text-[#4A5D23]"],
 html[data-theme="blu-italserrande"] [class*="text-[#2E5A47]"],
 html[data-theme="blu-italserrande"] [class*="text-[#3C4B1C]"] { color: #0047ab !important; }
 html[data-theme="blu-italserrande"] [class*="border-[#4A5D23]"],
 html[data-theme="blu-italserrande"] [class*="border-[#2E5A47]"] { border-color: #0047ab !important; }
 html[data-theme="blu-italserrande"] [class*="ring-[#4A5D23]"] { --tw-ring-color: #0047ab !important; }
+html[data-theme="blu-italserrande"] [class*="hover:text-[#4A5D23]"]:hover { color: #0047ab !important; }
 html[data-theme="blu-italserrande"] [class*="hover:bg-[#3C4C1C]"]:hover,
 html[data-theme="blu-italserrande"] [class*="hover:bg-[#3C4B1C]"]:hover { background-color: #003a8c !important; }
 

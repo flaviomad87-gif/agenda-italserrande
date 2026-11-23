@@ -1,0 +1,35 @@
+{
+  "summary": "Iter38 (frontend only): tested the theme migration in initTheme (v2) and the blue look, on WebKit with iPhone 13 emulation (390px). The service worker was blocked and each preset ran in a fresh context. Result: 18/19 checks pass. The one failure is expected: it is the Verde Classico swatch colours shown in the Profilo theme picker. Migration: (a) empty storage -> blu-italserrande; (b) verde-classico + theme_blu_v1=1 -> blu-italserrande; (c) verde-classico with no flags -> blu-italserrande; (d) notte-blu stays notte-blu. theme_blu_v2='1' is set in every case. Choosing Verde Classico in Profilo afterwards persists across reload and navigation (no forced re-migration), and switching back to Blu also persists. Visual check: Nuovo lavoro = rgb(11,46,102) navy, Esegui oggi = rgb(0,71,171), active bottom tab Prossimi is blue, the appointment chip is light blue with a blue border. A computed-style scan of all visible elements on /prossimi-lavori, /da-preventivare and /agenda found no remaining green or terracotta colours (#4A5D23, #B8683D, #3C4B1C, #3C4C1C, #2E5A47, #9F5630, #F9F8F6). The Profilo picker lists Blu Italserrande first.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SezionaleRilievoDialog.jsx lines 305 and 343 (not rendered in this test; found by code review)", "issue": "Under blu-italserrande, the substring rule [class*=\"bg-[#4A5D23]\"] also matches 'bg-[#4A5D23]/10' and 'bg-[#4A5D23]/15'. These tinted backgrounds become solid #0047ab. At line 305 the text is also forced to #0047ab (text-[#4A5D23]), so the selected chip would show blue text on a blue background and be unreadable. Fix: switch to [class~=\"bg-[#4A5D23]\"] and add rules for /10 and /15 tints (e.g. #e8f0fb).", "selector": "html[data-theme=blu-italserrande] [class*=\"bg-[#4A5D23]\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Blue theme leftovers (code review; these did not appear in the visible views tested)", "issues": [
+        "Terracotta tint bg-[#F8EBE4] has no blu override: WeekView.jsx:223, Agenda.jsx:31 and 399, ClientSearch.jsx:128, ClientFormDialog.jsx:575.",
+        "Green tint bg-[#E5EFE9] has no blu override: Agenda.jsx:384, Incassi.jsx:201.",
+        "Beige bg-[#EAE7DE] (AppShell.jsx:67, Profilo, Spese, the dialogs) and bg-[#FBF1DE] remain warm beige.",
+        "Tinted border variants border-[#2E5A47]/20, border-[#B8683D]/20 and /30, and border-[#4A5D23]/30 and /40 are caught (or missed) by substring rules inconsistently. The ~= rules for B8683D do not catch /20 or /30.",
+        "[class*=\"text-[#4A5D23]\"] also matches 'hover:text-[#4A5D23]' (18 uses), so those links are always blue, not only on hover."
+      ]}
+    ]
+  },
+  "test_report_links": ["/app/tests/iter38_theme.py"],
+  "action_items": [
+    "Change [class*=\"bg-[#4A5D23]\"] to [class~=...] in the blu-italserrande rules and add rules for the bg-[#4A5D23]/10 and /15 tints (SezionaleRilievoDialog would otherwise show blue text on blue).",
+    "Add blu overrides for bg-[#F8EBE4], bg-[#E5EFE9], and optionally bg-[#EAE7DE] and bg-[#FBF1DE], plus the /20, /30 and /40 border tints.",
+    "Production iPhone: the fix only arrives once SW v23 activates. Confirm sw.js calls skipWaiting/clients.claim so the installed PWA picks up the new bundle without a manual reopen."
+  ],
+  "critical_code_review_comments": [
+    "initTheme v2 logic is correct and idempotent. It only migrates when the theme is empty or verde-classico, then sets the flag before applying, so later manual choices are kept.",
+    "applyTheme writes agenda_theme on every call. That is fine, but an invalid saved theme is silently replaced by blu."
+  ],
+  "updated_files": ["/app/tests/iter38_theme.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% of requested checks (18/19; the one failure is the expected Verde swatch in the picker)"},
+  "seed_data_creation": "Ephemeral Firebase user plus 2 TEST_iter38 clients. All were deleted at the end.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run `python /app/tests/iter38_theme.py` (WebKit, iPhone 13, service_workers=block). It covers the migration presets a-d, the persistence of a Verde choice, and a computed-colour scan per page for old green/terracotta hex values."
+}
