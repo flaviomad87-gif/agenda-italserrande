@@ -94,6 +94,15 @@ const NavItem = ({ to, label, icon: Icon, testId, mobile, badge, onClick }) => (
 );
 
 export default function AppShell() {
+  // Precarica in sottofondo le pagine principali: poi il cambio scheda e' istantaneo
+  useEffect(() => {
+    const t = setTimeout(() => {
+      ["Agenda", "ProssimiLavori", "DaPreventivare", "DaFatturare", "InAttesa", "QuoteEditor"].forEach((n) =>
+        import(`../pages/${n}`).catch(() => {}),
+      );
+    }, 2000);
+    return () => clearTimeout(t);
+  }, []);
   const navigate = useNavigate();
   const [unpaidCount, setUnpaidCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);

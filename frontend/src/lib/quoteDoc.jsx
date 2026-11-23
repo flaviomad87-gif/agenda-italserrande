@@ -1,8 +1,6 @@
 // Documento preventivo: stessa impaginazione dell'app Preventivi originale (blocchi, auto-fit, multipagina, PDF A4).
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 export const DEFAULT_LAYOUT = {
   logoHeightMm: 30, titleSizePt: 30, addressSizePt: 8, titlePosition: "above", logoAlign: "left", titleAlign: "left",
@@ -267,6 +265,7 @@ export async function buildQuotePdf(quote, company) {
     await new Promise((resolve) => root.render(<QuotePages quote={quote} company={company} pageClass="a4-page-doc" onReady={resolve} />));
     await new Promise((r) => setTimeout(r, 400));
     if (document.fonts?.ready) await document.fonts.ready.catch(() => {});
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
     const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const pages = Array.from(host.querySelectorAll(".a4-page-doc"));

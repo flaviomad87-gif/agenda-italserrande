@@ -372,3 +372,8 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - DA FARE utente: premere "Importa dalla vecchia app Preventivi" una volta (serve login app vecchia) per portare preventivi, numerazione, dati azienda e impaginazione.
 - Fix "Preventivo non trovato" (iPhone, produzione): lavori collegati con id della VECCHIA app → GET /quotes/{id} ora cerca anche per source_id (dopo import si apre e reindirizza al nuovo id). Editor: richieste separate; se manca mostra pagina "Preventivo non ancora nell'agenda" con istruzioni per importare.
 - Import automatico: se la vecchia app è collegata (anche appena collegata dal dialog) l'import parte da solo una volta (flag localStorage quotes_imported_v1). Se non ci sono preventivi, in /da-preventivare compare un riquadro grande "Porta qui i preventivi della vecchia app". L'import non può essere fatto dall'agente: dati utente su Atlas/Render + password vecchia app.
+
+### Giu 2026 — Velocità
+- Backend: indici Mongo creati all'avvio (server.py INDEXES: user_id+id/date/pending/quote_ref/source_id/client_id) — prima nessun indice.
+- Frontend: jsPDF/html2canvas caricati solo al momento del PDF; Firestore (~300KB) caricato solo finché l'import vecchia app non è fatto (components/ImportOldQuotes.jsx lazy); precaricamento in sottofondo delle pagine principali dopo il login (AppShell).
+- Render free: keep-alive GitHub Actions Lun–Sab 06–20 (DEPLOY_KEEPALIVE.md); fuori orario il primo avvio può richiedere 30-60s.

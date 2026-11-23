@@ -8,7 +8,7 @@ import WhatsAppIcon from "../components/icons/WhatsAppIcon";
 import AppointmentBadge from "../components/AppointmentBadge";
 import PreventiviAppSection from "../components/PreventiviAppSection";
 import MakeQuoteButton from "../components/MakeQuoteButton";
-import { quoteTotal } from "../lib/preventiviApp";
+import { quoteTotal } from "../lib/quoteDoc";
 import {
   Plus,
   MapPin,

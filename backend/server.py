@@ -23,7 +23,7 @@ from fastapi import APIRouter, FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 # NB: db.py carica load_dotenv() al primo import.
-from db import client  # noqa: F401 (usato da shutdown hook)
+from db import client, db  # noqa: F401 (usato da shutdown hook e indici)
 from routes.advances import router as advances_router
 from routes.clients import router as clients_router
 from routes.employees import router as employees_router
@@ -74,3 +74,29 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+# Indici Mongo: senza, ogni lista scorreva l'intera collezione (lento con tanti dati su Atlas)
+INDEXES = {
+    "clients": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("date", 1)], [("user_id", 1), ("pending", 1)], [("user_id", 1), ("quote_ref", 1)]],
+    "quotes": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("source_id", 1)]],
+    "job_photos": [[("user_id", 1), ("client_id", 1)], [("user_id", 1), ("id", 1)]],
+    "employees": [[("user_id", 1), ("id", 1)]],
+    "time_entries": [[("user_id", 1), ("date", 1)], [("user_id", 1), ("id", 1)]],
+    "expenses": [[("user_id", 1), ("date", 1)], [("user_id", 1), ("id", 1)]],
+    "advances": [[("user_id", 1), ("id", 1)]],
+    "recurring_expenses": [[("user_id", 1), ("id", 1)]],
+    "materials": [[("user_id", 1), ("id", 1)]],
+    "rilievi_sezionali": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("client_id", 1)]],
+    "quote_settings": [[("user_id", 1)]],
+}
+
+
+@app.on_event("startup")
+async def ensure_indexes():
+    for coll, keys in INDEXES.items():
+        for k in keys:
+            try:
+                await db[coll].create_index(k, background=True)
+            except Exception as e:
+                logger.warning("Indice %s %s non creato: %s", coll, k, e)
