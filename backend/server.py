@@ -31,6 +31,7 @@ from routes.expenses import router as expenses_router
 from routes.health import router as health_router
 from routes.materials import router as materials_router
 from routes.rilievi import router as rilievi_router
+from routes.documenti import router as documenti_router
 from routes.photos import router as photos_router
 from routes.quotes import router as quotes_router
 from routes.summary import router as summary_router
@@ -52,6 +53,7 @@ api.include_router(summary_router)
 api.include_router(employees_router)
 api.include_router(materials_router)
 api.include_router(rilievi_router)
+api.include_router(documenti_router)
 api.include_router(photos_router)
 api.include_router(quotes_router)
 
@@ -89,6 +91,7 @@ INDEXES = {
     "materials": [[("user_id", 1), ("id", 1)]],
     "rilievi_sezionali": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("client_id", 1)]],
     "quote_settings": [[("user_id", 1)]],
+    "documenti": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("kind", 1), ("anno", 1), ("numero", -1)]],
 }
 
 

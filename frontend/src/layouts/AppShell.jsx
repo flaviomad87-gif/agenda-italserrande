@@ -18,6 +18,7 @@ import {
   Package,
   Menu,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { api, apiGetWithCache } from "../lib/api";
@@ -43,6 +44,7 @@ const secondaryNav = [
   { to: "/fornitori", label: "Fornitori", icon: Truck, testId: "nav-fornitori" },
   { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino" },
   { to: "/rilievi", label: "Rilievi sezionali", icon: FileText, testId: "nav-rilievi" },
+  { to: "/documenti", label: "Documenti CE e Manutenzione", icon: ShieldCheck, testId: "nav-documenti" },
   // Riepilogo temporaneamente nascosto su richiesta utente: calcoli non
   // ancora allineati alle sue aspettative. La pagina e le rotte restano
   // funzionanti; per riabilitarla basta ripristinare questa voce.
