@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
-import { Plus, Search, Loader2, FileText, CalendarDays, MapPin } from "lucide-react";
+import { Plus, Search, Loader2, FileText, CalendarDays, MapPin, FolderCheck } from "lucide-react";
 import DocumentoDialog, { KINDS } from "../components/DocumentoDialog";
+import PraticaDialog from "../components/PraticaDialog";
+import { TIPI_CHIUSURA } from "../lib/praticaTesti";
+
+const TABS = [
+  ["pratica", "Pratiche", FolderCheck],
+  ["ce", "Solo CE", KINDS.ce.icon],
+  ["manutenzione", "Manutenzioni", KINDS.manutenzione.icon],
+];
 import { fmtDate } from "../lib/documentiPdf";
 
 // Pagina Documenti: Dichiarazioni CE e Registri di Manutenzione. Route: /documenti
 export default function Documenti() {
-  const [kind, setKind] = useState("ce");
+  const [kind, setKind] = useState("pratica");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -44,8 +52,8 @@ export default function Documenti() {
         <p className="mt-1 text-sm text-stone-500">Dichiarazioni CE e registri di manutenzione, pronti in PDF.</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1" data-testid="documenti-tabs">
-        {Object.entries(KINDS).map(([k, c]) => (
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1" data-testid="documenti-tabs">
+        {TABS.map(([k, label, Icon]) => (
           <button
             key={k}
             onClick={() => setKind(k)}
@@ -54,7 +62,7 @@ export default function Documenti() {
             }`}
             data-testid={`documenti-tab-${k}`}
           >
-            <c.icon className="h-4 w-4" /> {k === "ce" ? "Dichiarazioni CE" : "Manutenzioni"}
+            <Icon className="h-4 w-4" /> {label}
           </button>
         ))}
       </div>
@@ -78,6 +86,12 @@ export default function Documenti() {
           <Plus className="h-4 w-4" /> Nuovo
         </button>
       </div>
+
+      {kind === "pratica" && (
+        <p className="text-xs text-stone-500" data-testid="documenti-pratica-hint">
+          Compili una volta e ottieni tutto: Dichiarazione CE, collaudo, analisi rischi, manuale d'uso, DM 37/08, registro e targhetta.
+        </p>
+      )}
 
       {loading ? (
         <div className="flex justify-center p-10">
@@ -106,6 +120,9 @@ export default function Documenti() {
                         <CalendarDays className="h-3 w-3" /> {fmtDate(d.data)}
                       </span>
                     )}
+                    {d.kind === "pratica" && d.fields?.tipo_chiusura && (
+                      <span className="font-medium text-[#4A5D23]">{TIPI_CHIUSURA[d.fields.tipo_chiusura]}</span>
+                    )}
                     {d.cliente && d.indirizzo && (
                       <span className="inline-flex min-w-0 items-center gap-1">
                         <MapPin className="h-3 w-3" /> <span className="truncate">{d.indirizzo}</span>
@@ -122,10 +139,17 @@ export default function Documenti() {
         </ul>
       )}
 
-      <DocumentoDialog
-        open={open}
+      <PraticaDialog
+        open={open && (selected?.kind || kind) === "pratica"}
         onOpenChange={setOpen}
-        kind={selected?.kind || kind}
+        documento={selected}
+        onSaved={onSaved}
+        onDeleted={(id) => setItems((prev) => prev.filter((p) => p.id !== id))}
+      />
+      <DocumentoDialog
+        open={open && (selected?.kind || kind) !== "pratica"}
+        onOpenChange={setOpen}
+        kind={(selected?.kind || kind) === "pratica" ? "ce" : selected?.kind || kind}
         documento={selected}
         onSaved={onSaved}
         onDeleted={(id) => setItems((prev) => prev.filter((p) => p.id !== id))}

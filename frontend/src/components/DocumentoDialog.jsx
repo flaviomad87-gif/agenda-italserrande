@@ -232,7 +232,7 @@ function ManutenzioneForm({ form, set, setField }) {
   );
 }
 
-function Section({ title, children }) {
+export function Section({ title, children }) {
   return (
     <section className="space-y-3 rounded-2xl border border-stone-200 bg-stone-50/60 p-3">
       <div className="text-[11px] font-semibold uppercase tracking-widest text-[#4A5D23]">{title}</div>
@@ -241,9 +241,9 @@ function Section({ title, children }) {
   );
 }
 
-const Row = ({ children }) => <div className="grid grid-cols-2 gap-2">{children}</div>;
+export const Row = ({ children }) => <div className="grid grid-cols-2 gap-2">{children}</div>;
 
-function Field({ id, label, value, onChange, type = "text", numeric = false }) {
+export function Field({ id, label, value, onChange, type = "text", numeric = false }) {
   return (
     <div className="space-y-1">
       <Label className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{label}</Label>
@@ -258,7 +258,7 @@ function Field({ id, label, value, onChange, type = "text", numeric = false }) {
   );
 }
 
-function YesNo({ value, onChange, testId }) {
+export function YesNo({ value, onChange, testId }) {
   const opt = (val, text) => (
     <button
       type="button"
@@ -279,7 +279,7 @@ function YesNo({ value, onChange, testId }) {
   );
 }
 
-function focusScrollFix(e) {
+export function focusScrollFix(e) {
   const t = e.target;
   if (!(t instanceof HTMLElement) || !["INPUT", "TEXTAREA"].includes(t.tagName)) return;
   window.setTimeout(() => t.scrollIntoView({ block: "center", behavior: "smooth" }), 350);

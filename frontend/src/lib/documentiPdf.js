@@ -1,14 +1,14 @@
 import jsPDF from "jspdf";
 
 // Ricostruzione vettoriale dei moduli originali Italserrande (coordinate in pt su A4).
-const INK = [17, 24, 39];
-const BORDER = [55, 65, 81];
-const FILL = [243, 244, 246];
-const RED = [127, 29, 29];
-const GREY = [100, 116, 139];
-const BLUE = [20, 50, 140];
+export const INK = [17, 24, 39];
+export const BORDER = [55, 65, 81];
+export const FILL = [243, 244, 246];
+export const RED = [127, 29, 29];
+export const GREY = [100, 116, 139];
+export const BLUE = [20, 50, 140];
 
-const COMPANY = [
+export const COMPANY = [
   "Via Castino 29 - 00166 - Roma (RM)",
   "P.iva 09270881007 - C.F. 09270881007",
   "Reg. imprese C.C.I.A.A. 1152580",
@@ -47,7 +47,7 @@ export function fmtDate(iso) {
 }
 
 let logoCache = null;
-async function loadLogo() {
+export async function loadLogo() {
   if (logoCache) return logoCache;
   const blob = await fetch("/doc-logo.jpg").then((r) => r.blob());
   logoCache = await new Promise((res) => {
@@ -58,7 +58,7 @@ async function loadLogo() {
   return logoCache;
 }
 
-function pen(doc) {
+export function pen(doc) {
   const font = (size, bold, color = INK) => {
     doc.setFont("helvetica", bold ? "bold" : "normal");
     doc.setFontSize(size);
@@ -131,9 +131,22 @@ function normaRow(p, f, i, y) {
   p.value(txt, 304, y + 15.3, 234, 9.5);
 }
 
+export const newDoc = () => new jsPDF({ unit: "pt", format: "a4" });
+
 export async function buildCePdf(d) {
+  const doc = newDoc();
+  await drawCe(doc, d);
+  return doc.output("blob");
+}
+
+export async function buildManutenzionePdf(d) {
+  const doc = newDoc();
+  await drawManutenzione(doc, d);
+  return doc.output("blob");
+}
+
+export async function drawCe(doc, d) {
   const f = d.fields || {};
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
   const p = pen(doc);
   doc.addImage(await loadLogo(), "JPEG", 51, 51, 97, 148);
 
@@ -222,12 +235,10 @@ export async function buildCePdf(d) {
   p.value(fmtDate(d.data), 147, 270, 140, 10);
   p.hline(387, 544.5, 272.6, 0.75, INK);
   ceFooter(p, 2);
-  return doc.output("blob");
 }
 
-export async function buildManutenzionePdf(d) {
+export async function drawManutenzione(doc, d) {
   const f = d.fields || {};
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
   const p = pen(doc);
   doc.addImage(await loadLogo(), "JPEG", 100, 20, 59, 90);
 
@@ -276,7 +287,6 @@ export async function buildManutenzionePdf(d) {
   p.text("Firma del cliente", 350, 773.7, 9, { color: [0, 0, 0] });
   p.line(440, 780, 545.3, 780);
   p.text("Pagina 1 di 1", 545.3, 790.9, 7, { align: "right", color: [0, 0, 0] });
-  return doc.output("blob");
 }
 
 export function documentoFileName(d) {
