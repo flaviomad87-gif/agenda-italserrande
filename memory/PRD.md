@@ -401,3 +401,10 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
   manuale con conservazione istruzioni 10 anni e protezione comandi a distanza, nuova voce collaudo/rischio "accessi non autorizzati").
   Prima di quella data restano secondo Direttiva 2006/42/CE (il Regolamento vieta di emettere dichiarazioni nuove prima del 20/01/2027).
 - Funzioni: isNuovoReg / regMacchine / normaLabel in lib/documentiPdf.js; avviso RegimeNote nella pratica.
+
+## 2026-06 — Schema impianto DM 37/08
+- Sezione 7b pratica: dati linea (origine, interruttore MT+diff poli/In/curva/Idn/tipo/potere, cavo tipo/formazione/lunghezza/posa/percorso, motore/potenza/cavi accessori)
+  + verifiche strumentali CEI 64-8 (continuità PE, isolamento MOhm, tempo intervento diff. ms).
+- PDF: schema unifilare disegnato in automatico (quadro -> MTD -> linea -> centralina -> motore/fotocellule/coste/lampeggiante/finecorsa/comandi, PE) + tabella dati e verifiche,
+  allegato alla DM 37/08; foto del libretto (JobPhotos con client_id "pratica-<id>") in coda, una per pagina.
+- Eliminando la pratica vengono eliminate anche le foto. Test: iteration_41 70/72 (2 solo diciture).

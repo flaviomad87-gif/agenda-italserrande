@@ -142,7 +142,7 @@ class Flow {
       });
       this.y += h;
     };
-    this.ensure(44);
+    this.ensure(rows.length <= 6 ? 24 + rows.length * 22 : 44);
     header();
     rows.forEach((row) => {
       if (row.group) {
@@ -427,12 +427,12 @@ function schemaImpianto(fl, d) {
   let dy = y0 + 100;
   wire(R - 55, y0 + 46, R - 55, y0 + 90);
   wire(bx - 20, y0 + 90, R - 55, y0 + 90);
-  wire(bx - 20, y0 + 90, bx - 20, y0 + 100 + (devices.length - 1) * 40 + 16);
+  wire(bx - 20, y0 + 90, bx - 20, y0 + 100 + (devices.length - 1) * 34 + 14);
   devices.forEach(([title, sub, cavo]) => {
-    wire(bx - 20, dy + 16, bx, dy + 16);
-    blk(bx, dy, 230, 32, [title, sub]);
-    p.text(cavo, bx - 26, dy + 12, 7, { align: "right", color: GREY });
-    dy += 40;
+    wire(bx - 20, dy + 14, bx, dy + 14);
+    blk(bx, dy, 230, 28, [title, sub]);
+    p.text(cavo, bx - 26, dy + 11, 7, { align: "right", color: GREY });
+    dy += 34;
   });
   fl.y = dy + 10;
 

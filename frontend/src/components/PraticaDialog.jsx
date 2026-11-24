@@ -128,6 +128,7 @@ export default function PraticaDialog({ open, onOpenChange, documento, onSaved, 
     if (!form.id || !window.confirm("Eliminare questa pratica?")) return;
     try {
       await api.delete(`/documenti/${form.id}`);
+      api.delete(`/clients/pratica-${form.id}/photos`).catch(() => {});
       toast.success("Pratica eliminata");
       onDeleted?.(form.id);
       onOpenChange(false);

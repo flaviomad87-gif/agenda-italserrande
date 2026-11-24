@@ -1,0 +1,35 @@
+{
+  "summary": "Frontend-only test (390x844, service worker blocked, user created just for this run via Firebase signUp) of the Pratica impianto changes: switch between Direttiva 2006/42/CE and Regolamento (UE) 2023/1230 by date, section 7b schema for DM 37/08, schema photos and PDF content. The Playwright script ran 72 checks, 70 passed. The 2 failures are only about wording: the exact phrase 'accessi non autorizzati' is in the collaudo checklist but not in the Rischi or Manuale PDFs, which use other wording for the same idea. All functional requirements work: regime-note text and the 19/01 vs 20/01/2027 boundary, the norma 3 label, the cyber checklist item (3 C/NC/NA buttons only for dates on or after 20/01/2027, and 'tutto ok' marks it C). Full PDF for 2026: 'DICHIARAZIONE CE DI CONFORMIT' and 2006/42/CE, no 2023/1230. Full PDF for 2027: 'DICHIARAZIONE UE', 2023/1230, 'almeno 10 anni', no 2006/42 and no 'Dichiarazione CE'. All 18 schema fields are present with defaults (10 A, 30 mA, FG16OR16, 3G1,5 mm², continuità C), and the values entered persist after reopening. An old pratica created through the API without fields.schema gets the defaults and its DM37 PDF builds. pratica-save-for-photos saves the pratica, keeps the dialog open, shows the number and the 'Foto schemi del fabbricante' block, and does not create a duplicate. Uploading JPEGs through job-photos-gallery-input shows thumbnails, and they persist after reopening. The DM37 PDF has 4 pages without photos and 6 with 2 photos, plus the allegato title and the note 'allegati in fotografia'. Without photos there is no allegato page. I checked the schema drawing and the tables visually and they show the entered values (17 m, 250 MOhm, 28 ms, 350 W, 16 A, Non conforme). Regression checks passed: full PDF (14 pages) for all 5 closure types; Solo CE 2026 and 2027 (2 pages; in 2027 the form and PDF show 2023/1230 and 'DICHIARAZIONE UE', no 2006/42); Registro (1 page). No page errors and no horizontal overflow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Deleting a pratica", "issue": "PraticaDialog.remove() only calls DELETE /api/documenti/<id>. The photos stored under client_id 'pratica-<id>' (DB records and Object Storage files) stay behind as orphans. The test cleanup had to call DELETE /api/clients/pratica-<id>/photos itself.", "affected_selectors": ["pratica-delete"]}
+    ],
+    "design_issues": [
+      {"screen": "Rischi / Manuale PDF (2027)", "issues": ["The briefing expects 'accessi non autorizzati' in collaudo, manuale and rischi, but only the collaudo checklist has that phrase. Rischi says 'Manomissione o accesso non autorizzato ai comandi a distanza' and Manuale says 'non condividere i codici di accesso'. The content is there but the wording differs. Align the wording if a consistent phrase is wanted."]},
+      {"screen": "PDF DM37 schema page", "issues": ["The 'Verifiche strumentali' table splits across pages: 2 rows on page 1, 2 rows plus the signature on an almost empty page 2. Consider keeping the table together or tightening the drawing so the schema fits on 1 page."]},
+      {"screen": "Pratica form section 5", "issues": ["The section title is still '5 · Norme della Dichiarazione CE' when the date is 2027 or later, while the PDF title becomes 'DICHIARAZIONE UE'. Make the title depend on the date."]}
+    ]
+  },
+  "test_report_links": ["/app/tests/iter41_pratica_reg_schema_ui.py"],
+  "action_items": [
+    "Delete the pratica photos (DELETE /api/clients/pratica-<id>/photos) when a pratica is deleted, in the frontend remove() or in the backend documenti delete route",
+    "Optional: align the cyber wording in Rischi and Manuale with 'accessi non autorizzati'",
+    "Optional: make the section 5 title depend on the date (CE/UE)",
+    "Optional: stop the 'Verifiche strumentali' table splitting across pages in the schema PDF"
+  ],
+  "critical_code_review_comments": [
+    "PraticaDialog.loadSchemaPhotos swallows every error and returns [], so a network or auth failure silently produces a DM37 PDF without the photo allegato. Show a toast warning when photos fail to load.",
+    "loadSchemaPhotos downloads photos one by one in a loop. Promise.all would make PDFs with several photos faster.",
+    "loadSchemaPhotos only keeps data:image/jpeg and data:image/png. JobPhotos compresses uploads to JPEG, so this is fine in normal use, but if compress() fails (for example HEIC on a browser that cannot decode it) the photo is uploaded but silently left out of the PDF.",
+    "Each allegato photo page has its own 'Pagina x di y' numbering per section (for example the allegato is 'Pagina 1 di 2'). This is consistent with the other sections, just noting it."
+  ],
+  "updated_files": ["/app/tests/iter41_pratica_reg_schema_ui.py"],
+  "success_rate": {"backend": "N/A (skipped as requested)", "frontend": "97% (70/72; both failures are wording only)"},
+  "seed_data_creation": "None kept. A Firebase user was created just for this run; its documenti and pratica photos were deleted by id and the Firebase account was deleted at the end.",
+  "test_credentials": "Firebase user created just for this run (testuser+iter41<ts><hex>@italserrande.test / TestPassword123!), as described in /app/memory/test_credentials.md",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: python3 /app/tests/iter41_pratica_reg_schema_ui.py (needs /tmp/schema0.jpg and /tmp/schema1.jpg, which are generated with PIL; see the run history). Container date is 2026-11-24, so the default pratica date is 2026 and the old regime. The regime switch happens at data >= '2027-01-20'. After any PDF share the pratica is saved automatically, so pratica-save-for-photos is replaced by job-photos-section. Test save-for-photos on a fresh pratica before any share. pymupdf (fitz) is available for rendering PDF pages to PNG."
+}

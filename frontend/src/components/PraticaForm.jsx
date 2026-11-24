@@ -154,7 +154,7 @@ export function NormeSection({ form, setField }) {
   const norme = form.fields.norme;
   const setN = (i, patch) => setField("norme", norme.map((n, j) => (j === i ? { ...n, ...patch } : n)));
   return (
-    <Section title="5 · Norme della Dichiarazione CE">
+    <Section title={`5 · Norme della Dichiarazione ${isNuovoReg(form.data) ? "UE" : "CE"}`}>
       {NORME.map((label, i) => (
         <div key={label} className="space-y-1.5 rounded-lg border border-stone-200 bg-white p-2">
           <div className="flex items-center justify-between gap-2">
