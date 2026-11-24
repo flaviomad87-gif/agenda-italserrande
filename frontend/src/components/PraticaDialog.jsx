@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Share2, Save, Loader2, Trash2, FolderCheck, FileDown } from "lucide-react";
 import { focusScrollFix } from "./DocumentoDialog";
-import { ClienteSection, ImpiantoSection, SicurezzeSection, CollaudoSection, NormeSection, RischiSection, Dm37Section } from "./PraticaForm";
+import { ClienteSection, ImpiantoSection, SicurezzeSection, CollaudoSection, NormeSection, RischiSection, Dm37Section, SchemaSection } from "./PraticaForm";
 import { NORME, sharePdf } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
 
@@ -33,10 +33,43 @@ export const blankPratica = () => ({
     collaudo: {},
     esito: "positivo",
     rischi_residui: T.RISCHI_RESIDUI_DEFAULT,
+    schema: T.SCHEMA_DEFAULT,
     dm37: { responsabile: localStorage.getItem(TECNICO_LS) || "", tipo: "nuovo", materiali: T.DM37_MATERIALI, allegati: { schema: true } },
     includi: Object.fromEntries(T.DOCUMENTI_PRATICA.map(([k]) => [k, true])),
   },
 });
+
+const toDataUrl = (blob) =>
+  new Promise((res) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.readAsDataURL(blob);
+  });
+
+const imgSize = (src) =>
+  new Promise((res) => {
+    const im = new Image();
+    im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight });
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+
+// Foto degli schemi allegate alla pratica, pronte per il PDF
+async function loadSchemaPhotos(id) {
+  try {
+    const list = (await api.get(`/clients/pratica-${id}/photos`)).data || [];
+    const out = [];
+    for (const ph of list) {
+      const blob = (await api.get(`/photos/${ph.id}/file`, { responseType: "blob" })).data;
+      const src = await toDataUrl(blob);
+      const size = await imgSize(src);
+      if (size && /^data:image\/(jpeg|png)/.test(src)) out.push({ src, ...size });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
 
 export default function PraticaDialog({ open, onOpenChange, documento, onSaved, onDeleted }) {
   const [form, setForm] = useState(blankPratica());
@@ -81,7 +114,8 @@ export default function PraticaDialog({ open, onOpenChange, documento, onSaved, 
       const saved = await save();
       if (!saved) return;
       const { buildPraticaPdf, praticaFileName } = await import("../lib/praticaPdf");
-      const blob = await buildPraticaPdf(saved, only);
+      const photos = await loadSchemaPhotos(saved.id);
+      const blob = await buildPraticaPdf({ ...saved, _photos: photos }, only);
       if ((await sharePdf(blob, praticaFileName(saved, only), "Documentazione impianto")) === "downloaded") toast.message("PDF scaricato");
     } catch (err) {
       if (err?.name !== "AbortError") toast.error("Impossibile creare il PDF");
@@ -133,6 +167,7 @@ export default function PraticaDialog({ open, onOpenChange, documento, onSaved, 
           <NormeSection {...props} />
           <RischiSection {...props} />
           <Dm37Section {...props} />
+          <SchemaSection {...props} onNeedSave={save} />
 
           <section className="space-y-2 rounded-2xl border border-stone-200 bg-stone-50/60 p-3">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-[#4A5D23]">8 · Documenti da generare</div>

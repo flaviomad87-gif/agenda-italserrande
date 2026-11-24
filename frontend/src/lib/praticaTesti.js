@@ -58,12 +58,13 @@ export const CHECKLIST = [
   { id: "sblocco", group: "Sicurezze", label: "Sblocco manuale di emergenza funzionante", sic: "sblocco" },
   { id: "comandi", group: "Sicurezze", label: "Comandi funzionanti e posizionati in vista della chiusura" },
   { id: "schiacciamento", group: "Sicurezze", label: "Assenza di punti di schiacciamento / cesoiamento non protetti" },
+  { id: "cyber", group: "Sicurezze", label: "Comandi a distanza (radio / app / Wi-Fi) protetti da accessi non autorizzati: codici e password personalizzati", nuovo: true },
   { id: "segnaletica", group: "Sicurezze", label: "Segnaletica di avvertimento e targhetta CE applicate", sic: "cartelli" },
-  { id: "documenti", group: "Consegna", label: "Consegnati manuale d'uso, dichiarazione CE e registro di manutenzione" },
+  { id: "documenti", group: "Consegna", label: "Consegnati manuale d'uso, dichiarazione di conformità e registro di manutenzione" },
   { id: "istruzione", group: "Consegna", label: "Cliente istruito su uso, sblocco di emergenza e rischi residui" },
 ];
 
-export const checklistFor = (tipo) => CHECKLIST.filter((c) => !c.types || c.types.includes(tipo));
+export const checklistFor = (tipo, nuovo) => CHECKLIST.filter((c) => (!c.types || c.types.includes(tipo)) && (!c.nuovo || nuovo));
 
 export const NOTA_FORZE =
   "La misura delle forze d'impatto secondo UNI EN 12445 non è stata eseguita: la protezione contro schiacciamento e impatto " +
@@ -95,6 +96,7 @@ export const RISCHI = [
   { pericolo: "Sollevamento di persone aggrappate", zona: () => "Anta in apertura", sic: ["uomo_presente", "rilevamento"], fisso: "Istruzioni d'uso e segnaletica" },
   { pericolo: "Contatti elettrici diretti e indiretti", zona: () => "Motore, centralina e linea di alimentazione", sic: ["differenziale"], fisso: "Messa a terra, involucri IP, cavi protetti" },
   { pericolo: "Mancanza di energia / emergenza", zona: () => "Intero impianto", sic: ["sblocco"] },
+  { pericolo: "Manomissione o accesso non autorizzato ai comandi a distanza", zona: () => "Radiocomandi, ricevente, app e Wi-Fi", sic: [], fisso: "Codici radio a rotazione, password personalizzate, software aggiornato", nuovo: true },
   { pericolo: "Uso improprio prevedibile", zona: () => "Bambini, transito durante il movimento", sic: ["cartelli", "lampeggiante"], fisso: "Istruzioni d'uso, comandi fuori portata dei bambini" },
 ];
 
@@ -138,13 +140,17 @@ const SBLOCCO = {
   battente: "Inserire la chiave di sblocco su ciascun attuatore e ruotarla; muovere le ante a mano accompagnandole. Ripristinare il blocco su ogni anta prima di usare il comando.",
 };
 
-export const manualeSezioni = (tipo) => [
+export const manualeSezioni = (tipo, nuovo) => [
   ["Avvertenze generali di sicurezza", [
     "Leggere attentamente questo manuale e conservarlo per tutta la vita dell'impianto; consegnarlo a eventuali nuovi utenti.",
     "L'impianto deve essere utilizzato solo per lo scopo per cui è stato installato. Ogni altro uso è improprio e pericoloso.",
     "Non permettere ai bambini di giocare con la chiusura o con i comandi; tenere i radiocomandi fuori dalla loro portata.",
     "Non manomettere né escludere i dispositivi di sicurezza. In caso di guasto o funzionamento anomalo togliere l'alimentazione e chiamare l'assistenza.",
     "Riparazioni, modifiche e regolazioni devono essere eseguite solo da personale qualificato.",
+    ...(nuovo
+      ? ["Non modificare password e impostazioni dei comandi a distanza (app, Wi-Fi) senza l'assistenza dell'installatore; non condividere i codici di accesso.",
+         "Una copia di queste istruzioni è conservata da Italserrande S.r.l. per almeno 10 anni ed è disponibile gratuitamente su richiesta."]
+      : []),
   ]],
   ["Uso corretto", USO[tipo]],
   ["Usi impropri vietati", [
@@ -166,7 +172,7 @@ export const manualeSezioni = (tipo) => [
   ["Manutenzione periodica programmata", [
     "Almeno ogni 6 mesi per uso intensivo o pubblico, almeno ogni 12 mesi per uso privato: controllo da parte di un tecnico qualificato di fissaggi, organi meccanici, molle, sicurezze e impianto elettrico.",
     "Ogni intervento deve essere annotato sul Registro di Manutenzione consegnato con l'impianto.",
-    "La mancata manutenzione fa decadere la garanzia e la Dichiarazione CE di conformità.",
+    `La mancata manutenzione fa decadere la garanzia e la Dichiarazione ${nuovo ? "UE" : "CE"} di conformità.`,
   ]],
   ["Smaltimento", [
     "A fine vita smaltire motore, centralina e componenti elettronici come rifiuti RAEE, e le altre parti secondo la normativa vigente sui rifiuti.",
@@ -188,11 +194,41 @@ export const DM37_TIPI = { nuovo: "nuovo impianto", trasformazione: "trasformazi
 export const DM37_USI = { civile: "civile", industriale: "industriale", commercio: "commercio", altri: "altri usi" };
 
 export const DOCUMENTI_PRATICA = [
-  ["ce", "Dichiarazione CE / Prestazione"],
+  ["ce", "Dichiarazione CE (UE dal 2027) / Prestazione"],
   ["collaudo", "Verbale di collaudo e consegna"],
   ["rischi", "Analisi dei rischi"],
   ["manuale", "Manuale d'uso e manutenzione"],
   ["dm37", "Dichiarazione DM 37/08"],
   ["registro", "Registro di manutenzione"],
   ["targhetta", "Targhetta CE da stampare"],
+];
+
+export const SCHEMA_DEFAULT = {
+  origine: "Quadro elettrico esistente dell'utenza",
+  poli: "2P (F+N)",
+  corrente: "10 A",
+  curva: "C",
+  idn: "30 mA",
+  tipo_diff: "A",
+  potere: "4,5 kA",
+  cavo: "FG16OR16",
+  formazione: "3G1,5 mm²",
+  lunghezza: "",
+  posa: "Tubo PVC sotto traccia / canalina a vista",
+  percorso: "",
+  tensione: "230 V ~ 50 Hz",
+  motore_potenza: "",
+  cavo_motore: "4G1,5 mm²",
+  cavo_accessori: "2x0,5 / 4x0,5 mm² (bassissima tensione)",
+  continuita: "C",
+  isolamento: "",
+  tempo_diff: "",
+};
+
+// Dispositivi collegati alla centralina (per lo schema): [chiave sicurezza o null, etichetta]
+export const SCHEMA_DISPOSITIVI = [
+  ["fotocellule", "Fotocellule TX / RX"],
+  ["coste", "Bordi sensibili (coste)"],
+  ["lampeggiante", "Lampeggiante"],
+  ["finecorsa", "Finecorsa"],
 ];

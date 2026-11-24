@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
-import { NORME, TIPI_INTERVENTO, buildCePdf, buildManutenzionePdf, documentoFileName, sharePdf } from "../lib/documentiPdf";
+import { NORME, normaLabel, TIPI_INTERVENTO, buildCePdf, buildManutenzionePdf, documentoFileName, sharePdf } from "../lib/documentiPdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -168,7 +168,7 @@ function CeForm({ form, set, setField }) {
           <div key={label} className="space-y-2 rounded-lg border border-stone-200 bg-white p-2.5" data-testid={`ce-norma-${i + 1}`}>
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-stone-700">
-                <b>{i + 1}.</b> {label}
+                <b>{i + 1}.</b> {normaLabel(i, form.data)}
               </span>
               <YesNo value={f.norme[i]?.applica} onChange={(v) => setNorma(i, { applica: v })} testId={`ce-norma-${i + 1}`} />
             </div>

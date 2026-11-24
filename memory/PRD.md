@@ -395,3 +395,9 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Numerazione atomica `documenti_counters` (indice unico) con riallineamento dai numeri già esistenti.
 - Test: iteration_40 backend 11/11, frontend 77/77.
 - Note: dal 20/01/2027 aggiornare riferimenti a Regolamento Macchine (UE) 2023/1230.
+
+## 2026-06 — Regolamento Macchine (UE) 2023/1230
+- Documenti con data >= 20/01/2027 passano in automatico al nuovo Regolamento (Dichiarazione UE, norma 3, analisi rischi Allegato III, targhetta,
+  manuale con conservazione istruzioni 10 anni e protezione comandi a distanza, nuova voce collaudo/rischio "accessi non autorizzati").
+  Prima di quella data restano secondo Direttiva 2006/42/CE (il Regolamento vieta di emettere dichiarazioni nuove prima del 20/01/2027).
+- Funzioni: isNuovoReg / regMacchine / normaLabel in lib/documentiPdf.js; avviso RegimeNote nella pratica.

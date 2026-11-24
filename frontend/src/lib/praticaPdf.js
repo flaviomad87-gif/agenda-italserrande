@@ -1,4 +1,4 @@
-import { newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione } from "./documentiPdf";
+import { newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione, isNuovoReg } from "./documentiPdf";
 import * as T from "./praticaTesti";
 
 const L = 51;
@@ -61,7 +61,7 @@ class Flow {
     this.y += n;
   }
   h2(t, align = "left") {
-    this.ensure(34);
+    this.ensure(64);
     this.y += 6;
     this.font(10.5, "bold");
     this.doc.text(t, align === "center" ? L + W / 2 : L, this.y, { align });
@@ -266,7 +266,7 @@ function collaudo(fl, d) {
   fl.h2("Verifiche eseguite");
   const rows = [];
   let group = "";
-  T.checklistFor(f.tipo_chiusura).forEach((c) => {
+  T.checklistFor(f.tipo_chiusura, isNuovoReg(d.data)).forEach((c) => {
     if (c.group !== group) rows.push({ group: (group = c.group) });
     rows.push([c.label, ESITI[(f.collaudo || {})[c.id]] || ""]);
   });
@@ -286,11 +286,15 @@ function collaudo(fl, d) {
 function rischi(fl, d) {
   const f = d.fields;
   const on = f.sicurezze || [];
-  fl.start("ANALISI DEI RISCHI", "Valutazione dei pericoli secondo Direttiva Macchine 2006/42/CE (Allegato I) e UNI EN 12453");
+  const nuovo = isNuovoReg(d.data);
+  fl.start(
+    "ANALISI DEI RISCHI",
+    `Valutazione dei pericoli secondo ${nuovo ? "Regolamento (UE) 2023/1230 (Allegato III)" : "Direttiva Macchine 2006/42/CE (Allegato I)"} e UNI EN 12453`,
+  );
   datiImpianto(fl, d, [["Utilizzo", f.uso === "pubblico" ? "Pubblico / intensivo" : "Privato"]]);
   fl.h2("Pericoli individuati e misure adottate");
   const lab = Object.fromEntries(T.SICUREZZE);
-  const rows = T.RISCHI.map((r) => {
+  const rows = T.RISCHI.filter((r) => !r.nuovo || nuovo).map((r) => {
     const present = r.sic.filter((k) => on.includes(k)).map((k) => lab[k]);
     const misure = [...present, r.fisso].filter(Boolean).join("; ");
     return [r.pericolo, r.zona(f.tipo_chiusura), misure || "-", present.length || r.fisso ? "Ridotto" : "Da valutare"];
@@ -312,7 +316,7 @@ function manuale(fl, d) {
     ["Alimentazione", f.alimentazione],
     ["Installatore", "Italserrande S.r.l. - tel. 337743730 / ufficio 06-6240259"],
   ]);
-  T.manualeSezioni(f.tipo_chiusura).forEach(([title, items], i) => {
+  T.manualeSezioni(f.tipo_chiusura, isNuovoReg(d.data)).forEach(([title, items], i) => {
     fl.h2(`${i + 1}. ${title}`);
     fl.bullets(items);
   });
@@ -357,7 +361,7 @@ function dm37(fl, d) {
   fl.h2("Allegati obbligatori");
   fl.checkLine(!!m.progetto, "progetto ai sensi degli articoli 5 e 7;");
   fl.checkLine(true, "relazione con tipologie dei materiali utilizzati;");
-  fl.checkLine(all.schema !== false, "schema di impianto realizzato;");
+  fl.checkLine(true, "schema di impianto realizzato (allegato);");
   fl.checkLine(!!all.precedenti, "riferimento a dichiarazioni di conformità precedenti o parziali, già esistenti;");
   fl.checkLine(true, "copia del certificato di riconoscimento dei requisiti tecnico-professionali;");
   fl.checkLine(false, "attestazione di conformità per impianto realizzato con materiali o sistemi non normalizzati.");
@@ -378,6 +382,96 @@ function dm37(fl, d) {
       "dall'impresa installatrice e dai fabbricanti delle apparecchiature installate.",
     { size: 9 },
   );
+}
+
+function schemaImpianto(fl, d) {
+  const f = d.fields;
+  const sc = { ...T.SCHEMA_DEFAULT, ...f.schema };
+  const on = f.sicurezze || [];
+  fl.start("SCHEMA DELL'IMPIANTO ELETTRICO REALIZZATO", "Allegato obbligatorio alla Dichiarazione di conformità D.M. 37/2008 - schema unifilare");
+  const { doc, p } = fl;
+  const y0 = fl.y + 10;
+  const blk = (x, y, w, h, lines) => {
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(1);
+    doc.rect(x, y, w, h);
+    lines.forEach((t, i) => p.text(t, x + w / 2, y + 14 + i * 10.5, i ? 7.5 : 8.5, { bold: !i, align: "center" }));
+  };
+  const wire = (x1, y1, x2, y2) => fl.p.line(x1, y1, x2, y2, 1.4);
+
+  // Riga principale: quadro -> interruttore -> linea -> centralina
+  blk(L, y0, 92, 46, ["QUADRO", "esistente", "punto di origine"]);
+  blk(L + 122, y0, 112, 46, ["INT. MT + DIFF.", `${sc.poli} ${sc.corrente} curva ${sc.curva}`, `Idn ${sc.idn} tipo ${sc.tipo_diff} - ${sc.potere}`]);
+  blk(R - 110, y0, 110, 46, ["CENTRALINA", f.centralina || "di comando", sc.tensione]);
+  wire(L + 92, y0 + 23, L + 122, y0 + 23);
+  wire(L + 234, y0 + 23, R - 110, y0 + 23);
+  const mid = (L + 234 + R - 110) / 2;
+  p.text(`${sc.cavo} ${sc.formazione}`, mid, y0 + 16, 8, { bold: true, align: "center" });
+  p.text(sc.lunghezza ? `L = ${sc.lunghezza} m` : "L = ____ m", mid, y0 + 36, 8, { align: "center" });
+  // Conduttore di protezione
+  doc.setLineDashPattern([3, 2], 0);
+  fl.p.line(L + 46, y0 + 46, L + 46, y0 + 70, 0.9, [0, 120, 60]);
+  fl.p.line(L + 46, y0 + 70, R - 55, y0 + 70, 0.9, [0, 120, 60]);
+  fl.p.line(R - 55, y0 + 70, R - 55, y0 + 46, 0.9, [0, 120, 60]);
+  doc.setLineDashPattern([], 0);
+  p.text("PE - conduttore di protezione (giallo/verde)", (L + R) / 2, y0 + 80, 7.5, { align: "center", color: [0, 120, 60] });
+  [0, 4, 8].forEach((k, i) => fl.p.line(L + 40 + i * 2, y0 + 74 + k / 2, L + 52 - i * 2, y0 + 74 + k / 2, 1, [0, 120, 60]));
+
+  // Dispositivi collegati alla centralina
+  const devices = [
+    ["MOTORE", [f.motore, sc.motore_potenza && `${sc.motore_potenza} W`].filter(Boolean).join(" - ") || "", sc.cavo_motore],
+    ...T.SCHEMA_DISPOSITIVI.filter(([k]) => on.includes(k)).map(([, l]) => [l.toUpperCase(), "", sc.cavo_accessori]),
+    ["COMANDI", T.COMANDI[f.comando_tipo] || "", sc.cavo_accessori],
+  ];
+  const bx = R - 230;
+  let dy = y0 + 100;
+  wire(R - 55, y0 + 46, R - 55, y0 + 90);
+  wire(bx - 20, y0 + 90, R - 55, y0 + 90);
+  wire(bx - 20, y0 + 90, bx - 20, y0 + 100 + (devices.length - 1) * 40 + 16);
+  devices.forEach(([title, sub, cavo]) => {
+    wire(bx - 20, dy + 16, bx, dy + 16);
+    blk(bx, dy, 230, 32, [title, sub]);
+    p.text(cavo, bx - 26, dy + 12, 7, { align: "right", color: GREY });
+    dy += 40;
+  });
+  fl.y = dy + 10;
+
+  fl.h2("Dati della linea");
+  fl.kv([
+    ["Origine della linea", sc.origine],
+    ["Protezione", `Interruttore magnetotermico differenziale ${sc.poli}, In ${sc.corrente}, curva ${sc.curva}, Idn ${sc.idn} tipo ${sc.tipo_diff}, potere di interruzione ${sc.potere}`],
+    ["Linea di alimentazione", `Cavo ${sc.cavo} ${sc.formazione}${sc.lunghezza ? `, lunghezza ${sc.lunghezza} m` : ""}`],
+    ["Tipo di posa", sc.posa],
+    ["Percorso", sc.percorso || "-"],
+    ["Collegamenti motore / accessori", `Motore: ${sc.cavo_motore}; accessori: ${sc.cavo_accessori}`],
+  ]);
+  fl.h2("Verifiche strumentali eseguite (CEI 64-8 parte 6)");
+  fl.table(
+    [["Verifica", W - 150], ["Esito / valore", 150]],
+    [
+      ["Continuità dei conduttori di protezione (PE)", sc.continuita === "NC" ? "Non conforme" : "Conforme"],
+      ["Resistenza di isolamento (valore minimo 1 MOhm)", sc.isolamento ? `${sc.isolamento} MOhm` : ""],
+      ["Prova interruttore differenziale: tempo di intervento a Idn (max 300 ms)", sc.tempo_diff ? `${sc.tempo_diff} ms` : ""],
+      ["Prova funzionale del tasto di test del differenziale", "Conforme"],
+    ],
+    { blueCols: [1] },
+  );
+  if ((d._photos || []).length) fl.para("Gli schemi di collegamento del fabbricante sono allegati in fotografia nelle pagine seguenti.", { size: 8.5, style: "italic", color: GREY });
+  fl.signatures(["Il responsabile tecnico (timbro e firma)"]);
+}
+
+function fotoAllegati(fl, d) {
+  const photos = d._photos || [];
+  if (!photos.length) return;
+  fl.start("ALLEGATO - SCHEMI DI COLLEGAMENTO DEL FABBRICANTE", "Fotografie del libretto di istruzioni di motore e centralina");
+  photos.forEach(({ src, w, h }, i) => {
+    if (i) fl.ensure(BOTTOM);
+    const s = Math.min(W / w, (BOTTOM - fl.y - 10) / h);
+    const pw = w * s;
+    const ph = h * s;
+    fl.doc.addImage(src, /^data:image\/png/.test(src) ? "PNG" : "JPEG", L + (W - pw) / 2, fl.y, pw, ph);
+    fl.y += ph + 14;
+  });
 }
 
 function ceMark(doc, x, y, h) {
@@ -416,7 +510,7 @@ function targhetta(fl, d) {
       ["Anno", f.anno_installazione || (d.data || "").slice(0, 4)],
       ["Dimensioni", dimensioni(f)],
       ["Alimentazione", f.alimentazione],
-      ["Norma", "UNI EN 13241 - Dir. 2006/42/CE"],
+      ["Norma", `UNI EN 13241 - ${isNuovoReg(d.data) ? "Reg. (UE) 2023/1230" : "Dir. 2006/42/CE"}`],
     ].forEach(([k, v], i) => {
       p.text(`${k}:`, x + 12, y + 56 + i * 14.5, 8.5, { bold: true, color: [0, 0, 0] });
       p.value(v, x + 78, y + 56 + i * 14.5, 150, 8.5);
@@ -435,7 +529,11 @@ const BUILDERS = {
   collaudo,
   rischi,
   manuale,
-  dm37,
+  dm37: (fl, d) => {
+    dm37(fl, d);
+    schemaImpianto(fl, d);
+    fotoAllegati(fl, d);
+  },
   registro: async (fl, d) => {
     fl.fresh();
     await drawManutenzione(fl.doc, toRegistro(d));

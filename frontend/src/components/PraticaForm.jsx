@@ -1,7 +1,8 @@
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Section, Row, Field, YesNo } from "./DocumentoDialog";
-import { NORME } from "../lib/documentiPdf";
+import JobPhotos from "./JobPhotos";
+import { NORME, normaLabel, isNuovoReg } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
 
 function Choice({ options, value, onChange, testId, multi = false, cols = 2 }) {
@@ -35,6 +36,17 @@ function Area({ id, label, value, onChange, rows = 3, placeholder }) {
   );
 }
 
+export function RegimeNote({ iso }) {
+  const nuovo = isNuovoReg(iso);
+  return (
+    <p className="rounded-lg bg-[#4A5D23]/10 px-3 py-2 text-xs text-[#4A5D23]" data-testid="regime-note">
+      {nuovo
+        ? "Dal 20/01/2027: documenti secondo il Regolamento Macchine (UE) 2023/1230 (Dichiarazione UE)."
+        : "Fino al 19/01/2027: documenti secondo la Direttiva Macchine 2006/42/CE. Con data dal 20/01/2027 passano in automatico al nuovo Regolamento (UE) 2023/1230."}
+    </p>
+  );
+}
+
 const Lbl = ({ children }) => <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{children}</div>;
 
 export function ClienteSection({ form, set, setField }) {
@@ -53,6 +65,7 @@ export function ClienteSection({ form, set, setField }) {
       <Lbl>Edificio adibito ad uso</Lbl>
       <Choice options={Object.entries(T.DM37_USI)} value={f.uso_edificio} onChange={(v) => setField("uso_edificio", v)} testId="pratica-uso-edificio" />
       <Field id="data" label="Data installazione / collaudo" type="date" value={form.data} onChange={(v) => set("data", v)} />
+      <RegimeNote iso={form.data} />
     </Section>
   );
 }
@@ -100,7 +113,7 @@ const ESITI = [["C", "OK"], ["NC", "NO"], ["NA", "N/A"]];
 
 export function CollaudoSection({ form, setField }) {
   const f = form.fields;
-  const items = T.checklistFor(f.tipo_chiusura);
+  const items = T.checklistFor(f.tipo_chiusura, isNuovoReg(form.data));
   const set = (id, v) => setField("collaudo", { ...f.collaudo, [id]: f.collaudo?.[id] === v ? undefined : v });
   const allOk = () =>
     setField("collaudo", Object.fromEntries(items.map((c) => [c.id, !c.sic || f.sicurezze.includes(c.sic) ? "C" : "NA"])));
@@ -145,7 +158,7 @@ export function NormeSection({ form, setField }) {
       {NORME.map((label, i) => (
         <div key={label} className="space-y-1.5 rounded-lg border border-stone-200 bg-white p-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[13px] text-stone-700"><b>{i + 1}.</b> {label}</span>
+            <span className="text-[13px] text-stone-700"><b>{i + 1}.</b> {normaLabel(i, form.data)}</span>
             <YesNo value={norme[i]?.applica} onChange={(v) => setN(i, { applica: v })} testId={`pratica-norma-${i + 1}`} />
           </div>
           <Input value={norme[i]?.nota || ""} onChange={(e) => setN(i, { nota: e.target.value })} placeholder="Nota (facoltativa)" className="h-8 text-sm" data-testid={`pratica-norma-${i + 1}-nota`} />
@@ -176,14 +189,76 @@ export function Dm37Section({ form, setField }) {
       <Area id="dm37-descrizione" label="Descrizione dell'impianto" value={m.descrizione} onChange={(v) => setM("descrizione", v)} placeholder={T.DM37_DESCRIZIONE(form.fields.tipo_chiusura)} />
       <Area id="dm37-materiali" label="Materiali utilizzati (relazione)" value={m.materiali} onChange={(v) => setM("materiali", v)} rows={4} />
       <Choice
-        options={[["progetto", "C'è un progetto"], ["schema", "Allego schema impianto"], ["precedenti", "Ci sono dichiarazioni precedenti"]]}
-        value={[m.progetto && "progetto", all.schema !== false && "schema", all.precedenti && "precedenti"].filter(Boolean)}
-        onChange={(v) => setField("dm37", { ...m, progetto: v.includes("progetto"), allegati: { schema: v.includes("schema"), precedenti: v.includes("precedenti") } })}
+        options={[["progetto", "C'è un progetto"], ["precedenti", "Ci sono dichiarazioni precedenti"]]}
+        value={[m.progetto && "progetto", all.precedenti && "precedenti"].filter(Boolean)}
+        onChange={(v) => setField("dm37", { ...m, progetto: v.includes("progetto"), allegati: { schema: true, precedenti: v.includes("precedenti") } })}
         testId="pratica-dm37-allegati"
         multi
         cols={1}
       />
       {m.progetto && <Field id="progettista" label="Progetto redatto da" value={m.progettista} onChange={(v) => setM("progettista", v)} />}
+    </Section>
+  );
+}
+
+export function SchemaSection({ form, setField, onNeedSave }) {
+  const sc = { ...T.SCHEMA_DEFAULT, ...form.fields.schema };
+  const f = (k) => ({ value: sc[k], onChange: (v) => setField("schema", { ...sc, [k]: v }) });
+  return (
+    <Section title="7b · Schema dell'impianto realizzato">
+      <p className="text-xs text-stone-500">
+        Lo schema viene disegnato in automatico con questi dati (linea dal quadro fino alla centralina e dispositivi collegati) e allegato alla DM 37/08.
+      </p>
+      <Field id="schema-origine" label="Origine della linea" {...f("origine")} />
+      <Lbl>Interruttore magnetotermico differenziale</Lbl>
+      <div className="grid grid-cols-3 gap-2">
+        <Field id="schema-poli" label="Poli" {...f("poli")} />
+        <Field id="schema-corrente" label="Corrente In" {...f("corrente")} />
+        <Field id="schema-curva" label="Curva" {...f("curva")} />
+        <Field id="schema-idn" label="Sensibilità IΔn" {...f("idn")} />
+        <Field id="schema-tipo-diff" label="Tipo diff." {...f("tipo_diff")} />
+        <Field id="schema-potere" label="Potere int." {...f("potere")} />
+      </div>
+      <Lbl>Linea di alimentazione</Lbl>
+      <Row>
+        <Field id="schema-cavo" label="Tipo cavo" {...f("cavo")} />
+        <Field id="schema-formazione" label="Formazione / sezione" {...f("formazione")} />
+      </Row>
+      <Row>
+        <Field id="schema-lunghezza" label="Lunghezza (m)" {...f("lunghezza")} numeric />
+        <Field id="schema-tensione" label="Tensione" {...f("tensione")} />
+      </Row>
+      <Field id="schema-posa" label="Tipo di posa" {...f("posa")} />
+      <Field id="schema-percorso" label="Percorso della linea (es. dal quadro garage, lungo parete sx)" {...f("percorso")} />
+      <Row>
+        <Field id="schema-potenza" label="Potenza motore (W)" {...f("motore_potenza")} numeric />
+        <Field id="schema-cavo-motore" label="Cavo motore" {...f("cavo_motore")} />
+      </Row>
+      <Field id="schema-cavo-accessori" label="Cavi accessori (fotocellule, coste...)" {...f("cavo_accessori")} />
+      <Lbl>Verifiche strumentali (CEI 64-8 parte 6)</Lbl>
+      <Choice
+        options={[["C", "Continuità PE: OK"], ["NC", "Continuità PE: NO"]]}
+        value={sc.continuita}
+        onChange={(v) => setField("schema", { ...sc, continuita: v })}
+        testId="pratica-schema-continuita"
+      />
+      <Row>
+        <Field id="schema-isolamento" label="Isolamento (MΩ, min 1)" {...f("isolamento")} numeric />
+        <Field id="schema-tempo-diff" label="Intervento diff. (ms)" {...f("tempo_diff")} numeric />
+      </Row>
+      <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+        {form.id ? (
+          <JobPhotos
+            clientId={`pratica-${form.id}`}
+            title="Foto schemi del fabbricante"
+            emptyText="Fotografa le pagine del libretto del motore con lo schema dei collegamenti: finiscono in coda alla DM 37/08."
+          />
+        ) : (
+          <button type="button" onClick={onNeedSave} className="w-full py-2 text-sm font-semibold text-[#4A5D23]" data-testid="pratica-save-for-photos">
+            Salva la pratica per allegare le foto del libretto
+          </button>
+        )}
+      </div>
     </Section>
   );
 }

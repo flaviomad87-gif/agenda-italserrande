@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 // Cache in memoria delle foto gia' scaricate (id -> objectURL)
 const blobCache = new Map();
 
-async function loadPhotoUrl(id) {
+export async function loadPhotoUrl(id) {
   if (blobCache.has(id)) return blobCache.get(id);
   const res = await api.get(`/photos/${id}/file`, { responseType: "blob" });
   const url = URL.createObjectURL(res.data);
@@ -31,7 +31,7 @@ async function compress(file) {
   }
 }
 
-export default function JobPhotos({ clientId }) {
+export default function JobPhotos({ clientId, title = "Foto del luogo", emptyText = "Nessuna foto. Scatta il cancello, il garage o il citofono per ricordarti il posto." }) {
   const [photos, setPhotos] = useState([]);
   const [urls, setUrls] = useState({});
   const [uploading, setUploading] = useState(0);
@@ -96,7 +96,7 @@ export default function JobPhotos({ clientId }) {
   return (
     <div className="space-y-2" data-testid="job-photos-section">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-widest text-stone-500">Foto del luogo</span>
+        <span className="text-xs font-semibold uppercase tracking-widest text-stone-500">{title}</span>
         <div className="flex gap-1.5">
           <PickButton icon={Camera} label="Scatta" onClick={() => cameraRef.current?.click()} testId="job-photos-camera-button" />
           <PickButton icon={ImagePlus} label="Galleria" onClick={() => galleryRef.current?.click()} testId="job-photos-gallery-button" />
@@ -106,7 +106,7 @@ export default function JobPhotos({ clientId }) {
       <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onFiles} data-testid="job-photos-gallery-input" />
 
       {photos.length === 0 && !uploading ? (
-        <p className="text-xs text-stone-400" data-testid="job-photos-empty">Nessuna foto. Scatta il cancello, il garage o il citofono per ricordarti il posto.</p>
+        <p className="text-xs text-stone-400" data-testid="job-photos-empty">{emptyText}</p>
       ) : (
         <div className="grid grid-cols-4 gap-1.5" data-testid="job-photos-grid">
           {photos.map((p, i) => (
