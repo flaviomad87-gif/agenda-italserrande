@@ -209,7 +209,7 @@ function ManutenzioneForm({ form, set, setField }) {
                 type="button"
                 onClick={() => toggle(k)}
                 className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
-                  on ? "border-[#4A5D23] bg-[#4A5D23] text-white" : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                  on ? "border-[#4A5D23] bg-[#4A5D23] text-white" : "border-stone-300 bg-white text-stone-700"
                 }`}
                 data-testid={`man-tipo-${k}`}
               >
@@ -264,7 +264,7 @@ function YesNo({ value, onChange, testId }) {
       type="button"
       onClick={() => onChange(value === val ? null : val)}
       className={`h-8 w-12 rounded-lg border text-sm font-semibold transition-colors ${
-        value === val ? "border-[#4A5D23] bg-[#4A5D23] text-white" : "border-stone-300 bg-white text-stone-600 hover:bg-stone-50"
+        value === val ? "border-[#4A5D23] bg-[#4A5D23] text-white" : "border-stone-300 bg-white text-stone-600"
       }`}
       data-testid={`${testId}-${val ? "si" : "no"}`}
     >

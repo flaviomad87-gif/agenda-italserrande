@@ -41,10 +41,10 @@ PROJ = {"_id": 0, "user_id": 0}
 
 
 async def _next_number(uid: str, kind: str, year: str) -> int:
-    last = await db.documenti.find_one(
-        {"user_id": uid, "kind": kind, "anno": year}, {"_id": 0, "numero": 1}, sort=[("numero", -1)]
+    res = await db.documenti_counters.find_one_and_update(
+        {"user_id": uid, "kind": kind, "anno": year}, {"$inc": {"n": 1}}, upsert=True, return_document=True
     )
-    return (last or {}).get("numero", 0) + 1
+    return res["n"]
 
 
 @router.get("/documenti")
@@ -59,7 +59,7 @@ async def list_documenti(kind: Optional[Kind] = Query(None), user=Depends(get_cu
 async def create_documento(payload: DocumentoIn, user=Depends(get_current_user)):
     uid = user["uid"]
     if payload.id:
-        existing = await db.documenti.find_one({"id": payload.id, "user_id": uid}, PROJ)
+        existing = await db.documenti.find_one({"id": payload.id, "user_id": uid, **ACTIVE}, PROJ)
         if existing:
             return existing
     year = (payload.data or _now())[:4]

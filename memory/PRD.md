@@ -378,3 +378,10 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Frontend: jsPDF/html2canvas caricati solo al momento del PDF; Firestore (~300KB) caricato solo finché l'import vecchia app non è fatto (components/ImportOldQuotes.jsx lazy); precaricamento in sottofondo delle pagine principali dopo il login (AppShell).
 - Render free: keep-alive GitHub Actions Lun–Sab 06–20 (DEPLOY_KEEPALIVE.md); fuori orario il primo avvio può richiedere 30-60s.
 - Fix "tornata la vecchia estetica" (iPhone produzione): migrazione tema v2 (theme_blu_v2) → chi era su verde-classico o senza tema passa al blu anche se la v1 era già stata segnata; temi scelti esplicitamente (es. notte-blu) restano. CSS blu: regole esatte (~=) per bg/text #4A5D23, tinte /10 /15, #F8EBE4, #E5EFE9, #EAE7DE, #FBF1DE, bordi /20-/40, hover text. Test iteration_38 OK. SW v24.
+
+## 2026-06 — Documenti CE e Registro di Manutenzione
+- Nuova voce menu hamburger "Documenti CE e Manutenzione" (/documenti), due schede: Dichiarazioni CE / Manutenzioni.
+- Backend /api/documenti (kind ce|manutenzione, numerazione progressiva atomica per tipo+anno in `documenti_counters`, soft delete).
+- PDF vettoriali fedeli ai moduli originali (lib/documentiPdf.js, logo public/doc-logo.jpg); firme lasciate vuote da firmare a mano; CE: Sì/No + nota per le 8 norme; Manutenzione: un intervento per documento, Nr. = numero/anno.
+- Test: iteration_39 backend 8/8, frontend 24/24.
+- Backlog: creare documenti dalla scheda lavoro con dati precompilati; collegare il Registro alla stessa scheda impianto (fascicolo tecnico / "carta d'identità dell'impianto").

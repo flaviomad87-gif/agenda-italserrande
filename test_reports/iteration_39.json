@@ -1,0 +1,38 @@
+{
+  "summary": "Iter39: Documenti CE + Registro Manutenzione. Backend /api/documenti 8/8 pytest pass (auth 403, 422 kind, numbering per user+kind+year, idempotent POST with id, PUT persistence of fields/norme, kind filter, user isolation, soft delete + 404). Frontend 24/24 checks pass at 390x844 (chromium headless, SW blocked): Menu -> 'Documenti CE e Manutenzione' -> /documenti, tabs, empty state, CE creation with all 11 fields + 8 norme Si/No + note, toast 'Documento salvato', row 'n. 1/2026', reopen persistence, edit (incl. Si toggle-off -> null) persisted, PDF download CE = 2 pages / Manutenzione = 1 page, Manutenzione numbering starts at 1 separately, tipi toggle, descrizione persists, delete via confirm, search by cliente/matricola, reload persistence, no horizontal overflow, no page errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/documenti", "issue": "_next_number is find-max+1 without unique index: two concurrent creates (e.g. offline queue drain + manual) can get the same numero. Consider unique index (user_id,kind,anno,numero) or an atomic counter collection."},
+      {"endpoint": "POST /api/documenti", "issue": "Idempotency lookup does not filter is_deleted: re-POSTing an id of a soft-deleted doc returns the deleted doc (200) instead of recreating/404. Also an id owned by another user is not found and a second doc with same id is inserted (no unique index on id)."},
+      {"endpoint": "PUT /api/documenti/{id}", "issue": "Changing 'data' to another year keeps old anno/numero (e.g. doc dated 2027 shows n. X/2026). Decide if intended; otherwise recompute or lock the date year."},
+      {"endpoint": "POST /api/documenti", "issue": "data is not validated (any string accepted; anno = first 4 chars)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DocumentoDialog (blu theme)", "issues": ["Input/Textarea focus ring uses shadcn --ring var which is still olive-green under blu-italserrande (visible on 'nota 8' and descrizione textarea). Likely global/pre-existing.", "Unselected Si/No and tipo buttons keep a light-blue hover tint after tap on touch devices (sticky :hover) - can look half-selected; consider @media(hover:hover) for hover styles."]},
+      {"screen": "Documenti search input", "issues": ["Theme override [class*=\"border-[#4A5D23]\"] also matches 'focus:border-[#4A5D23]', so the search box has a permanent blue border even when unfocused (cosmetic)."]},
+      {"screen": "Mobile bottom nav", "issues": ["'Menu' label sits ~8px lower than other nav labels (gap-1 vs gap-3) - pre-existing; also no active state on Menu when on a secondary page like /documenti."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter39_documenti.py", "/app/tests/iter39_documenti_ui.py", "/app/test_reports/pytest/iter39.xml"],
+  "action_items": [
+    "Optional: add unique index / atomic counter for documenti numbering",
+    "Optional: filter is_deleted in POST idempotency lookup",
+    "Optional: theme --ring variable for blu-italserrande; fix search-input permanent border"
+  ],
+  "critical_code_review_comments": [
+    "documenti.py: numbering race condition (no unique index) and idempotency ignores is_deleted/cross-user ids",
+    "Documenti.jsx: GET error silently shows empty state (no error toast) - user could think documents were lost when offline",
+    "documentoFileName: CE filename lacks the progressive number while Manutenzione includes it (inconsistent; same-client CE files will collide in downloads)"
+  ],
+  "updated_files": ["/app/backend/tests/test_iter39_documenti.py", "/app/tests/iter39_documenti_ui.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None persistent. Ephemeral Firebase users created and deleted; their documenti soft-deleted at teardown.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Playwright browsers: only /pw-browsers/chromium_headless_shell-1248 exists (default 1255 & webkit missing) -> use chromium.launch(executable_path=.../chromium_headless_shell-1248/chrome-headless-shell-linux-arm64/chrome-headless-shell). PDF page count via regex /Type /Page (pypdf, pdftotext not installed). window.confirm handled via page.on('dialog')."
+}

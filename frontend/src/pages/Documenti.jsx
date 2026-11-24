@@ -66,7 +66,7 @@ export default function Documenti() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Cerca cliente o indirizzo…"
-            className="h-10 w-full rounded-xl border border-stone-300 bg-white pl-9 pr-3 text-sm placeholder:text-stone-400 focus:border-[#4A5D23] focus:outline-none"
+            className="h-10 w-full rounded-xl border border-stone-300 bg-white pl-9 pr-3 text-sm placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#4A5D23]/30"
             data-testid="documenti-search"
           />
         </div>
