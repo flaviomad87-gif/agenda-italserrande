@@ -103,3 +103,7 @@ async def ensure_indexes():
                 await db[coll].create_index(k, background=True)
             except Exception as e:
                 logger.warning("Indice %s %s non creato: %s", coll, k, e)
+    try:
+        await db.documenti_counters.create_index([("user_id", 1), ("kind", 1), ("anno", 1)], unique=True)
+    except Exception as e:
+        logger.warning("Indice documenti_counters non creato: %s", e)

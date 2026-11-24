@@ -8,7 +8,7 @@ import { TIPI_CHIUSURA } from "../lib/praticaTesti";
 const TABS = [
   ["pratica", "Pratiche", FolderCheck],
   ["ce", "Solo CE", KINDS.ce.icon],
-  ["manutenzione", "Manutenzioni", KINDS.manutenzione.icon],
+  ["manutenzione", "Registri", KINDS.manutenzione.icon],
 ];
 import { fmtDate } from "../lib/documentiPdf";
 

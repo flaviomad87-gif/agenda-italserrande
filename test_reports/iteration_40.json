@@ -1,0 +1,38 @@
+{
+  "summary": "Iter40: Pratica impianto (kind 'pratica'). Backend: 11/11 pytest pass (new test_iter40_pratica.py 3 tests + iter39 regression 8): pratica accepted, numbering separate from ce/manutenzione, full fields dict persisted, PUT with full form ignores extra keys (numero not overwritten), soft delete, 6 concurrent POSTs get unique 1..6. Frontend (390x844, chromium headless, SW blocked): 77/77 checks pass - Menu->Documenti opens 'Pratiche' tab by default with hint, tabs switch; pratica-dialog all fields; tipo change resets sicurezze to type defaults and clears collaudo; 11 sic toggles; 'Segna tutto conforme' sets C / NA (uomo_presente NA); single C/NC/NA toggle; esito, note; norme Si default/No/nota; rischi residui + DM37 materiali precompiled; progettista appears with 'C'è un progetto'; responsabile remembered for next pratica; toast 'Pratica salvata', row 'n. 1/2026' + 'Porta sezionale motorizzata'; reopen persists everything incl. includi. PDFs parsed with pypdf: full = 12 pages with all 6 titles + cliente + matricola; without manuale+targhetta = 9 pages; singles CE 2p, registro 1p, targhetta 1p, collaudo/rischi/manuale/dm37 2p each; all 5 tipi generate 12p without errors, manuale texts change (sezionale 'carrello', scorrevole 'cremagliera'+'binario', avvolgibile 'manovella', basculante 'contrappesi'); standalone CE (2p) and Manutenzione (1p) tabs still work after refactor; second pratica n. 2; delete with confirm works; no page errors, no horizontal overflow.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/documenti", "issue": "Counter migration missing: documents created before the switch to documenti_counters (old max+1 numbering) have no counter doc. DB check found 6 (user,kind,anno) groups with existing numbered docs and NO counter (e.g. user GLlIP7... has CE 2026 up to n.4, manutenzione 2026 up to n.2). Next POST for those users will restart at n.1 -> duplicate document numbers. Fix: when counter is missing, seed it from max(numero) of existing documenti (e.g. startup migration, or $max on upsert using find of last numero) before $inc.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "documenti_counters", "issue": "No unique index on (user_id, kind, anno); concurrent first-time upserts can theoretically create two counter docs (test with 6 parallel POSTs passed, but add the unique index for safety)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Documenti tabs at 390px", "issues": ["Third tab label 'Manutenzioni' (icon + text) is tight/clipped against the right edge of the grid-cols-3 pill; consider shorter label or smaller text/icon on mobile"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter40_pratica.py", "/app/backend/tests/test_iter39_documenti.py", "/app/tests/iter40_pratica_ui.py", "/app/test_reports/pytest/iter40.xml"],
+  "action_items": [
+    "HIGH: seed documenti_counters from existing max(numero) per user/kind/anno (pre-existing CE/Manutenzione docs would otherwise get duplicate n. 1, 2...)",
+    "Add unique index on documenti_counters (user_id, kind, anno)",
+    "DM37 PDF always ticks 'controllato l'impianto ... con esito positivo' even when collaudo esito = negativo; consider reflecting esito or warning before generating",
+    "Minor: Manutenzioni tab label tight at 390px"
+  ],
+  "critical_code_review_comments": [
+    "routes/documenti.py _next_number: counter starts at 0 for groups that already have documents (see backend critical).",
+    "praticaPdf.dm37: final checkLine(true, '...con esito positivo') is hardcoded regardless of fields.esito.",
+    "CollaudoSection allOk: 'uomo_presente' check depends only on sicurezza toggle, not on comando_tipo='uomo_presente' - if user picks comando a uomo presente but not the sicurezza toggle, the verifica becomes N/A (inconsistent).",
+    "Documenti.jsx: `import { fmtDate }` placed after the TABS const (works due to hoisting, but violates import/first)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter40_pratica.py", "/app/tests/iter40_pratica_ui.py"],
+  "success_rate": {"backend": "100% (11/11 tests; 1 data-migration bug found by DB inspection)", "frontend": "100% (77/77)"},
+  "seed_data_creation": "Ephemeral Firebase users testuser+iter40...@italserrande.test; all their documenti deleted and users deleted after runs. Counter docs for these ephemeral users remain in documenti_counters (harmless).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "UI test is a standalone python playwright script: python3 /app/tests/iter40_pratica_ui.py (uses /pw-browsers/chromium_headless_shell-1248 executable, service_workers='block', downloads parsed with pypdf - installed via pip this run). Container date is 2026-11-24 so default pratica date/year is 2026. Verify counter-seeding fix by inserting a doc without a counter for a test user and POSTing.",
+  "rca of the issue": "Iter39 numbered via max(numero)+1 on documenti; this iteration switched to $inc on a new documenti_counters collection without backfilling, so existing (user,kind,anno) series restart from 1."
+}

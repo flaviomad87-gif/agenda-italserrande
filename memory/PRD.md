@@ -385,3 +385,13 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - PDF vettoriali fedeli ai moduli originali (lib/documentiPdf.js, logo public/doc-logo.jpg); firme lasciate vuote da firmare a mano; CE: Sì/No + nota per le 8 norme; Manutenzione: un intervento per documento, Nr. = numero/anno.
 - Test: iteration_39 backend 8/8, frontend 24/24.
 - Backlog: creare documenti dalla scheda lavoro con dati precompilati; collegare il Registro alla stessa scheda impianto (fascicolo tecnico / "carta d'identità dell'impianto").
+
+## 2026-06 — Pratica impianto (documentazione completa)
+- Scheda "Pratiche" (default) in /documenti: compili una volta e generi un PDF unico (~12 pagine) o i singoli documenti:
+  Dichiarazione CE/DoP, Verbale di collaudo e consegna (check-list sicurezze, senza misura forze EN 12445), Analisi dei rischi (auto da sicurezze installate),
+  Manuale d'uso e manutenzione (testi per avvolgibile/sezionale/basculante/scorrevole/battente), Dichiarazione DM 37/08 (Allegato I + relazione materiali + avvertenze art. 8),
+  Registro di manutenzione (prima voce installazione), Targhetta CE da stampare.
+- File: lib/praticaTesti.js (contenuti standard, DA FAR VERIFICARE AL TITOLARE), lib/praticaPdf.js (motore impaginazione Flow), components/PraticaDialog.jsx, PraticaForm.jsx.
+- Numerazione atomica `documenti_counters` (indice unico) con riallineamento dai numeri già esistenti.
+- Test: iteration_40 backend 11/11, frontend 77/77.
+- Note: dal 20/01/2027 aggiornare riferimenti a Regolamento Macchine (UE) 2023/1230.

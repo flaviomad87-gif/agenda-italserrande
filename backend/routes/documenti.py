@@ -5,6 +5,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from pymongo.errors import DuplicateKeyError
 
 from db import db
 from firebase_auth import get_current_user
@@ -41,9 +42,15 @@ PROJ = {"_id": 0, "user_id": 0}
 
 
 async def _next_number(uid: str, kind: str, year: str) -> int:
-    res = await db.documenti_counters.find_one_and_update(
-        {"user_id": uid, "kind": kind, "anno": year}, {"$inc": {"n": 1}}, upsert=True, return_document=True
-    )
+    key = {"user_id": uid, "kind": kind, "anno": year}
+    if not await db.documenti_counters.find_one(key):
+        # Primo uso del contatore: riparte dall'ultimo numero gia' assegnato
+        last = await db.documenti.find_one(key, {"_id": 0, "numero": 1}, sort=[("numero", -1)])
+        try:
+            await db.documenti_counters.insert_one({**key, "n": (last or {}).get("numero", 0)})
+        except DuplicateKeyError:
+            pass
+    res = await db.documenti_counters.find_one_and_update(key, {"$inc": {"n": 1}}, return_document=True)
     return res["n"]
 
 
