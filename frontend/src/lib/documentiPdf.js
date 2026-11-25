@@ -253,14 +253,18 @@ export async function drawCe(doc, d) {
   p.text("L'impianto deve essere utilizzato correttamente e sottoposto a controlli e manutenzioni periodiche; la dichiarazione", 51, 180.8, 9.5);
   p.text("decade in caso di modifiche non autorizzate o manomissioni.", 51, 194.3, 9.5);
 
-  p.text("Firma e timbro per accettazione:", 51, 225.6, 9.5, { bold: true });
-  p.hline(51, 230, 285, 0.75, INK);
-  p.text("Firma Italserrande S.r.l.", 544.5, 225.6, 9.5, { bold: true, align: "right" });
-  p.hline(365, 544.5, 285, 0.75, INK);
-  p.text("Data e firma cliente:", 51, 352, 9.5, { bold: true });
-  p.hline(144, 290.2, 352, 0.75, INK);
-  p.value(fmtDate(d.data), 147, 349.4, 140, 10);
-  p.hline(365, 544.5, 352, 0.75, INK);
+  // Riquadri firma ben distinti
+  const sigBox = (x, y, w, h, label) => {
+    p.text(label, x, y - 6, 9.5, { bold: true });
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(x, y, w, h, 4, 4);
+  };
+  sigBox(51, 232, 236, 80, "Firma e timbro per accettazione:");
+  sigBox(308.2, 232, 236, 80, "Firma Italserrande S.r.l. (timbro e firma):");
+  sigBox(51, 350, 110, 44, "Data:");
+  p.value(fmtDate(d.data), 106, 377, 100, 11, "center");
+  sigBox(180, 350, 364.2, 44, "Firma cliente:");
   ceFooter(p, 2);
 }
 

@@ -431,3 +431,4 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - 2026-06: PDF normalizza sempre la sigla cavo FG16OR16 (anche se digitata FG160R16) in schema e relazione materiali; tensione centralina "230 V AC 50 Hz" con testo adattato al riquadro;
   Registro della pratica: descrizione con [Matricola] se non inserita e data della pratica; CE pag. 2 righe firma più distanziate.
 - 2026-06: registro pratica con segnaposto [Data] e [Matricola]; correzione FG16OR16 applicata a tutto il testo dei PDF (newDoc); CE pag. 2 firme più distanziate.
+- 2026-06: CE pag. 2 con riquadri firma distinti (accettazione, Italserrande con timbro, data, firma cliente).
