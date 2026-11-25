@@ -408,3 +408,14 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - PDF: schema unifilare disegnato in automatico (quadro -> MTD -> linea -> centralina -> motore/fotocellule/coste/lampeggiante/finecorsa/comandi, PE) + tabella dati e verifiche,
   allegato alla DM 37/08; foto del libretto (JobPhotos con client_id "pratica-<id>") in coda, una per pagina.
 - Eliminando la pratica vengono eliminate anche le foto. Test: iteration_41 70/72 (2 solo diciture).
+
+## 2026-06 — Verifica impianto esistente, Contratti manutenzione, Logo
+- Documenti > tab "Verifiche" (kind "verifica"): stato di fatto (10 punti C/NC/NA + note), documenti presenti, esito idonea/adeguamento/non idonea,
+  interventi, parti, rifiuto cliente, foto (client_id "verifica-<id>") nel PDF; tasto "Crea pratica di adeguamento" (precompila pratica, DM37 trasformazione).
+- /contratti (menu "Contratti manutenzione"): contratti con impianti, durata, frequenza visite (default 6 mesi), rinnovo tacito, canone, visite registrate;
+  prossima visita = ultima visita (o inizio) + frequenza; avviso 15 giorni prima: badge menu, pallino Menu, banner su Prossimi lavori, email riepilogativa
+  a owner_email (email login) via Emergent managed email (EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME). PDF contratto con clausole standard + artt. 1341/1342 c.c.
+- Job giornaliero: avviato dal ping GET /api/ (keep-alive GitHub su Render) una volta al giorno dopo le 7 (Roma) + .emergent/crons.yml (POST /api/cron/manutenzioni, Bearer WEBHOOK_CRON_SECRET).
+- Su Render vanno aggiunte le variabili EMERGENT_EMAIL_KEY ed EMAIL_FROM_NAME (valori in backend/.env).
+- Logo Italserrande: /app-logo.jpg (login, registrazione, sidebar), icone PWA 192/512, apple-touch-icon, favicon.
+- Test: iteration_42 backend 12/13 (fix applicati: cron body vuoto, task retention, retry giornaliero, stato Literal), frontend 65/65.

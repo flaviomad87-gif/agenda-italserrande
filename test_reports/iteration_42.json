@@ -1,0 +1,35 @@
+{
+  "summary": "Iter42: Contratti di manutenzione (backend + UI), Verbale di verifica impianto esistente (UI, PDF, foto, crea pratica), logo/icone PWA, regressione tab Documenti. Backend 12/13 pytest pass (la sola failure: il cron risponde 400 se il body è vuoto). UI su 390x844 + desktop: 63/65 al primo run; le 2 failure erano errori dello script di test (calcolo dei giorni attesi e una verifica di timing durante l'animazione di chiusura del dialog), confermati con lo screenshot e corretti nello script. Data del server 2026-11-25 (Roma 06:34, quindi il job giornaliero non è partito durante i test).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/cron/manutenzioni", "issue": "Con Bearer valido e body vuoto (senza JSON) risponde 400 'Corpo non valido' invece di 2xx. Se lo scheduler invia la POST senza body, il promemoria giornaliero via cron non parte mai: il fallback GET /api/ lo copre solo se qualcuno chiama la root dopo le 7. Suggerimento: ignorare un body vuoto o non valido e dare comunque l'ack."},
+      {"endpoint": "maybe_run_daily (routes/contratti.py)", "issue": "Il campo jobs.date viene impostato a oggi PRIMA di send_reminders: se l'invio fallisce (provider email giù, crediti esauriti) quel giorno non c'è nessun nuovo tentativo. Inoltre asyncio.create_task viene chiamato senza tenere un riferimento al task, che quindi può essere raccolto dal garbage collector a metà esecuzione."},
+      {"endpoint": "ContrattoIn.stato", "issue": "stato è una stringa libera, non validata (dovrebbe essere Literal['attivo','disdetto']). PUT non ricalcola anno/numero se cambia l'anno di data_inizio (accettabile, ma da sapere)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "VerificaDialog", "issues": ["La 'firma cliente' è solo una riga firma nel PDF ('Il Cliente'): nell'app non si cattura nessuna firma. Va bene se è voluto (stesso schema degli altri documenti)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter42_contratti.py", "/app/tests/iter42_contratti_verifica_ui.py", "/app/test_reports/pytest/iter42_contratti.xml"],
+  "action_items": [
+    "Far rispondere 2xx a /api/cron/manutenzioni anche con body vuoto o non JSON (oggi 400)",
+    "Facoltativo: segnare jobs.date solo dopo un invio riuscito, oppure prevedere un nuovo tentativo; tenere un riferimento ai task in background; validare stato con un Literal"
+  ],
+  "critical_code_review_comments": [
+    "contratti.py cron: await request.json() su body vuoto -> 400; lo scheduler potrebbe non inviare un body",
+    "maybe_run_daily: segna il giorno come fatto prima che l'invio riesca, quindi nessun nuovo tentativo in caso di errore",
+    "Logica di compute() verificata: add_months gestisce la fine del mese; il rinnovo tacito fa avanzare la fine; senza rinnovo genera la scadenza 'fine'; la prossima visita parte dalla visita più recente anche se le visite vengono inserite non in ordine"
+  ],
+  "updated_files": ["/app/backend/tests/test_iter42_contratti.py", "/app/tests/iter42_contratti_verifica_ui.py"],
+  "success_rate": {"backend": "92% (12/13)", "frontend": "100% (65/65 dopo la correzione dello script di test)"},
+  "seed_data_creation": "Solo utenti Firebase effimeri (eliminati a fine test). Contratti e documenti creati e poi cancellati via API; le righe dei contratti cancellati dalla UI restano in Mongo con is_deleted=true, come previsto dal soft delete. owner_email dei contratti di test impostato a delivered@resend.dev prima di invia-promemoria (email accettata dal provider, 202). Il contratto preesistente 'ROSSI' (del main agent) non è stato toccato.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Esecuzione: cd /app/backend && python -m pytest tests/test_iter42_contratti.py -p no:xdist -o addopts=''; per la UI: python3 /app/tests/iter42_contratti_verifica_ui.py (usa chrome-headless-shell in /pw-browsers, blocca il service worker, crea un contratto seed in scadenza a +4 giorni per badge/pallino/banner). Le date attese sono calcolate rispetto alla data del container (2026-11-25). Il test cron chiama send_reminders per TUTTI gli utenti: prima di eseguirlo, verificare che in db.contratti non ci siano owner_email reali con scadenze non ancora notificate. I testid della Pratica: pratica-tipo-<tipo>, pratica-dm37-tipo-trasformazione; la selezione si riconosce dalla classe bg-[#4A5D23].",
+  "rca of the issue": "Cron con body vuoto: cron_manutenzioni esegue await request.json() dentro un try e su qualunque eccezione restituisce HTTPException(400). Riproduzione: POST /api/cron/manutenzioni con Authorization Bearer <secret> e nessun body -> 400. Soluzione: togliere il parsing obbligatorio del body (o ignorare gli errori di parsing) e dare sempre l'ack."
+}

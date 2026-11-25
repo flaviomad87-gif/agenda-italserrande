@@ -7,7 +7,7 @@ import os
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from html import escape
-from typing import List, Optional
+from typing import List, Literal, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -56,7 +56,7 @@ class ContrattoIn(BaseModel):
     sconto_interventi: str = ""
     note: str = ""
     visite: List[Visita] = Field(default_factory=list)
-    stato: str = "attivo"
+    stato: Literal["attivo", "disdetto"] = "attivo"
 
 
 def _today() -> date:
@@ -250,10 +250,20 @@ async def maybe_run_daily():
         await send_reminders()
     except Exception as e:
         logger.error("Promemoria manutenzioni falliti: %s", e)
+        await db.jobs.update_one({"_id": "promemoria_manutenzioni"}, {"$set": {"date": ""}})
+
+
+_tasks: set = set()
+
+
+def _spawn(coro):
+    t = asyncio.create_task(coro)
+    _tasks.add(t)
+    t.add_done_callback(_tasks.discard)
 
 
 def trigger_daily():
-    asyncio.create_task(maybe_run_daily())
+    _spawn(maybe_run_daily())
 
 
 @router.post("/contratti/invia-promemoria")
@@ -269,15 +279,17 @@ async def cron_manutenzioni(request: Request):
     token = auth[7:] if auth.lower().startswith("bearer ") else ""
     if not secret or not token or not hmac.compare_digest(token, secret):
         raise HTTPException(401, "Non autorizzato")
-    try:
-        await request.json()
-    except Exception:
-        raise HTTPException(400, "Corpo non valido")
+    raw = await request.body()
+    if raw.strip():
+        try:
+            await request.json()
+        except Exception:
+            raise HTTPException(400, "Corpo non valido")
     run_id = request.headers.get("x-webhook-id") or ""
     if run_id:
         try:
             await db.cron_runs.insert_one({"_id": run_id, "at": _now()})
         except Exception:
             return {"ok": True, "duplicate": True}
-    asyncio.create_task(send_reminders())
+    _spawn(send_reminders())
     return {"ok": True}
