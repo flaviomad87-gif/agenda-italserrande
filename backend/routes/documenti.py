@@ -96,8 +96,8 @@ async def update_documento(doc_id: str, payload: DocumentoPatch, user=Depends(ge
     if not res:
         raise HTTPException(404, "Documento non trovato")
     if res.get("kind") == "pratica" and not res.get("public_token"):
-        res["public_token"] = uuid.uuid4().hex
-        await db.documenti.update_one({"id": doc_id, "public_token": {"$exists": False}}, {"$set": {"public_token": res["public_token"]}})
+        await db.documenti.update_one({"id": doc_id, "public_token": {"$exists": False}}, {"$set": {"public_token": uuid.uuid4().hex}})
+        res["public_token"] = (await db.documenti.find_one({"id": doc_id}, {"_id": 0, "public_token": 1}))["public_token"]
     return res
 
 
@@ -116,13 +116,14 @@ async def public_impianto(token: str):
     uid = p["user_id"]
     ultima, prossima = None, None
     from routes.contratti import compute
-    async for c in db.contratti.find({"user_id": uid, "stato": "attivo", **ACTIVE}, {"_id": 0}):
+    today = datetime.now(timezone.utc).date().isoformat()
+    async for c in db.contratti.find({"user_id": uid, "stato": "attivo", **ACTIVE}, {"_id": 0}).sort("updated_at", -1):
         if _same(c.get("indirizzo"), p.get("indirizzo")) or any(_same(i.get("matricola"), matricola) for i in c.get("impianti", [])):
             cc = compute(c)
             ultima, prossima = cc["ultima_visita"], cc["prossima_visita"]
             break
     async for r in db.documenti.find({"user_id": uid, "kind": "manutenzione", **ACTIVE}, {"_id": 0, "data": 1, "indirizzo": 1}):
-        if _same(r.get("indirizzo"), p.get("indirizzo")) and r.get("data") and (not ultima or r["data"] > ultima):
+        if _same(r.get("indirizzo"), p.get("indirizzo")) and r.get("data") and r["data"] <= today and (not ultima or r["data"] > ultima):
             ultima = r["data"]
     return {
         "tipo_chiusura": f.get("tipo_chiusura"),

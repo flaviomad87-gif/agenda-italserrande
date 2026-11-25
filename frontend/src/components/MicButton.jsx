@@ -37,7 +37,7 @@ export default function MicButton({ onText, testId = "mic-button" }) {
     <button
       type="button"
       onClick={toggle}
-      className={`absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition-colors ${on ? "animate-pulse bg-red-600 text-white" : "bg-[#0047ab] text-white"}`}
+      className={`absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition-colors ${on ? "animate-pulse bg-red-600 text-white" : "bg-[#0047ab] text-white"}`}
       aria-label={on ? "Ferma dettatura" : "Detta"}
       data-testid={testId}
     >

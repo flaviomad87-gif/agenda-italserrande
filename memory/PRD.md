@@ -432,3 +432,11 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
   Registro della pratica: descrizione con [Matricola] se non inserita e data della pratica; CE pag. 2 righe firma più distanziate.
 - 2026-06: registro pratica con segnaposto [Data] e [Matricola]; correzione FG16OR16 applicata a tutto il testo dei PDF (newDoc); CE pag. 2 firme più distanziate.
 - 2026-06: CE pag. 2 con riquadri firma distinti (accettazione, Italserrande con timbro, data, firma cliente).
+
+## 2026-06 — 5 nuove funzioni
+- Pratica dal lavoro: pulsante nella scheda lavoro (ClientRilievi) -> /documenti?nuova=pratica&cliente&indirizzo apre pratica precompilata.
+- Rilievo -> preventivo: pulsante "Preventivo" nel rilievo crea preventivo con righe dalle misure/accessori (prezzi a mano), cliente/indirizzo maiuscoli.
+- Dettatura: MicButton (Web Speech API it-IT) su note lavoro, aree testo pratica, descrizione registro, verifica, note contratto; nascosto se non supportato.
+- Invio PDF: condivisione nativa (WhatsApp come file); etichette "Invia PDF".
+- QR targhetta: public_token per pratica, GET /api/public/impianto/{token} (senza dati personali), pagina pubblica /impianto/:token con scheda impianto, manutenzioni, contatti; QR in ogni targhetta (libreria qrcode).
+- Test: iteration_43 backend 100%, frontend 100%.

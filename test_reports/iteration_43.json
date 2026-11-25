@@ -1,0 +1,26 @@
+{
+  "summary": "Iter43 tested all 5 new features plus regression. Backend: new pytest file with 8 tests, all pass. Regression iter37/39/40: 20/20 pass. UI: Playwright script in chrome-headless-shell, mobile 390x844, service worker blocked, 48/48 checks pass. (2) The 'Nuova pratica' button in the job sits above the rilievi section and opens /documenti with pratica-dialog. Cliente and indirizzo are prefilled. The URL goes back to /documenti and the pratica saves with a public_token. (3) Rilievo -> Preventivo saves the rilievo and lists it in the job. It opens /preventivi/<id> with 'TEST_ROSSI MARIO' / 'VIA TEST 12, ROMA' and the 4 expected lines ('Porta sezionale A, modello S2 Woodgrain, colore RAL 9010, misure foro L 2500 x H 2200 mm', Motorizzazione..., Coppia di fotocellule..., Montaggio e messa in opera), all amounts 0, client_id linked. (4) Mic buttons checked: client-notes, the 4 pratica areas, man-descrizione, verifica-interventi/parti, contratto-note. Each is visible, 36px, 8px inside the bottom-right corner, and the textarea has padding-right 48px. Browsers without speech support were simulated by deleting webkitSpeechRecognition with an init script, because WebKit/Firefox are not installed: the mics are hidden and there are no page errors. (11) Public endpoint and page: no auth needed and no cliente/indirizzo in the response or page. tel/mail links are correct and a wrong token shows impianto-not-found. Last maintenance date is taken from an active contract matched by address (case-insensitive, trimmed) or by matricola (case-insensitive), and from the latest manutenzione record at the same address. Disdetto contracts are ignored. A deleted pratica gives 404. Targhetta PDF: 'Inquadra per assistenza' appears 2 times. The QR (decoded with zxing-cpp) points to <origin>/impianto/<public_token>. jsPDF stores the image once and draws it twice ('/I1 Do' x2). Full pratica PDF: 10 pages. 'Invia PDF' label and download work for manutenzione. Pratica/CE tabs open.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "GET /api/public/impianto/{token}", "issue": "The contract loop stops at the first matching active contract, in no fixed order. If several contracts match, the dates may come from a random one. Also, a manutenzione record dated in the future would become 'ultima'. There is no rate limit on this public endpoint (the 128-bit token makes this low risk)."},
+    {"endpoint": "PUT /api/documenti/{id}", "issue": "Lazy token creation can race: with two PUTs at the same time on an old pratica, the second response can return a token that was never stored, because update_one is guarded by $exists:false. Very unlikely."}
+  ]},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [{"screen": "Textareas with mic (e.g. contratto-note)", "issues": ["The mic button at bottom-right covers the textarea resize handle (cosmetic)"]}]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter43_impianto_public.py", "/app/tests/iter43_features_ui.py", "/app/test_reports/pytest/iter43.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "client-new-pratica-button navigates away from an open ClientFormDialog without saving. Unsaved edits to the job are lost silently. Consider saving first or warning the user.",
+    "Public impianto: pick the most recent matching contract in a fixed order (sort) instead of the first one returned.",
+    "QR for old pratiche works only because share() saves (PUT) before building the PDF. Keep that order."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter43_impianto_public.py", "/app/tests/iter43_features_ui.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Ephemeral Firebase users only. Backend tests hard-delete their own docs/contracts by id and uid. The UI script deletes its client, quote, rilievo and documenti through the API (documenti are soft-deleted under the deleted ephemeral uid), then deletes the Firebase user.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/test_iter43_impianto_public.py -p no:xdist -o addopts=''; UI: python3 /app/tests/iter43_features_ui.py. zxing-cpp was pip-installed and is used for QR decoding. Rilievi API is /api/rilievi-sezionali. The job dialog opens via /agenda client-card-<id>. Container date is 2026-11-25. Unsupported-browser mic check is simulated with an init script, because only chromium headless shell is installed in /pw-browsers.",
+  "test_credentials": "Ephemeral Firebase signUp testuser+iter43<ts>@italserrande.test / TestPassword123!"
+}
