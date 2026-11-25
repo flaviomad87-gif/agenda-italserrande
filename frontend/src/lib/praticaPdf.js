@@ -262,7 +262,7 @@ export const toRegistro = (d) => {
     fields: {
       tipi: ["installazione", "avviamento", "regolazioni"],
       descrizione:
-        `Installazione e messa in servizio in data ${d.data ? fmtDate(d.data) : "[Data]"}: ${tipoLabel(f)}${f.modello ? ` ${f.modello}` : ""}, ` +
+        `Installazione e messa in servizio in data [Data]: ${tipoLabel(f)}${f.modello ? ` ${f.modello}` : ""}, ` +
         `matricola ${String(f.matricola || "").trim() || "[Matricola]"}. ` +
         `Collaudo con esito ${f.esito === "negativo" ? "negativo" : "positivo"}. Dispositivi di sicurezza verificati: ${sic || "-"}. ` +
         `Rischi residui: ${f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT}`,
