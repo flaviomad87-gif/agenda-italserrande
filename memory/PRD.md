@@ -419,3 +419,12 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Su Render vanno aggiunte le variabili EMERGENT_EMAIL_KEY ed EMAIL_FROM_NAME (valori in backend/.env).
 - Logo Italserrande: /app-logo.jpg (login, registrazione, sidebar), icone PWA 192/512, apple-touch-icon, favicon.
 - Test: iteration_42 backend 12/13 (fix applicati: cron body vuoto, task retention, retry giornaliero, stato Literal), frontend 65/65.
+
+## 2026-06 — Revisione documenti pratica (feedback utente)
+- Collaudo: frase forze d'impatto ora dipende dalla modalità adottata (uomo presente / impulsivo / automatico + dispositivi); avviso rosso se protezioni insufficienti (T.notaForze, anche nel form).
+- Analisi rischi: Utilizzo selezionabile (privato, condominiale, commerciale, industriale, pubblico) T.USI_IMPIANTO.
+- DM37: campi committente/indirizzo/proprietà/scala/piano/interno con spazi da compilare se vuoti; allegati in tabella chiara (materiali, schema, visura camerale, progetto, precedenti);
+  schema elettrico ora in continuazione della DM37 con relazione materiali nella tabella dati linea; cavi dentro i box dispositivi; PE indicato come conduttore unico.
+- Misure isolamento/differenziale: avviso nel form se vuote, nel PDF spazio "______" da compilare.
+- Firme: riquadri per firma; CE pag. 2 riga per "Firma Italserrande S.r.l."; Sì/No in norme.
+- Impaginazione compatta: pratica completa da 14 a 10 pagine (dati impianto su 2 colonne, check-list collaudo su 2 colonne).

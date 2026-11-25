@@ -132,7 +132,7 @@ function normaRow(p, f, i, y, iso) {
   p.box(297.4, y, 544.2, y + 24);
   p.rich([[`${i + 1}.`, true], [` ${normaLabel(i, iso)}`, false]], 57.8, y + 15.3, 9.5);
   const n = (f.norme || [])[i] || {};
-  const yn = n.applica === true ? "SÌ" : n.applica === false ? "NO" : "";
+  const yn = n.applica === true ? "Sì" : n.applica === false ? "No" : "";
   const txt = [yn, s(n.nota).trim()].filter(Boolean).join(" — ");
   p.value(txt, 304, y + 15.3, 234, 9.5);
 }
@@ -247,7 +247,8 @@ export async function drawCe(doc, d) {
 
   p.text("Firma e timbro per accettazione:", 51, 225.6, 9.5, { bold: true });
   p.hline(51, 182.2, 241.9, 0.75, INK);
-  p.text("Firma Italserrande S.r.l.", 544.2, 242.1, 9.5, { bold: true, align: "right" });
+  p.text("Firma Italserrande S.r.l.", 544.5, 225.6, 9.5, { bold: true, align: "right" });
+  p.hline(387, 544.5, 241.9, 0.75, INK);
   p.text("Data e firma cliente:", 51, 272.8, 9.5, { bold: true });
   p.hline(144, 290.2, 272.6, 0.75, INK);
   p.value(fmtDate(d.data), 147, 270, 140, 10);

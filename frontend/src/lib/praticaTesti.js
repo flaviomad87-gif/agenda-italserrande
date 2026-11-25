@@ -66,10 +66,44 @@ export const CHECKLIST = [
 
 export const checklistFor = (tipo, nuovo) => CHECKLIST.filter((c) => (!c.types || c.types.includes(tipo)) && (!c.nuovo || nuovo));
 
-export const NOTA_FORZE =
-  "La misura delle forze d'impatto secondo UNI EN 12445 non è stata eseguita: la protezione contro schiacciamento e impatto " +
-  "è affidata ai dispositivi di sicurezza verificati in questo verbale (fotocellule, bordi sensibili, rilevamento ostacolo) " +
-  "e/o al comando a uomo presente.";
+export const USI_IMPIANTO = {
+  privato: "Privato / residenziale",
+  condominiale: "Condominiale",
+  commerciale: "Commerciale (negozio, ufficio)",
+  industriale: "Industriale / capannone",
+  pubblico: "Pubblico / uso intensivo",
+};
+
+// Modalità di funzionamento adottata e verificata (protezione contro schiacciamento e impatto, UNI EN 12453)
+export function notaForze(f) {
+  const on = f.sicurezze || [];
+  const lab = { fotocellule: "fotocellule", coste: "bordi sensibili", rilevamento: "rilevamento ostacolo con sensibilità della centralina regolata" };
+  const dev = ["fotocellule", "coste", "rilevamento"].filter((k) => on.includes(k)).map((k) => lab[k]);
+  if (f.comando_tipo === "uomo_presente") {
+    return {
+      ok: true,
+      testo:
+        "Modalità adottata e verificata: comando a uomo presente, con il movimento solo a comando mantenuto e la chiusura in vista dal punto di comando. " +
+        "Con questa modalità la protezione contro schiacciamento e impatto è garantita dal comando stesso e la misura delle forze secondo UNI EN 12445 non è richiesta.",
+    };
+  }
+  const modo = f.comando_tipo === "automatico" ? "comando automatico (chiusura automatica temporizzata)" : "comando impulsivo (radiocomando / selettore)";
+  const presenza = on.includes("fotocellule") || on.includes("coste");
+  if (!dev.length || (f.comando_tipo === "automatico" && !presenza)) {
+    return {
+      ok: false,
+      testo:
+        `Modalità adottata: ${modo}. ATTENZIONE: non risultano dispositivi di protezione sufficienti. ` +
+        "Per questa modalità servono dispositivi di rilevamento presenza (fotocellule e/o bordi sensibili) oppure la misura delle forze d'impatto secondo UNI EN 12445.",
+    };
+  }
+  return {
+    ok: true,
+    testo:
+      `Modalità adottata e verificata: ${modo}, con protezione contro schiacciamento e impatto affidata a: ${dev.join(", ")}, ` +
+      "verificati con prova di arresto e inversione in questo verbale. La misura strumentale delle forze d'impatto secondo UNI EN 12445 non è stata eseguita.",
+  };
+}
 
 const ZONA_CONVOGLIAMENTO = {
   avvolgibile: "Rullo di avvolgimento, cassonetto e guide",

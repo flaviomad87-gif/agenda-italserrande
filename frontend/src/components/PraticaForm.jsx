@@ -96,7 +96,7 @@ export function ImpiantoSection({ form, setField, setTipo }) {
       <Lbl>Tipo di comando</Lbl>
       <Choice options={Object.entries(T.COMANDI)} value={f.comando_tipo} onChange={(v) => setField("comando_tipo", v)} testId="pratica-comando" cols={1} />
       <Lbl>Utilizzo</Lbl>
-      <Choice options={[["privato", "Privato"], ["pubblico", "Pubblico / intensivo"]]} value={f.uso} onChange={(v) => setField("uso", v)} testId="pratica-uso" />
+      <Choice options={Object.entries(T.USI_IMPIANTO)} value={f.uso} onChange={(v) => setField("uso", v)} testId="pratica-uso" cols={1} />
     </Section>
   );
 }
@@ -142,11 +142,20 @@ export function CollaudoSection({ form, setField }) {
           </div>
         </div>
       ))}
-      <p className="text-xs text-stone-500">{T.NOTA_FORZE}</p>
+      <ForzeNote f={f} />
       <Lbl>Esito del collaudo</Lbl>
       <Choice options={[["positivo", "Positivo"], ["negativo", "Negativo"]]} value={f.esito} onChange={(v) => setField("esito", v)} testId="pratica-esito" />
       <Area id="note-collaudo" label="Note collaudo" value={f.note_collaudo} onChange={(v) => setField("note_collaudo", v)} rows={2} />
     </Section>
+  );
+}
+
+function ForzeNote({ f }) {
+  const n = T.notaForze(f);
+  return (
+    <p className={`rounded-lg px-3 py-2 text-xs ${n.ok ? "bg-stone-100 text-stone-600" : "bg-red-50 font-semibold text-red-700"}`} data-testid="pratica-nota-forze">
+      {n.testo}
+    </p>
   );
 }
 
@@ -246,6 +255,11 @@ export function SchemaSection({ form, setField, onNeedSave }) {
         <Field id="schema-isolamento" label="Isolamento (MΩ, min 1)" {...f("isolamento")} numeric />
         <Field id="schema-tempo-diff" label="Intervento diff. (ms)" {...f("tempo_diff")} numeric />
       </Row>
+      {(!sc.isolamento || !sc.tempo_diff) && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800" data-testid="pratica-schema-misure-mancanti">
+          Inserisci i valori misurati di isolamento e intervento del differenziale: se restano vuoti nel PDF esce lo spazio da compilare a mano.
+        </p>
+      )}
       <div className="rounded-lg border border-stone-200 bg-white p-2.5">
         {form.id ? (
           <JobPhotos

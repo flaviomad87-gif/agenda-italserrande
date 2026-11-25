@@ -4,7 +4,7 @@ import * as T from "./praticaTesti";
 const L = 51;
 const R = 544.2;
 const W = R - L;
-const BOTTOM = 772;
+const BOTTOM = 786;
 
 // Impaginazione a flusso con intestazione Italserrande e salto pagina automatico.
 export class Flow {
@@ -29,11 +29,11 @@ export class Flow {
     this.cur = { title, pages: [this.doc.getNumberOfPages()] };
     this.sections.push(this.cur);
     const { doc, p } = this;
-    doc.addImage(this.logo, "JPEG", L, 36, 44, 68);
-    p.text("Italserrande S.r.l.", 106, 58, 19, { bold: true });
-    p.hline(106, R, 65, 1.3, RED);
-    COMPANY.forEach((t, i) => p.text(t, R, 78 + i * 9.6, 8, { align: "right", color: [31, 41, 55] }));
-    this.y = 140;
+    doc.addImage(this.logo, "JPEG", L, 32, 38, 58);
+    p.text("Italserrande S.r.l.", 100, 52, 18, { bold: true });
+    p.hline(100, R, 58, 1.3, RED);
+    COMPANY.forEach((t, i) => p.text(t, R, 69 + i * 8.6, 7.5, { align: "right", color: [31, 41, 55] }));
+    this.y = 130;
     this.font(13.5, "bold");
     doc.splitTextToSize(title, W).forEach((l) => {
       doc.text(l, L, this.y);
@@ -60,14 +60,14 @@ export class Flow {
   gap(n = 8) {
     this.y += n;
   }
-  h2(t, align = "left") {
-    this.ensure(64);
-    this.y += 6;
-    this.font(10.5, "bold");
+  h2(t, align = "left", keep = 64) {
+    this.ensure(keep);
+    this.y += 4;
+    this.font(10, "bold");
     this.doc.text(t, align === "center" ? L + W / 2 : L, this.y, { align });
-    this.y += 14;
+    this.y += 12;
   }
-  para(t, { size = 9.5, style = "normal", color = INK, indent = 0 } = {}) {
+  para(t, { size = 9, style = "normal", color = INK, indent = 0 } = {}) {
     this.font(size, style, color);
     this.doc.splitTextToSize(t, W - indent).forEach((l) => {
       this.ensure(size * 1.4);
@@ -79,18 +79,18 @@ export class Flow {
   }
   bullets(list) {
     list.forEach((t) => {
-      this.font(9.5);
+      this.font(9);
       const lines = this.doc.splitTextToSize(t, W - 14);
-      this.ensure(lines.length * 13);
-      this.font(9.5);
+      this.ensure(lines.length * 12);
+      this.font(9);
       this.doc.text("-", L + 3, this.y);
       lines.forEach((l) => {
         this.doc.text(l, L + 14, this.y);
-        this.y += 13;
+        this.y += 12;
       });
-      this.y += 2;
+      this.y += 1.5;
     });
-    this.y += 4;
+    this.y += 3;
   }
   box(x, y, on) {
     const { doc } = this;
@@ -100,25 +100,26 @@ export class Flow {
     if (on) this.p.cross(x, y - 8, 9);
   }
   checkLine(on, t) {
-    this.font(9.5);
+    this.font(9);
     const lines = this.doc.splitTextToSize(t, W - 18);
-    this.ensure(lines.length * 13);
+    this.ensure(lines.length * 12);
     this.box(L, this.y, on);
-    this.font(9.5);
+    this.font(9);
     lines.forEach((l) => {
       this.doc.text(l, L + 16, this.y);
-      this.y += 13;
+      this.y += 12;
     });
-    this.y += 3;
+    this.y += 2;
   }
   checks(items, perRow = 4) {
     const cw = W / perRow;
     for (let i = 0; i < items.length; i += perRow) {
       this.ensure(16);
       items.slice(i, i + perRow).forEach(([label, on], j) => {
-        this.box(L + j * cw, this.y, on);
-        this.font(9.5);
-        this.doc.text(label, L + j * cw + 14, this.y);
+        const noBox = on === null;
+        if (!noBox) this.box(L + j * cw, this.y, on);
+        this.font(9);
+        this.doc.text(label, L + j * cw + (noBox ? 0 : 14), this.y);
       });
       this.y += 16;
     }
@@ -129,7 +130,7 @@ export class Flow {
     const { doc } = this;
     const pad = 5;
     const header = () => {
-      const h = 20;
+      const h = 17;
       let x = L;
       cols.forEach(([label, w]) => {
         doc.setFillColor(...FILL);
@@ -137,7 +138,7 @@ export class Flow {
         doc.setLineWidth(0.75);
         doc.rect(x, this.y, w, h, "FD");
         this.font(8.5, "bold");
-        doc.text(label, x + pad, this.y + 13.5);
+        doc.text(label, x + pad, this.y + 11.8);
         x += w;
       });
       this.y += h;
@@ -149,45 +150,54 @@ export class Flow {
         if (this.ensure(36)) header();
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(...BORDER);
-        doc.rect(L, this.y, W, 17, "FD");
-        this.font(8.5, "bold", [0, 58, 140]);
-        doc.text(row.group.toUpperCase(), L + pad, this.y + 11.8);
-        this.y += 17;
+        doc.rect(L, this.y, W, 14, "FD");
+        this.font(8, "bold", [0, 58, 140]);
+        doc.text(row.group.toUpperCase(), L + pad, this.y + 10);
+        this.y += 14;
         return;
       }
       const cells = row.map((c, i) => {
-        this.font(8.8, blueCols.includes(i) ? "bold" : "normal");
+        this.font(8.5, blueCols.includes(i) ? "bold" : "normal");
         return doc.splitTextToSize(String(c ?? ""), cols[i][1] - pad * 2);
       });
-      const h = Math.max(...cells.map((c) => c.length)) * 11 + 9;
+      const h = Math.max(...cells.map((c) => c.length)) * 10.2 + 6;
       if (this.ensure(h)) header();
       let x = L;
       cells.forEach((lines, i) => {
         doc.setDrawColor(...BORDER);
         doc.setLineWidth(0.75);
         doc.rect(x, this.y, cols[i][1], h);
-        this.font(8.8, blueCols.includes(i) ? "bold" : "normal", blueCols.includes(i) ? BLUE : INK);
-        lines.forEach((l, k) => doc.text(l, x + pad, this.y + 13 + k * 11));
+        this.font(8.5, blueCols.includes(i) ? "bold" : "normal", blueCols.includes(i) ? BLUE : INK);
+        lines.forEach((l, k) => doc.text(l, x + pad, this.y + 11.2 + k * 10.2));
         x += cols[i][1];
       });
       this.y += h;
     });
-    this.y += 10;
+    this.y += 8;
   }
   kv(rows) {
-    this.table([["Dato", 170], ["Valore", W - 170]], rows.filter(([, v]) => v !== undefined), { blueCols: [1] });
+    this.table([["Dato", 150], ["Valore", W - 150]], rows.filter(([, v]) => v !== undefined), { blueCols: [1] });
+  }
+  // Dati su due colonne affiancate per risparmiare spazio
+  kv2(rows) {
+    const r = rows.filter(([, v]) => v !== undefined);
+    const pairs = [];
+    for (let i = 0; i < r.length; i += 2) pairs.push([r[i][0], r[i][1], r[i + 1]?.[0] || "", r[i + 1]?.[1] || ""]);
+    this.table([["Dato", 95], ["Valore", W / 2 - 95], ["Dato", 95], ["Valore", W / 2 - 95]], pairs, { blueCols: [1, 3] });
   }
   signatures(labels) {
-    this.ensure(70);
-    this.y += 14;
+    this.ensure(64);
+    this.y += 10;
     const cw = W / labels.length;
     labels.forEach((l, i) => {
       const x = L + i * cw;
-      this.font(9.5, "bold");
+      this.font(9, "bold");
       this.doc.text(l, x, this.y);
-      this.p.hline(x, x + cw - 24, this.y + 34, 0.75, INK);
+      this.doc.setDrawColor(...BORDER);
+      this.doc.setLineWidth(0.6);
+      this.doc.roundedRect(x, this.y + 5, cw - 16, 38, 3, 3);
     });
-    this.y += 50;
+    this.y += 52;
   }
   finish() {
     this.sections.forEach(({ pages }) =>
@@ -208,12 +218,12 @@ const ESITI = { C: "Conforme", NC: "Non conforme", NA: "Non applicabile" };
 
 function datiImpianto(fl, d, extra = []) {
   const f = d.fields;
-  fl.kv([
+  fl.kv2([
     ["Cliente / Committente", d.cliente],
     ["Indirizzo di installazione", [d.indirizzo, f.comune].filter(Boolean).join(" - ")],
     ["Tipo di chiusura", tipoLabel(f)],
     ["Modello / dimensioni", [f.modello, dimensioni(f)].filter(Boolean).join(" - ")],
-    ["Matricola / N° pratica", matricola(d)],
+    ["Matricola", matricola(d)],
     ["Motore / centralina", [f.motore, f.centralina].filter(Boolean).join(" - ")],
     ["Tipo di comando", T.COMANDI[f.comando_tipo] || ""],
     ...extra,
@@ -261,21 +271,19 @@ export const toRegistro = (d) => {
 
 function collaudo(fl, d) {
   const f = d.fields;
-  fl.start("VERBALE DI COLLAUDO E PRESA IN CONSEGNA", `${tipoLabel(f)} - Pratica n. ${d.numero || "-"}/${d.anno || ""}`);
+  fl.start("VERBALE DI COLLAUDO E PRESA IN CONSEGNA", tipoLabel(f));
   datiImpianto(fl, d, [["Data collaudo", fmtDate(d.data)]]);
   fl.h2("Verifiche eseguite");
-  const rows = [];
-  let group = "";
-  T.checklistFor(f.tipo_chiusura, isNuovoReg(d.data)).forEach((c) => {
-    if (c.group !== group) rows.push({ group: (group = c.group) });
-    rows.push([c.label, ESITI[(f.collaudo || {})[c.id]] || ""]);
-  });
-  fl.table([["Verifica", W - 110], ["Esito", 110]], rows, { blueCols: [1] });
-  fl.para(T.NOTA_FORZE, { size: 8.5, style: "italic", color: GREY });
+  const items = T.checklistFor(f.tipo_chiusura, isNuovoReg(d.data)).map((c) => [c.label, ESITI[(f.collaudo || {})[c.id]] || ""]);
+  const half = Math.ceil(items.length / 2);
+  const rows = items.slice(0, half).map((a, i) => [...a, ...(items[half + i] || ["", ""])]);
+  fl.table([["Verifica", W / 2 - 62], ["Esito", 62], ["Verifica", W / 2 - 62], ["Esito", 62]], rows, { blueCols: [1, 3] });
+  fl.h2("Modalità di funzionamento e protezione contro schiacciamento e impatto");
+  const nf = T.notaForze(f);
+  fl.para(nf.testo, { size: 8.8, style: nf.ok ? "normal" : "bold", color: nf.ok ? INK : RED });
   fl.h2("Esito del collaudo");
-  fl.checks([["Positivo", f.esito !== "negativo"], ["Negativo", f.esito === "negativo"]], 4);
+  fl.checks([["Positivo", f.esito !== "negativo"], ["Negativo", f.esito === "negativo"], [`Radiocomandi consegnati: ${f.n_radiocomandi || "-"}`, null]], 3);
   if (f.note_collaudo) fl.para(`Note: ${f.note_collaudo}`);
-  fl.para(`Radiocomandi consegnati: ${f.n_radiocomandi || "-"}`);
   fl.para(
     "Il cliente dichiara di aver ricevuto l'impianto funzionante, la documentazione sopra indicata e le istruzioni su uso, " +
       "sblocco di emergenza, manutenzione e rischi residui.",
@@ -291,7 +299,7 @@ function rischi(fl, d) {
     "ANALISI DEI RISCHI",
     `Valutazione dei pericoli secondo ${nuovo ? "Regolamento (UE) 2023/1230 (Allegato III)" : "Direttiva Macchine 2006/42/CE (Allegato I)"} e UNI EN 12453`,
   );
-  datiImpianto(fl, d, [["Utilizzo", f.uso === "pubblico" ? "Pubblico / intensivo" : "Privato"]]);
+  datiImpianto(fl, d, [["Utilizzo", T.USI_IMPIANTO[f.uso] || T.USI_IMPIANTO.privato]]);
   fl.h2("Pericoli individuati e misure adottate");
   const lab = Object.fromEntries(T.SICUREZZE);
   const rows = T.RISCHI.filter((r) => !r.nuovo || nuovo).map((r) => {
@@ -301,7 +309,7 @@ function rischi(fl, d) {
   });
   fl.table([["Pericolo", 108], ["Zona", 128], ["Misure adottate", W - 108 - 128 - 72], ["Esito", 72]], rows, { blueCols: [3] });
   fl.h2("Dispositivi di sicurezza installati");
-  fl.bullets(sicurezzeOn(f).map(([, l]) => l));
+  fl.para(sicurezzeOn(f).map(([, l]) => l).join("; ") + ".");
   fl.h2("Rischi residui");
   fl.para(f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT);
   fl.para(`Data: ${fmtDate(d.data)}`);
@@ -343,10 +351,11 @@ function dm37(fl, d) {
   fl.para(`esecutrice dell'impianto (descrizione schematica): ${m.descrizione || T.DM37_DESCRIZIONE(f.tipo_chiusura)}`);
   fl.para("inteso come:");
   fl.checks(Object.entries(T.DM37_TIPI).map(([k, l]) => [l, (m.tipo || "nuovo") === k]), 4);
+  const b = (v) => (String(v || "").trim() ? String(v).trim() : "____________________");
   fl.para(
-    `commissionato da: ${d.cliente || "-"}, installato nei locali siti nel comune di ${f.comune || "-"}, via ${d.indirizzo || "-"}` +
-      `${f.scala ? `, scala ${f.scala}` : ""}${f.piano ? `, piano ${f.piano}` : ""}${f.interno ? `, interno ${f.interno}` : ""}, ` +
-      `di proprietà di ${f.proprietario || d.cliente || "-"}, in edificio adibito ad uso:`,
+    `commissionato da: ${b(d.cliente)}, installato nei locali siti nel comune di ${b(f.comune)}, in ${b(d.indirizzo)}` +
+      `, scala ${f.scala || "____"}, piano ${f.piano || "____"}, interno ${f.interno || "____"}, ` +
+      `di proprietà di ${b(f.proprietario || d.cliente)}, in edificio adibito ad uso:`,
   );
   fl.checks(Object.entries(T.DM37_USI).map(([k, l]) => [l, (f.uso_edificio || "civile") === k]), 4);
   fl.h2("DICHIARA", "center");
@@ -359,12 +368,18 @@ function dm37(fl, d) {
   fl.checkLine(true, "installato componenti e materiali adatti al luogo di installazione (artt. 5 e 6);");
   fl.checkLine(true, "controllato l'impianto ai fini della sicurezza e della funzionalità con esito positivo, avendo eseguito le verifiche richieste dalle norme e dalle disposizioni di legge.");
   fl.h2("Allegati obbligatori");
-  fl.checkLine(!!m.progetto, "progetto ai sensi degli articoli 5 e 7;");
-  fl.checkLine(true, "relazione con tipologie dei materiali utilizzati;");
-  fl.checkLine(true, "schema di impianto realizzato (allegato);");
-  fl.checkLine(!!all.precedenti, "riferimento a dichiarazioni di conformità precedenti o parziali, già esistenti;");
-  fl.checkLine(true, "copia del certificato di riconoscimento dei requisiti tecnico-professionali;");
-  fl.checkLine(false, "attestazione di conformità per impianto realizzato con materiali o sistemi non normalizzati.");
+  fl.table(
+    [["Allegato", W - 110], ["Allegato", 110]],
+    [
+      ["Relazione con tipologie dei materiali utilizzati (in fondo a questa dichiarazione)", "Sì"],
+      ["Schema di impianto realizzato (pagina seguente)", "Sì"],
+      ["Copia del certificato di riconoscimento dei requisiti tecnico-professionali (visura camerale aggiornata)", "Sì"],
+      ["Progetto ai sensi degli articoli 5 e 7", m.progetto ? "Sì" : "Non obbligatorio"],
+      ["Riferimento a dichiarazioni di conformità precedenti o parziali", all.precedenti ? "Sì" : "No"],
+      ["Attestazione per materiali o sistemi non normalizzati", "Non necessaria"],
+    ],
+    { blueCols: [1] },
+  );
   fl.para(
     "DECLINA ogni responsabilità per sinistri a persone o a cose derivanti da manomissione dell'impianto da parte di terzi " +
       "ovvero da carenze di manutenzione o riparazione.",
@@ -372,23 +387,28 @@ function dm37(fl, d) {
   );
   fl.para(`Data: ${fmtDate(d.data)}`);
   fl.signatures(["Il responsabile tecnico (timbro e firma)", "Il dichiarante (timbro e firma)"]);
-  fl.h2("Allegato - Relazione con tipologie dei materiali utilizzati");
-  fl.para(m.materiali || T.DM37_MATERIALI);
-  fl.h2("Avvertenze per il committente (art. 8)");
-  fl.para(
+  fl.dm37Avvertenze = () => {
+    fl.h2("Avvertenze per il committente (art. 8)", "left", 50);
+    fl.para(
     "Il committente è tenuto ad affidare i lavori di installazione, trasformazione, ampliamento e manutenzione straordinaria degli " +
       "impianti a imprese abilitate. Il proprietario dell'impianto adotta le misure necessarie per conservarne le caratteristiche di " +
       "sicurezza previste dalla normativa vigente, tenendo conto delle istruzioni per l'uso e la manutenzione predisposte " +
       "dall'impresa installatrice e dai fabbricanti delle apparecchiature installate.",
-    { size: 9 },
+    { size: 8.5 },
   );
+  };
 }
 
-function schemaImpianto(fl, d) {
+function schemaImpianto(fl, d, continua = false) {
   const f = d.fields;
   const sc = { ...T.SCHEMA_DEFAULT, ...f.schema };
   const on = f.sicurezze || [];
-  fl.start("SCHEMA DELL'IMPIANTO ELETTRICO REALIZZATO", "Allegato obbligatorio alla Dichiarazione di conformità D.M. 37/2008 - schema unifilare");
+  if (continua) {
+    fl.ensure(330);
+    fl.h2("Allegato - Schema dell'impianto elettrico realizzato (unifilare)");
+  } else {
+    fl.start("SCHEMA DELL'IMPIANTO ELETTRICO REALIZZATO", "Allegato obbligatorio alla Dichiarazione di conformità D.M. 37/2008 - schema unifilare");
+  }
   const { doc, p } = fl;
   const y0 = fl.y + 10;
   const blk = (x, y, w, h, lines) => {
@@ -414,7 +434,7 @@ function schemaImpianto(fl, d) {
   fl.p.line(L + 46, y0 + 70, R - 55, y0 + 70, 0.9, [0, 120, 60]);
   fl.p.line(R - 55, y0 + 70, R - 55, y0 + 46, 0.9, [0, 120, 60]);
   doc.setLineDashPattern([], 0);
-  p.text("PE - conduttore di protezione (giallo/verde)", (L + R) / 2, y0 + 80, 7.5, { align: "center", color: [0, 120, 60] });
+  p.text("PE - conduttore di protezione giallo/verde (unico, dal quadro alla centralina)", (L + R) / 2, y0 + 80, 7.5, { align: "center", color: [0, 120, 60] });
   [0, 4, 8].forEach((k, i) => fl.p.line(L + 40 + i * 2, y0 + 74 + k / 2, L + 52 - i * 2, y0 + 74 + k / 2, 1, [0, 120, 60]));
 
   // Dispositivi collegati alla centralina
@@ -427,12 +447,11 @@ function schemaImpianto(fl, d) {
   let dy = y0 + 100;
   wire(R - 55, y0 + 46, R - 55, y0 + 90);
   wire(bx - 20, y0 + 90, R - 55, y0 + 90);
-  wire(bx - 20, y0 + 90, bx - 20, y0 + 100 + (devices.length - 1) * 34 + 14);
+  wire(bx - 20, y0 + 90, bx - 20, y0 + 100 + (devices.length - 1) * 33 + 14);
   devices.forEach(([title, sub, cavo]) => {
     wire(bx - 20, dy + 14, bx, dy + 14);
-    blk(bx, dy, 230, 28, [title, sub]);
-    p.text(cavo, bx - 26, dy + 11, 7, { align: "right", color: GREY });
-    dy += 34;
+    blk(bx, dy, 230, 28, [sub && title === "MOTORE" ? `${title} - ${sub}` : title, cavo ? `cavo ${cavo}` : sub]);
+    dy += 33;
   });
   fl.y = dy + 10;
 
@@ -440,24 +459,25 @@ function schemaImpianto(fl, d) {
   fl.kv([
     ["Origine della linea", sc.origine],
     ["Protezione", `Interruttore magnetotermico differenziale ${sc.poli}, In ${sc.corrente}, curva ${sc.curva}, Idn ${sc.idn} tipo ${sc.tipo_diff}, potere di interruzione ${sc.potere}`],
-    ["Linea di alimentazione", `Cavo ${sc.cavo} ${sc.formazione}${sc.lunghezza ? `, lunghezza ${sc.lunghezza} m` : ""}`],
-    ["Tipo di posa", sc.posa],
-    ["Percorso", sc.percorso || "-"],
+    ["Linea di alimentazione", `Cavo ${sc.cavo} ${sc.formazione}${sc.lunghezza ? `, lunghezza ${sc.lunghezza} m` : ""}; posa: ${sc.posa}`],
+    ...(sc.percorso ? [["Percorso", sc.percorso]] : []),
     ["Collegamenti motore / accessori", `Motore: ${sc.cavo_motore}; accessori: ${sc.cavo_accessori}`],
+    ...(continua ? [["Relazione materiali utilizzati", f.dm37?.materiali || T.DM37_MATERIALI]] : []),
   ]);
-  fl.h2("Verifiche strumentali eseguite (CEI 64-8 parte 6)");
+  fl.h2("Verifiche strumentali eseguite (CEI 64-8 parte 6)", "left", 120);
   fl.table(
     [["Verifica", W - 150], ["Esito / valore", 150]],
     [
       ["Continuità dei conduttori di protezione (PE)", sc.continuita === "NC" ? "Non conforme" : "Conforme"],
-      ["Resistenza di isolamento (valore minimo 1 MOhm)", sc.isolamento ? `${sc.isolamento} MOhm` : ""],
-      ["Prova interruttore differenziale: tempo di intervento a Idn (max 300 ms)", sc.tempo_diff ? `${sc.tempo_diff} ms` : ""],
+      ["Resistenza di isolamento (valore minimo 1 MOhm)", sc.isolamento ? `${sc.isolamento} MOhm` : "______ MOhm"],
+      ["Prova interruttore differenziale: tempo di intervento a Idn (max 300 ms)", sc.tempo_diff ? `${sc.tempo_diff} ms` : "______ ms"],
       ["Prova funzionale del tasto di test del differenziale", "Conforme"],
     ],
     { blueCols: [1] },
   );
   if ((d._photos || []).length) fl.para("Gli schemi di collegamento del fabbricante sono allegati in fotografia nelle pagine seguenti.", { size: 8.5, style: "italic", color: GREY });
   fl.signatures(["Il responsabile tecnico (timbro e firma)"]);
+  if (continua) fl.dm37Avvertenze();
 }
 
 function fotoAllegati(fl, d, title = "ALLEGATO - SCHEMI DI COLLEGAMENTO DEL FABBRICANTE", sub = "Fotografie del libretto di istruzioni di motore e centralina") {
@@ -531,7 +551,7 @@ const BUILDERS = {
   manuale,
   dm37: (fl, d) => {
     dm37(fl, d);
-    schemaImpianto(fl, d);
+    schemaImpianto(fl, d, true);
     fotoAllegati(fl, d);
   },
   registro: async (fl, d) => {
