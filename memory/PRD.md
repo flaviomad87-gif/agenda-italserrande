@@ -428,3 +428,5 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Misure isolamento/differenziale: avviso nel form se vuote, nel PDF spazio "______" da compilare.
 - Firme: riquadri per firma; CE pag. 2 riga per "Firma Italserrande S.r.l."; Sì/No in norme.
 - Impaginazione compatta: pratica completa da 14 a 10 pagine (dati impianto su 2 colonne, check-list collaudo su 2 colonne).
+- 2026-06: PDF normalizza sempre la sigla cavo FG16OR16 (anche se digitata FG160R16) in schema e relazione materiali; tensione centralina "230 V AC 50 Hz" con testo adattato al riquadro;
+  Registro della pratica: descrizione con [Matricola] se non inserita e data della pratica; CE pag. 2 righe firma più distanziate.

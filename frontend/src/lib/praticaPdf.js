@@ -262,7 +262,8 @@ export const toRegistro = (d) => {
     fields: {
       tipi: ["installazione", "avviamento", "regolazioni"],
       descrizione:
-        `Installazione e messa in servizio: ${tipoLabel(f)}${f.modello ? ` ${f.modello}` : ""}, matricola ${matricola(d)}. ` +
+        `Installazione e messa in servizio in data ${d.data ? fmtDate(d.data) : "[Data]"}: ${tipoLabel(f)}${f.modello ? ` ${f.modello}` : ""}, ` +
+        `matricola ${String(f.matricola || "").trim() || "[Matricola]"}. ` +
         `Collaudo con esito ${f.esito === "negativo" ? "negativo" : "positivo"}. Dispositivi di sicurezza verificati: ${sic || "-"}. ` +
         `Rischi residui: ${f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT}`,
     },
@@ -399,9 +400,13 @@ function dm37(fl, d) {
   };
 }
 
+// Sigla cavo scritta sempre correttamente (FG16OR16 con la O maiuscola)
+const fixCavo = (v) => String(v ?? "").replace(/FG16[0O]R16/gi, "FG16OR16");
+
 function schemaImpianto(fl, d, continua = false) {
   const f = d.fields;
-  const sc = { ...T.SCHEMA_DEFAULT, ...f.schema };
+  const raw = { ...T.SCHEMA_DEFAULT, ...f.schema };
+  const sc = { ...raw, cavo: fixCavo(raw.cavo), tensione: String(raw.tensione || "").replace(/\s*~\s*/, " AC ") };
   const on = f.sicurezze || [];
   if (continua) {
     fl.ensure(330);
@@ -415,7 +420,13 @@ function schemaImpianto(fl, d, continua = false) {
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(1);
     doc.rect(x, y, w, h);
-    lines.forEach((t, i) => p.text(t, x + w / 2, y + 14 + i * 10.5, i ? 7.5 : 8.5, { bold: !i, align: "center" }));
+    lines.forEach((t, i) => {
+      const size = i ? 7.5 : 8.5;
+      doc.setFont("helvetica", i ? "normal" : "bold");
+      doc.setFontSize(size);
+      const fit = Math.min(size, (size * (w - 8)) / Math.max(1, doc.getTextWidth(t)));
+      p.text(t, x + w / 2, y + 14 + i * 11, fit, { bold: !i, align: "center" });
+    });
   };
   const wire = (x1, y1, x2, y2) => fl.p.line(x1, y1, x2, y2, 1.4);
 
@@ -462,7 +473,7 @@ function schemaImpianto(fl, d, continua = false) {
     ["Linea di alimentazione", `Cavo ${sc.cavo} ${sc.formazione}${sc.lunghezza ? `, lunghezza ${sc.lunghezza} m` : ""}; posa: ${sc.posa}`],
     ...(sc.percorso ? [["Percorso", sc.percorso]] : []),
     ["Collegamenti motore / accessori", `Motore: ${sc.cavo_motore}; accessori: ${sc.cavo_accessori}`],
-    ...(continua ? [["Relazione materiali utilizzati", f.dm37?.materiali || T.DM37_MATERIALI]] : []),
+    ...(continua ? [["Relazione materiali utilizzati", fixCavo(f.dm37?.materiali || T.DM37_MATERIALI)]] : []),
   ]);
   fl.h2("Verifiche strumentali eseguite (CEI 64-8 parte 6)", "left", 120);
   fl.table(

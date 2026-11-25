@@ -246,13 +246,13 @@ export async function drawCe(doc, d) {
   p.text("decade in caso di modifiche non autorizzate o manomissioni.", 51, 194.3, 9.5);
 
   p.text("Firma e timbro per accettazione:", 51, 225.6, 9.5, { bold: true });
-  p.hline(51, 182.2, 241.9, 0.75, INK);
+  p.hline(51, 230, 268, 0.75, INK);
   p.text("Firma Italserrande S.r.l.", 544.5, 225.6, 9.5, { bold: true, align: "right" });
-  p.hline(387, 544.5, 241.9, 0.75, INK);
-  p.text("Data e firma cliente:", 51, 272.8, 9.5, { bold: true });
-  p.hline(144, 290.2, 272.6, 0.75, INK);
-  p.value(fmtDate(d.data), 147, 270, 140, 10);
-  p.hline(387, 544.5, 272.6, 0.75, INK);
+  p.hline(365, 544.5, 268, 0.75, INK);
+  p.text("Data e firma cliente:", 51, 318, 9.5, { bold: true });
+  p.hline(144, 290.2, 318, 0.75, INK);
+  p.value(fmtDate(d.data), 147, 315.4, 140, 10);
+  p.hline(365, 544.5, 318, 0.75, INK);
   ceFooter(p, 2);
 }
 

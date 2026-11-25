@@ -5,8 +5,8 @@
 //                static cache-first con revalidate in background
 //   3. message → SKIP_WAITING per attivazione immediata di nuove versioni
 
-const APP_CACHE = "agenda-italserrande-app-v30";
-const HTML_CACHE = "agenda-italserrande-html-v30";
+const APP_CACHE = "agenda-italserrande-app-v31";
+const HTML_CACHE = "agenda-italserrande-html-v31";
 
 // Risorse minime sempre necessarie
 const CORE_ASSETS = [
