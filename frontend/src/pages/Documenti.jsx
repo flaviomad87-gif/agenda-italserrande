@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { Plus, Search, Loader2, FileText, CalendarDays, MapPin, FolderCheck, ClipboardCheck } from "lucide-react";
 import DocumentoDialog, { KINDS } from "../components/DocumentoDialog";
@@ -22,6 +23,16 @@ export default function Documenti() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  const [params, setParams] = useSearchParams();
+  // Apertura dalla scheda lavoro: nuova pratica con cliente e indirizzo già compilati
+  useEffect(() => {
+    if (params.get("nuova") !== "pratica") return;
+    setKind("pratica");
+    setSelected({ kind: "pratica", cliente: params.get("cliente") || "", indirizzo: params.get("indirizzo") || "", fields: {} });
+    setOpen(true);
+    setParams({}, { replace: true });
+  }, [params, setParams]);
 
   useEffect(() => {
     api

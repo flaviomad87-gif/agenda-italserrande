@@ -2,6 +2,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Section, Row, Field, YesNo } from "./DocumentoDialog";
 import JobPhotos from "./JobPhotos";
+import MicButton, { appendText } from "./MicButton";
 import { NORME, normaLabel, isNuovoReg } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
 
@@ -31,7 +32,10 @@ function Area({ id, label, value, onChange, rows = 3, placeholder }) {
   return (
     <div className="space-y-1">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{label}</div>
-      <Textarea rows={rows} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} data-testid={`pratica-${id}`} />
+      <div className="relative">
+        <Textarea rows={rows} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="pr-12" data-testid={`pratica-${id}`} />
+        <MicButton onText={(t) => onChange(appendText(value, t))} testId={`pratica-${id}-mic`} />
+      </div>
     </div>
   );
 }

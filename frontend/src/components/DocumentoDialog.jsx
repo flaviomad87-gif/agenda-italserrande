@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import MicButton, { appendText } from "./MicButton";
 import { Share2, Save, Loader2, Trash2, ShieldCheck, Wrench } from "lucide-react";
 
 export const KINDS = {
@@ -125,7 +126,7 @@ export default function DocumentoDialog({ open, onOpenChange, kind, documento, o
               </Button>
             )}
             <Button type="button" variant="outline" onClick={share} disabled={!!busy} className="flex-1" data-testid="documento-share">
-              {busy === "share" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />} PDF / Condividi
+              {busy === "share" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />} Invia PDF
             </Button>
             <Button type="submit" disabled={!!busy} className="flex-1 bg-[#4A5D23] text-white hover:bg-[#3C4C1C]" data-testid="documento-save">
               {busy === "save" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salva
@@ -221,12 +222,16 @@ function ManutenzioneForm({ form, set, setField }) {
       </Section>
       <Section title="Descrizione dell'intervento">
         <p className="text-xs text-stone-500">Descrivi l'intervento ed eventuali rischi residui e/o uso improprio prevedibile.</p>
-        <Textarea
-          rows={7}
-          value={f.descrizione || ""}
-          onChange={(e) => setField("descrizione", e.target.value)}
-          data-testid="man-descrizione"
-        />
+        <div className="relative">
+          <Textarea
+            rows={7}
+            value={f.descrizione || ""}
+            onChange={(e) => setField("descrizione", e.target.value)}
+            className="pr-12"
+            data-testid="man-descrizione"
+          />
+          <MicButton onText={(t) => setField("descrizione", appendText(f.descrizione, t))} testId="man-descrizione-mic" />
+        </div>
       </Section>
     </>
   );

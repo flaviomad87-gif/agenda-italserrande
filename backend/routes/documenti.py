@@ -76,6 +76,7 @@ async def create_documento(payload: DocumentoIn, user=Depends(get_current_user))
         "user_id": uid,
         "anno": year,
         "numero": await _next_number(uid, payload.kind, year),
+        **({"public_token": uuid.uuid4().hex} if payload.kind == "pratica" else {}),
         "created_at": _now(),
         "updated_at": _now(),
     }
@@ -94,7 +95,45 @@ async def update_documento(doc_id: str, payload: DocumentoPatch, user=Depends(ge
     )
     if not res:
         raise HTTPException(404, "Documento non trovato")
+    if res.get("kind") == "pratica" and not res.get("public_token"):
+        res["public_token"] = uuid.uuid4().hex
+        await db.documenti.update_one({"id": doc_id, "public_token": {"$exists": False}}, {"$set": {"public_token": res["public_token"]}})
     return res
+
+
+def _same(a: str, b: str) -> bool:
+    return bool(a) and a.strip().lower() == (b or "").strip().lower()
+
+
+@router.get("/public/impianto/{token}")
+async def public_impianto(token: str):
+    """Scheda pubblica dell'impianto (QR sulla targhetta): nessun dato personale del cliente."""
+    p = await db.documenti.find_one({"public_token": token, "kind": "pratica", **ACTIVE}, {"_id": 0})
+    if not p or len(token) < 16:
+        raise HTTPException(404, "Impianto non trovato")
+    f = p.get("fields") or {}
+    matricola = f.get("matricola") or f"{p.get('numero')}/{p.get('anno')}"
+    uid = p["user_id"]
+    ultima, prossima = None, None
+    from routes.contratti import compute
+    async for c in db.contratti.find({"user_id": uid, "stato": "attivo", **ACTIVE}, {"_id": 0}):
+        if _same(c.get("indirizzo"), p.get("indirizzo")) or any(_same(i.get("matricola"), matricola) for i in c.get("impianti", [])):
+            cc = compute(c)
+            ultima, prossima = cc["ultima_visita"], cc["prossima_visita"]
+            break
+    async for r in db.documenti.find({"user_id": uid, "kind": "manutenzione", **ACTIVE}, {"_id": 0, "data": 1, "indirizzo": 1}):
+        if _same(r.get("indirizzo"), p.get("indirizzo")) and r.get("data") and (not ultima or r["data"] > ultima):
+            ultima = r["data"]
+    return {
+        "tipo_chiusura": f.get("tipo_chiusura"),
+        "modello": f.get("modello") or "",
+        "matricola": matricola,
+        "anno_installazione": f.get("anno_installazione") or (p.get("data") or "")[:4],
+        "data_installazione": p.get("data") or "",
+        "comune": f.get("comune") or "",
+        "ultima_manutenzione": ultima,
+        "prossima_manutenzione": prossima,
+    }
 
 
 @router.delete("/documenti/{doc_id}")

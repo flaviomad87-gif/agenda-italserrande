@@ -94,7 +94,7 @@ INDEXES = {
     "rilievi_sezionali": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("client_id", 1)]],
     "quote_settings": [[("user_id", 1)]],
     "contratti": [[("user_id", 1), ("id", 1)], [("stato", 1)]],
-    "documenti": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("kind", 1), ("anno", 1), ("numero", -1)]],
+    "documenti": [[("public_token", 1)], [("user_id", 1), ("id", 1)], [("user_id", 1), ("kind", 1), ("anno", 1), ("numero", -1)]],
 }
 
 

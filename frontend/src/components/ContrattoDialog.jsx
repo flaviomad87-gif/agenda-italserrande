@@ -7,6 +7,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Share2, Save, Loader2, Trash2, Plus, X, CalendarCheck, FileSignature } from "lucide-react";
 import { Section, Row, Field, focusScrollFix } from "./DocumentoDialog";
+import MicButton, { appendText } from "./MicButton";
 import { fmtDate } from "../lib/documentiPdf";
 
 const todayIso = () => {
@@ -217,7 +218,10 @@ export default function ContrattoDialog({ open, onOpenChange, contratto, onSaved
               <Field id="sconto" label="Sconto interventi (es. 10%)" value={form.sconto_interventi} onChange={(v) => set("sconto_interventi", v)} />
             </Row>
             <Field id="pagamento" label="Pagamento (es. anticipato alla firma)" value={form.pagamento} onChange={(v) => set("pagamento", v)} />
-            <Textarea rows={2} value={form.note} onChange={(e) => set("note", e.target.value)} placeholder="Note" data-testid="contratto-note" />
+            <div className="relative">
+              <Textarea rows={2} value={form.note} onChange={(e) => set("note", e.target.value)} placeholder="Note" className="pr-12" data-testid="contratto-note" />
+              <MicButton onText={(t) => setForm((p) => ({ ...p, note: appendText(p.note, t) }))} testId="contratto-note-mic" />
+            </div>
           </Section>
           <Visite form={form} onAdd={addVisita} busy={busy === "visita"} />
           <div className="sticky bottom-0 -mx-5 flex flex-wrap gap-2 border-t border-stone-200 bg-white px-5 py-3">

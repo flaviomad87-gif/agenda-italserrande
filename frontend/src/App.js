@@ -26,6 +26,7 @@ const Magazzino = lazy(() => import("./pages/Magazzino"));
 const Rilievi = lazy(() => import("./pages/Rilievi"));
 const Documenti = lazy(() => import("./pages/Documenti"));
 const Contratti = lazy(() => import("./pages/Contratti"));
+const ImpiantoPubblico = lazy(() => import("./pages/ImpiantoPubblico"));
 const QuoteEditor = lazy(() => import("./pages/QuoteEditor"));
 const PrintArchive = lazy(() => import("./pages/PrintArchive"));
 
@@ -64,6 +65,7 @@ function App() {
           <Suspense fallback={<FullPageSpinner />}>
             <Routes>
               <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+              <Route path="/impianto/:token" element={<ImpiantoPubblico />} />
               <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
               <Route
                 element={

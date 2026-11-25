@@ -9,6 +9,7 @@ import { Share2, Save, Loader2, Trash2, ClipboardCheck, ArrowRightCircle } from 
 import { Section, Row, Field, focusScrollFix } from "./DocumentoDialog";
 import { loadPhotosForPdf } from "./PraticaDialog";
 import JobPhotos from "./JobPhotos";
+import MicButton, { appendText } from "./MicButton";
 import { sharePdf } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
 
@@ -203,9 +204,15 @@ export default function VerificaDialog({ open, onOpenChange, documento, onSaved,
           <Section title="4 · Esito e interventi">
             <Pick options={Object.entries(T.ESITI_VERIFICA)} isOn={(k) => f.esito === k} onTap={(k) => setField("esito", k)} testId="verifica-esito" />
             <Lbl>Interventi necessari o consigliati</Lbl>
-            <Textarea rows={3} value={f.interventi} onChange={(e) => setField("interventi", e.target.value)} data-testid="verifica-interventi" />
+            <div className="relative">
+              <Textarea rows={3} value={f.interventi} onChange={(e) => setField("interventi", e.target.value)} className="pr-12" data-testid="verifica-interventi" />
+              <MicButton onText={(t) => setField("interventi", appendText(f.interventi, t))} testId="verifica-interventi-mic" />
+            </div>
             <Lbl>Parti da sostituire</Lbl>
-            <Textarea rows={2} value={f.parti} onChange={(e) => setField("parti", e.target.value)} data-testid="verifica-parti" />
+            <div className="relative">
+              <Textarea rows={2} value={f.parti} onChange={(e) => setField("parti", e.target.value)} className="pr-12" data-testid="verifica-parti" />
+              <MicButton onText={(t) => setField("parti", appendText(f.parti, t))} testId="verifica-parti-mic" />
+            </div>
             <label className="flex items-start gap-2 rounded-lg border border-stone-200 bg-white p-2.5 text-sm text-stone-700">
               <input type="checkbox" checked={!!f.cliente_rifiuta} onChange={(e) => setField("cliente_rifiuta", e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0047ab]" data-testid="verifica-cliente-rifiuta" />
               Il cliente non vuole fare gli interventi indicati

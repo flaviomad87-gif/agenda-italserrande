@@ -27,6 +27,7 @@ import PaymentsList from "./PaymentsList";
 import MaterialsList from "./MaterialsList";
 import ClientRilievi from "./ClientRilievi";
 import JobPhotos from "./JobPhotos";
+import MicButton, { appendText } from "./MicButton";
 import JobQuoteLink from "./JobQuoteLink";
 import { Switch } from "./ui/switch";
 import { it } from "date-fns/locale";
@@ -423,14 +424,17 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
 
           <div>
             <Label className="text-xs font-semibold uppercase tracking-widest text-stone-500">Note</Label>
-            <Textarea
-              value={form.notes}
-              onChange={(e) => update("notes", e.target.value)}
-              placeholder="Dettagli del lavoro, materiali, riferimenti..."
-              rows={3}
-              className="mt-2 rounded-xl"
-              data-testid="client-notes-input"
-            />
+            <div className="relative mt-2">
+              <Textarea
+                value={form.notes}
+                onChange={(e) => update("notes", e.target.value)}
+                placeholder="Dettagli del lavoro, materiali, riferimenti..."
+                rows={3}
+                className="rounded-xl pr-12"
+                data-testid="client-notes-input"
+              />
+              <MicButton onText={(t) => setForm((p) => ({ ...p, notes: appendText(p.notes, t) }))} testId="client-notes-mic" />
+            </div>
           </div>
 
           {/* Appuntamento con il cliente (opzionale). Mostrato in evidenza sulle card. */}

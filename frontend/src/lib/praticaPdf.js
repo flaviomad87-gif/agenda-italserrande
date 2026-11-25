@@ -520,13 +520,18 @@ function ceMark(doc, x, y, h) {
   doc.line(x + r * 1.6, y + r, x + r * 2.9, y + r);
 }
 
-function targhetta(fl, d) {
+async function targhetta(fl, d) {
   const f = d.fields;
   fl.start("TARGHETTA CE", "Stampare su carta adesiva o plastificare e applicare sulla chiusura in posizione ben visibile.");
   const { doc, p } = fl;
+  let qr = null;
+  if (d.public_token && typeof window !== "undefined") {
+    const QRCode = (await import("qrcode")).default;
+    qr = await QRCode.toDataURL(`${window.location.origin}/impianto/${d.public_token}`, { margin: 0, width: 240 });
+  }
   const draw = (y) => {
     const x = L;
-    const w = 300;
+    const w = qr ? 430 : 300;
     const h = 170;
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(1.2);
@@ -546,10 +551,18 @@ function targhetta(fl, d) {
       p.text(`${k}:`, x + 12, y + 56 + i * 14.5, 8.5, { bold: true, color: [0, 0, 0] });
       p.value(v, x + 78, y + 56 + i * 14.5, 150, 8.5);
     });
-    ceMark(doc, x + w - 70, y + h - 52, 40);
+    ceMark(doc, qr ? x + 240 : x + w - 70, y + h - 52, 40);
+  };
+  const drawQr = (y) => {
+    if (!qr) return;
+    doc.addImage(qr, "PNG", L + 306, y + 14, 110, 110);
+    p.text("Inquadra per assistenza", L + 361, y + 140, 8, { align: "center", color: [0, 0, 0] });
+    p.text("e manutenzione", L + 361, y + 150, 8, { align: "center", color: [0, 0, 0] });
   };
   draw(fl.y);
+  drawQr(fl.y);
   draw(fl.y + 200);
+  drawQr(fl.y + 200);
 }
 
 const BUILDERS = {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Ruler, ChevronRight } from "lucide-react";
+import { Plus, Ruler, ChevronRight, FolderCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import SezionaleRilievoDialog from "./SezionaleRilievoDialog";
 import { fmtDate } from "../lib/rilievoPdf";
@@ -8,6 +9,7 @@ export default function ClientRilievi({ client }) {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const nav = useNavigate();
 
   useEffect(() => {
     if (!client?.id) return;
@@ -35,6 +37,17 @@ export default function ClientRilievi({ client }) {
   );
 
   return (
+    <>
+    {client?.id && (
+      <button
+        type="button"
+        onClick={() => nav(`/documenti?nuova=pratica&cliente=${encodeURIComponent(client.name || "")}&indirizzo=${encodeURIComponent(client.address || "")}`)}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#0047ab] bg-white py-2.5 text-sm font-bold text-[#0047ab]"
+        data-testid="client-new-pratica-button"
+      >
+        <FolderCheck className="h-4 w-4" /> Nuova pratica impianto (CE, collaudo, DM 37/08)
+      </button>
+    )}
     <div className="space-y-2 rounded-2xl border border-stone-200 bg-stone-50/60 p-3" data-testid="client-rilievi-section">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[#4A5D23]">
@@ -88,5 +101,6 @@ export default function ClientRilievi({ client }) {
         onDeleted={onDeleted}
       />
     </div>
+    </>
   );
 }

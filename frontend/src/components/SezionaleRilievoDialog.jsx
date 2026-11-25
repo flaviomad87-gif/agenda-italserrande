@@ -8,7 +8,9 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Share2, Save, Loader2, Trash2, FileText } from "lucide-react";
+import { Share2, Save, Loader2, Trash2, FileText, FilePlus2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createQuote } from "./PreventiviAppSection";
 
 // Modulo "MODULO RILIEVI" porta sezionale: stessi campi e ordine del modulo cartaceo.
 export default function SezionaleRilievoDialog({ open, onOpenChange, rilievo, defaultValues, onSaved, onDeleted }) {
@@ -47,6 +49,18 @@ export default function SezionaleRilievoDialog({ open, onOpenChange, rilievo, de
       return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const nav = useNavigate();
+  const toQuote = async () => {
+    if (!(await save())) return;
+    try {
+      const q = await createQuote({ name: form.riferimento_cliente, address: form.destinazione_merce, id: form.client_id, lines: rilievoLines(form) });
+      onOpenChange(false);
+      nav(`/preventivi/${q.id}`);
+    } catch {
+      toast.error("Preventivo non creato, riprova");
     }
   };
 
@@ -210,7 +224,10 @@ export default function SezionaleRilievoDialog({ open, onOpenChange, rilievo, de
             ) : (
               <span />
             )}
-            <div className="flex gap-2 sm:ml-auto">
+            <div className="flex flex-wrap gap-2 sm:ml-auto">
+              <Button type="button" variant="outline" onClick={toQuote} disabled={busy} className="h-11 rounded-xl border-[#0047ab] text-[#0047ab]" data-testid="rilievo-to-quote">
+                <FilePlus2 className="mr-1.5 h-4 w-4" /> Preventivo
+              </Button>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy} className="h-11 rounded-xl" data-testid="rilievo-cancel">
                 Annulla
               </Button>
@@ -358,6 +375,31 @@ function PanelPicker({ value, onChange }) {
 function todayIso() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Righe del preventivo ricavate dal rilievo (prezzi da inserire a mano)
+function rilievoLines(r) {
+  const t = (v) => String(v ?? "").trim();
+  const porta = [
+    `Porta sezionale${t(r.tipo) ? ` ${t(r.tipo)}` : ""}`,
+    t(r.modello) && `modello ${t(r.modello)}`,
+    t(r.colore) && `colore ${t(r.colore)}`,
+    (t(r.l) || t(r.h)) && `misure foro L ${t(r.l) || "-"} x H ${t(r.h) || "-"} mm`,
+    Number(r.pezzi) > 1 && `n. ${t(r.pezzi)} pezzi`,
+  ].filter(Boolean).join(", ");
+  const yes = (k) => r[k] === true;
+  return [
+    porta,
+    Number(r.oblo) > 0 && `Oblò n. ${t(r.oblo)}${t(r.oblo_w) || t(r.oblo_h) ? ` (${t(r.oblo_w)} x ${t(r.oblo_h)} mm)` : ""}`,
+    yes("portina") && `Porta pedonale inserita${t(r.portina_w) || t(r.portina_h) ? ` ${t(r.portina_w)} x ${t(r.portina_h)} mm` : ""}`,
+    yes("manigliore_antipanico") && "Maniglione antipanico",
+    yes("motore") && "Motorizzazione con centralina di comando",
+    yes("fotocell") && "Coppia di fotocellule di sicurezza",
+    yes("lampeg") && "Lampeggiante di movimento",
+    yes("sblocco") && "Sblocco esterno di emergenza",
+    yes("maniglia") && "Maniglia",
+    yes("montag") && "Montaggio e messa in opera",
+  ].filter(Boolean);
 }
 
 function blankForm() {

@@ -14,7 +14,12 @@ export async function createQuote(prefill = {}) {
   const res = await api.post("/quotes", {
     clientName: (prefill.name || "").toUpperCase(),
     clientAddress: (prefill.address || "").toUpperCase(),
-    lineItems: [{ id: crypto.randomUUID(), description: "", amount: Number(prefill.amount) || 0, vatRate: 22 }],
+    lineItems: (prefill.lines?.length ? prefill.lines : [""]).map((description, i) => ({
+      id: crypto.randomUUID(),
+      description,
+      amount: i === 0 ? Number(prefill.amount) || 0 : 0,
+      vatRate: 22,
+    })),
     client_id: prefill.id || null,
   });
   return res.data;
