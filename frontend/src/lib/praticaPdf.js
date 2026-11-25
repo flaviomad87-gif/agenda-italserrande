@@ -7,7 +7,7 @@ const W = R - L;
 const BOTTOM = 772;
 
 // Impaginazione a flusso con intestazione Italserrande e salto pagina automatico.
-class Flow {
+export class Flow {
   constructor(doc, logo) {
     this.doc = doc;
     this.p = pen(doc);
@@ -460,10 +460,10 @@ function schemaImpianto(fl, d) {
   fl.signatures(["Il responsabile tecnico (timbro e firma)"]);
 }
 
-function fotoAllegati(fl, d) {
+function fotoAllegati(fl, d, title = "ALLEGATO - SCHEMI DI COLLEGAMENTO DEL FABBRICANTE", sub = "Fotografie del libretto di istruzioni di motore e centralina") {
   const photos = d._photos || [];
   if (!photos.length) return;
-  fl.start("ALLEGATO - SCHEMI DI COLLEGAMENTO DEL FABBRICANTE", "Fotografie del libretto di istruzioni di motore e centralina");
+  fl.start(title, sub);
   photos.forEach(({ src, w, h }, i) => {
     if (i) fl.ensure(BOTTOM);
     const s = Math.min(W / w, (BOTTOM - fl.y - 10) / h);
@@ -556,4 +556,46 @@ export function praticaFileName(d, only) {
   const base = (d.cliente || d.indirizzo || "impianto").trim().replace(/[^\w-]+/g, "_").slice(0, 40);
   const name = only ? T.DOCUMENTI_PRATICA.find(([k]) => k === only)[1].replace(/[^\w]+/g, "-") : "Documentazione-impianto";
   return `${name}-${d.numero || ""}-${base}.pdf`;
+}
+
+const ESITO_PUNTO = { C: "Conforme", NC: "Non conforme", NA: "Non applicabile" };
+
+export async function buildVerificaPdf(d) {
+  const f = d.fields || {};
+  const doc = newDoc();
+  const fl = new Flow(doc, await loadLogo());
+  fl.start("VERBALE DI VERIFICA IMPIANTO ESISTENTE", `Stato di fatto rilevato prima dell'intervento - n. ${d.numero || "-"}/${d.anno || ""}`);
+  fl.kv([
+    ["Cliente", d.cliente],
+    ["Indirizzo", [d.indirizzo, f.comune].filter(Boolean).join(" - ")],
+    ["Tipo di chiusura", T.TIPI_CHIUSURA[f.tipo_chiusura]?.replace(" motorizzata", "").replace(" motorizzato", "") || ""],
+    ["Modello / descrizione", f.modello],
+    ["Anno di installazione (stimato)", f.anno_stimato],
+    ["Stato attuale", f.motorizzata ? "Già motorizzata" : "Manuale"],
+    ["Installatore originale", f.installatore || "Non noto"],
+    ["Data della verifica", fmtDate(d.data)],
+  ]);
+  fl.h2("Documentazione presente");
+  fl.checks(T.DOC_ESISTENTI.map(([k, l]) => [l, (f.documenti || []).includes(k)]), 3);
+  fl.h2("Verifiche eseguite");
+  fl.table(
+    [["Verifica", W - 200], ["Esito", 80], ["Note", 120]],
+    T.VERIFICA_PUNTI.map(([k, l]) => [l, ESITO_PUNTO[(f.punti || {})[k]] || "", (f.note_punti || {})[k] || ""]),
+    { blueCols: [1, 2] },
+  );
+  fl.h2("Esito della verifica");
+  Object.entries(T.ESITI_VERIFICA).forEach(([k, l]) => fl.checkLine(f.esito === k, l));
+  fl.h2("Interventi necessari o consigliati");
+  fl.para(f.interventi || "-");
+  fl.h2("Parti da sostituire");
+  fl.para(f.parti || "-");
+  fl.para(
+    "Il Cliente dichiara di essere stato informato dello stato dell'impianto, delle non conformità rilevate e degli interventi necessari " +
+      "per renderlo sicuro e conforme alle norme UNI EN 13241 e UNI EN 12453.",
+  );
+  fl.checkLine(!!f.cliente_rifiuta, "Il Cliente NON intende eseguire gli interventi indicati e solleva Italserrande S.r.l. da ogni responsabilità per i rischi segnalati.");
+  fl.signatures(["Il tecnico (Italserrande S.r.l.)", "Il Cliente"]);
+  fotoAllegati(fl, d, "ALLEGATO - FOTOGRAFIE DELLO STATO DI FATTO", "Fotografie scattate durante la verifica");
+  fl.finish();
+  return doc.output("blob");
 }

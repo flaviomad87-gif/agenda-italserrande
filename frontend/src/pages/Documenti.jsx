@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
-import { Plus, Search, Loader2, FileText, CalendarDays, MapPin, FolderCheck } from "lucide-react";
+import { Plus, Search, Loader2, FileText, CalendarDays, MapPin, FolderCheck, ClipboardCheck } from "lucide-react";
 import DocumentoDialog, { KINDS } from "../components/DocumentoDialog";
 import PraticaDialog from "../components/PraticaDialog";
+import VerificaDialog from "../components/VerificaDialog";
 import { TIPI_CHIUSURA } from "../lib/praticaTesti";
 
 const TABS = [
   ["pratica", "Pratiche", FolderCheck],
+  ["verifica", "Verifiche", ClipboardCheck],
   ["ce", "Solo CE", KINDS.ce.icon],
   ["manutenzione", "Registri", KINDS.manutenzione.icon],
 ];
@@ -52,12 +54,12 @@ export default function Documenti() {
         <p className="mt-1 text-sm text-stone-500">Dichiarazioni CE e registri di manutenzione, pronti in PDF.</p>
       </header>
 
-      <div className="grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1" data-testid="documenti-tabs">
+      <div className="grid grid-cols-4 gap-1 rounded-xl bg-stone-100 p-1" data-testid="documenti-tabs">
         {TABS.map(([k, label, Icon]) => (
           <button
             key={k}
             onClick={() => setKind(k)}
-            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold transition-colors ${
+            className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 text-[11px] font-semibold transition-colors sm:flex-row sm:gap-1.5 sm:text-sm ${
               kind === k ? "bg-white text-[#4A5D23] shadow-sm" : "text-stone-500"
             }`}
             data-testid={`documenti-tab-${k}`}
@@ -139,6 +141,18 @@ export default function Documenti() {
         </ul>
       )}
 
+      <VerificaDialog
+        open={open && (selected?.kind || kind) === "verifica"}
+        onOpenChange={setOpen}
+        documento={selected}
+        onSaved={onSaved}
+        onDeleted={(id) => setItems((prev) => prev.filter((p) => p.id !== id))}
+        onCreatePratica={(prefill) => {
+          setKind("pratica");
+          setSelected(prefill);
+          setTimeout(() => setOpen(true), 50);
+        }}
+      />
       <PraticaDialog
         open={open && (selected?.kind || kind) === "pratica"}
         onOpenChange={setOpen}
@@ -147,9 +161,9 @@ export default function Documenti() {
         onDeleted={(id) => setItems((prev) => prev.filter((p) => p.id !== id))}
       />
       <DocumentoDialog
-        open={open && (selected?.kind || kind) !== "pratica"}
+        open={open && !["pratica", "verifica"].includes(selected?.kind || kind)}
         onOpenChange={setOpen}
-        kind={(selected?.kind || kind) === "pratica" ? "ce" : selected?.kind || kind}
+        kind={["pratica", "verifica"].includes(selected?.kind || kind) ? "ce" : selected?.kind || kind}
         documento={selected}
         onSaved={onSaved}
         onDeleted={(id) => setItems((prev) => prev.filter((p) => p.id !== id))}

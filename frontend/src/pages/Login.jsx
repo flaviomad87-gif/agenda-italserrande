@@ -5,7 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { toast } from "sonner";
-import { Hammer, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const { login, resetPassword } = useAuth();
@@ -46,9 +46,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-[#F9F8F6] px-4 py-10">
       <div className="w-full max-w-md fade-in">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#4A5D23] text-white shadow-sm">
-            <Hammer className="h-7 w-7" />
-          </div>
+          <img src="/app-logo.jpg" alt="Italserrande S.r.l." className="w-64 max-w-full rounded-2xl bg-white p-3 shadow-sm" data-testid="login-logo" />
           <div className="text-center">
             <h1 className="font-display text-3xl font-bold tracking-tight">Agenda Italserrande</h1>
             <p className="mt-1 text-sm text-stone-500">Accedi al tuo spazio di lavoro</p>

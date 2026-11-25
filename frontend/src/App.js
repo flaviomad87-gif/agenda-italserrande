@@ -25,6 +25,7 @@ const Fornitori = lazy(() => import("./pages/Fornitori"));
 const Magazzino = lazy(() => import("./pages/Magazzino"));
 const Rilievi = lazy(() => import("./pages/Rilievi"));
 const Documenti = lazy(() => import("./pages/Documenti"));
+const Contratti = lazy(() => import("./pages/Contratti"));
 const QuoteEditor = lazy(() => import("./pages/QuoteEditor"));
 const PrintArchive = lazy(() => import("./pages/PrintArchive"));
 
@@ -88,6 +89,7 @@ function App() {
                 <Route path="/magazzino" element={<Magazzino />} />
                 <Route path="/rilievi" element={<Rilievi />} />
                 <Route path="/documenti" element={<Documenti />} />
+                <Route path="/contratti" element={<Contratti />} />
                 <Route path="/preventivi/:id" element={<QuoteEditor />} />
                 <Route path="/archivio/:month" element={<PrintArchive />} />
               </Route>

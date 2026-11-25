@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Calendar,
   Receipt,
   PieChart,
   User,
-  Hammer,
   Wallet,
   Clock,
   Hourglass,
@@ -19,6 +18,8 @@ import {
   Menu,
   X,
   ShieldCheck,
+  FileSignature,
+  BellRing,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { api, apiGetWithCache } from "../lib/api";
@@ -45,6 +46,7 @@ const secondaryNav = [
   { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino" },
   { to: "/rilievi", label: "Rilievi sezionali", icon: FileText, testId: "nav-rilievi" },
   { to: "/documenti", label: "Documenti CE e Manutenzione", icon: ShieldCheck, testId: "nav-documenti" },
+  { to: "/contratti", label: "Contratti manutenzione", icon: FileSignature, testId: "nav-contratti", badgeKey: "contratti" },
   // Riepilogo temporaneamente nascosto su richiesta utente: calcoli non
   // ancora allineati alle sue aspettative. La pagina e le rotte restano
   // funzionanti; per riabilitarla basta ripristinare questa voce.
@@ -112,6 +114,26 @@ export default function AppShell() {
   const [toQuoteCount, setToQuoteCount] = useState(0);
   const [toInvoiceCount, setToInvoiceCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [contrattiCount, setContrattiCount] = useState(0);
+  const location = useLocation();
+
+  // Contratti di manutenzione con visita entro 15 giorni
+  useEffect(() => {
+    const load = () =>
+      auth.currentUser &&
+      api
+        .get("/contratti/in-scadenza")
+        .then((r) => setContrattiCount((r.data || []).length))
+        .catch(() => {});
+    window.__refreshContrattiBadge = load;
+    const unsub = auth.onAuthStateChanged((u) => u && load());
+    window.addEventListener("focus", load);
+    return () => {
+      unsub && unsub();
+      window.removeEventListener("focus", load);
+      delete window.__refreshContrattiBadge;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,6 +216,7 @@ export default function AppShell() {
     if (key === "awaiting") return awaitingCount;
     if (key === "to_quote") return toQuoteCount;
     if (key === "to_invoice") return toInvoiceCount;
+    if (key === "contratti") return contrattiCount;
     return 0;
   };
 
@@ -204,14 +227,9 @@ export default function AppShell() {
       <OfflineBanner />
       {/* Desktop sidebar: tutte le voci */}
       <aside className="fixed left-0 top-0 hidden h-screen w-64 flex-col border-r border-stone-200/60 bg-[#F3F2F0] p-6 md:flex">
-        <div className="mb-10 flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4A5D23] text-white">
-            <Hammer className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="font-display text-lg font-bold leading-none">Agenda</div>
-            <div className="text-xs text-stone-500">Italserrande</div>
-          </div>
+        <div className="mb-10">
+          <img src="/app-logo.jpg" alt="Italserrande S.r.l." className="w-full rounded-xl bg-white p-2 shadow-sm" data-testid="app-logo" />
+          <div className="mt-2 text-center text-xs font-semibold uppercase tracking-widest text-stone-500">Agenda</div>
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -228,6 +246,17 @@ export default function AppShell() {
       {/* Main content */}
       <main className="md:ml-64">
         <div className="mx-auto max-w-4xl px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pb-10 md:pt-10">
+          {location.pathname === "/prossimi-lavori" && contrattiCount > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate("/contratti")}
+              className="mb-4 flex w-full items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-left text-sm font-semibold text-amber-900"
+              data-testid="contratti-scadenza-banner"
+            >
+              <BellRing className="h-4 w-4 shrink-0" />
+              {contrattiCount} {contrattiCount === 1 ? "manutenzione in scadenza" : "manutenzioni in scadenza"} nei prossimi 15 giorni
+            </button>
+          )}
           <Outlet />
         </div>
       </main>
@@ -270,6 +299,11 @@ export default function AppShell() {
                 >
                   <it.icon className="h-5 w-5 text-stone-500" />
                   {it.label}
+                  {badgeFor(it.badgeKey) > 0 && (
+                    <span className="ml-auto rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-bold text-white" data-testid={`menu-${it.testId}-badge`}>
+                      {badgeFor(it.badgeKey)}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -298,6 +332,7 @@ export default function AppShell() {
           className="relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-medium text-stone-500 transition-all hover:text-[#1C1C1A]"
         >
           <Menu className="h-5 w-5" />
+          {contrattiCount > 0 && <span className="absolute right-[30%] top-1.5 h-2.5 w-2.5 rounded-full bg-amber-500" data-testid="mobile-menu-dot" />}
           <span className="truncate whitespace-nowrap">Menu</span>
         </button>
       </nav>

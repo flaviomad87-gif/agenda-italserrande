@@ -55,9 +55,9 @@ const imgSize = (src) =>
   });
 
 // Foto degli schemi allegate alla pratica, pronte per il PDF
-async function loadSchemaPhotos(id) {
+export async function loadPhotosForPdf(clientId) {
   try {
-    const list = (await api.get(`/clients/pratica-${id}/photos`)).data || [];
+    const list = (await api.get(`/clients/${clientId}/photos`)).data || [];
     const out = [];
     for (const ph of list) {
       const blob = (await api.get(`/photos/${ph.id}/file`, { responseType: "blob" })).data;
@@ -114,7 +114,7 @@ export default function PraticaDialog({ open, onOpenChange, documento, onSaved, 
       const saved = await save();
       if (!saved) return;
       const { buildPraticaPdf, praticaFileName } = await import("../lib/praticaPdf");
-      const photos = await loadSchemaPhotos(saved.id);
+      const photos = await loadPhotosForPdf(`pratica-${saved.id}`);
       const blob = await buildPraticaPdf({ ...saved, _photos: photos }, only);
       if ((await sharePdf(blob, praticaFileName(saved, only), "Documentazione impianto")) === "downloaded") toast.message("PDF scaricato");
     } catch (err) {

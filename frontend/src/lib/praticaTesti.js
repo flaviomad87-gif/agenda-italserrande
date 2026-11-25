@@ -232,3 +232,31 @@ export const SCHEMA_DISPOSITIVI = [
   ["lampeggiante", "Lampeggiante"],
   ["finecorsa", "Finecorsa"],
 ];
+
+// Verbale di verifica di un impianto esistente (stato di fatto prima dell'intervento)
+export const VERIFICA_PUNTI = [
+  ["struttura", "Struttura, telo / anta e fissaggi integri (senza ruggine passante, deformazioni o rotture)"],
+  ["guide", "Guide, binari e cerniere allineati e in buono stato"],
+  ["molle", "Molle, albero e bilanciamento efficienti (anta bilanciata)"],
+  ["anticaduta", "Dispositivo anticaduta / paracadute o battute antiribaltamento presenti o installabili"],
+  ["spazio_sicurezze", "Possibile installare fotocellule, finecorsa, sblocco ed eventuali bordi sensibili"],
+  ["schiacciamento", "Punti di schiacciamento, cesoiamento e convogliamento protetti o proteggibili"],
+  ["motore", "Motore e centralina esistenti in buono stato (se già motorizzata)"],
+  ["sicurezze_presenti", "Dispositivi di sicurezza esistenti funzionanti (se già motorizzata)"],
+  ["elettrico", "Linea protetta da interruttore differenziale e collegamento a terra presenti"],
+  ["segnaletica", "Targhetta identificativa e segnaletica di avvertimento presenti"],
+];
+
+export const DOC_ESISTENTI = [
+  ["ce", "Dichiarazione CE"],
+  ["manuale", "Manuale d'uso"],
+  ["registro", "Registro di manutenzione"],
+  ["dm37", "Dichiarazione DM 37/08"],
+  ["targhetta", "Targhetta CE"],
+];
+
+export const ESITI_VERIFICA = {
+  idonea: "Idonea: si può intervenire / motorizzare senza sostituzioni",
+  adeguamento: "Idonea previa sostituzione o adeguamento delle parti indicate",
+  non_idonea: "Non idonea: la chiusura va sostituita",
+};

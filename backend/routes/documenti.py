@@ -12,7 +12,7 @@ from firebase_auth import get_current_user
 
 router = APIRouter()
 
-Kind = Literal["pratica", "ce", "manutenzione"]
+Kind = Literal["pratica", "ce", "manutenzione", "verifica"]
 
 
 class DocumentoIn(BaseModel):
