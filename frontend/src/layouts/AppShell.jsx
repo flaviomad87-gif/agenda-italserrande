@@ -210,6 +210,14 @@ export default function AppShell() {
         >
           <Plus className="h-4 w-4" /> Nuovo
         </button>
+        <button
+          type="button"
+          onClick={() => setSheet("ai")}
+          className="-mt-3 mb-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#1C1C1A] px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-black"
+          data-testid="side-ai-button"
+        >
+          <Bot className="h-4 w-4" /> Assistente IA
+        </button>
         <nav className="flex flex-col gap-4">
           {AREAS.map((a) => (
             <div key={a.key}>
@@ -230,6 +238,15 @@ export default function AppShell() {
           <div className="mb-3 flex items-center gap-2 md:hidden no-print" data-testid="mobile-header">
             <img src="/app-logo.jpg" alt="Italserrande S.r.l." className="h-7 w-auto rounded bg-white p-0.5 shadow-sm" data-testid="mobile-logo" />
             <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">Agenda</span>
+            <button
+              type="button"
+              onClick={() => setSheet("ai")}
+              aria-label="Apri l'assistente IA"
+              data-testid="ai-fab"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#1C1C1A] px-3 py-1.5 text-xs font-semibold text-white shadow-sm active:scale-95"
+            >
+              <Bot className="h-4 w-4" /> Assistente
+            </button>
           </div>
           <AreaTabs area={current} badgeFor={badgeFor} />
           {location.pathname === "/prossimi-lavori" && contrattiCount > 0 && (
@@ -266,18 +283,6 @@ export default function AppShell() {
       <BottomSheet open={sheet === "ai"} onClose={() => setSheet(null)} title="Assistente IA" testId="ai-sheet">
         <AssistenteChat />
       </BottomSheet>
-
-      {location.pathname !== "/assistente" && (
-        <button
-          type="button"
-          onClick={() => setSheet("ai")}
-          aria-label="Apri l'assistente IA"
-          data-testid="ai-fab"
-          className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#1C1C1A] text-white shadow-lg ring-4 ring-white transition-transform active:scale-95 md:bottom-8 md:right-8 no-print"
-        >
-          <Bot className="h-7 w-7" />
-        </button>
-      )}
 
       {/* Mobile: 4 aree + tasto Nuovo al centro */}
       <nav
