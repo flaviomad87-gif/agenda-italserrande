@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import {
@@ -24,6 +25,16 @@ export default function Rilievi() {
   const [query, setQuery] = useState("");
   const [opening, setOpening] = useState(false);
   const [selected, setSelected] = useState(null); // rilievo oggetto o null per nuovo
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Apertura dal tasto "+" della barra
+  useEffect(() => {
+    if (!location.state?.nuovo) return;
+    setSelected(null);
+    setOpening(true);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location, navigate]);
 
   const refresh = async () => {
     setLoading(true);

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { Plus, Search, Loader2, FileSignature, BellRing, MapPin } from "lucide-react";
 import ContrattoDialog from "../components/ContrattoDialog";
@@ -21,6 +22,16 @@ export default function Contratti() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Apertura dal tasto "+" della barra
+  useEffect(() => {
+    if (!location.state?.nuovo) return;
+    setSelected(null);
+    setOpen(true);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location, navigate]);
 
   useEffect(() => {
     api
