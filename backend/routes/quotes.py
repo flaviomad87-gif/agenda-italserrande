@@ -70,10 +70,14 @@ async def _settings(uid: str) -> dict:
     return s or {"user_id": uid, "counter": 0, "company": DEFAULT_COMPANY}
 
 
+async def _top_number(uid: str) -> int:
+    nums = await db.quotes.find({"user_id": uid, "is_deleted": {"$ne": True}}, {"_id": 0, "number": 1}).to_list(10000)
+    return max([_num(q.get("number")) for q in nums] + [0])
+
+
 async def _next_number(uid: str) -> str:
     # Allinea il contatore al numero più alto esistente, poi incremento atomico
-    nums = await db.quotes.find({"user_id": uid}, {"_id": 0, "number": 1}).to_list(10000)
-    top = max([_num(q.get("number")) for q in nums] + [0])
+    top = await _top_number(uid)
     await db.quote_settings.update_one({"user_id": uid}, {"$max": {"counter": top}}, upsert=True)
     res = await db.quote_settings.find_one_and_update({"user_id": uid}, {"$inc": {"counter": 1}}, return_document=True)
     return str(res["counter"]).zfill(3)
@@ -142,6 +146,9 @@ async def delete_quote(quote_id: str, user=Depends(get_current_user)):
     if res.matched_count == 0:
         raise HTTPException(404, "Preventivo non trovato")
     await db.clients.update_many({"user_id": user["uid"], "quote_ref": quote_id}, {"$set": {"quote_ref": ""}})
+    # Se era l'ultimo numero, il prossimo preventivo lo riprende (niente buchi in coda)
+    top = await _top_number(user["uid"])
+    await db.quote_settings.update_one({"user_id": user["uid"], "counter": {"$gt": top}}, {"$set": {"counter": top}})
     return {"ok": True}
 
 
