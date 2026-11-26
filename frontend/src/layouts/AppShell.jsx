@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BellRing, Plus } from "lucide-react";
+import { BellRing, Bot, Plus } from "lucide-react";
+import AssistenteChat from "../components/AssistenteChat";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { api, apiGetWithCache } from "../lib/api";
@@ -261,6 +262,22 @@ export default function AppShell() {
           ))}
         </div>
       </BottomSheet>
+
+      <BottomSheet open={sheet === "ai"} onClose={() => setSheet(null)} title="Assistente IA" testId="ai-sheet">
+        <AssistenteChat />
+      </BottomSheet>
+
+      {location.pathname !== "/assistente" && (
+        <button
+          type="button"
+          onClick={() => setSheet("ai")}
+          aria-label="Apri l'assistente IA"
+          data-testid="ai-fab"
+          className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#1C1C1A] text-white shadow-lg ring-4 ring-white transition-transform active:scale-95 md:bottom-8 md:right-8 no-print"
+        >
+          <Bot className="h-7 w-7" />
+        </button>
+      )}
 
       {/* Mobile: 4 aree + tasto Nuovo al centro */}
       <nav

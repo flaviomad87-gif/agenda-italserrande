@@ -57,6 +57,8 @@ export default function AssistenteChat() {
 
   useEffect(() => {
     api.get("/assistente/credito").then((r) => setCredito(r.data)).catch(() => {});
+    const last = localStorage.getItem("agenda_ai_chat");
+    if (last) api.get(`/assistente/chat/${last}`).then((r) => setChat(r.data)).catch(() => localStorage.removeItem("agenda_ai_chat"));
   }, []);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -69,6 +71,7 @@ export default function AssistenteChat() {
   const apply = (data) => {
     setChat(data);
     setCredito(data.credito);
+    localStorage.setItem("agenda_ai_chat", data.id);
     if (data.credito?.avviso) toast.warning("Il credito dell'assistente sta per finire");
   };
   const send = async (t = text) => {
@@ -165,7 +168,10 @@ export default function AssistenteChat() {
         </Button>
       </div>
       <div className="flex items-center justify-between text-[11px] text-stone-500">
-        <button type="button" onClick={() => setChat(null)} className="inline-flex items-center gap-1 font-semibold text-[#0047ab]" data-testid="chat-new">
+        <button type="button" onClick={() => {
+            setChat(null);
+            localStorage.removeItem("agenda_ai_chat");
+          }} className="inline-flex items-center gap-1 font-semibold text-[#0047ab]" data-testid="chat-new">
           <MessageSquarePlus className="h-3.5 w-3.5" /> Nuova chat
         </button>
         {chat?.costo_chat > 0 && <span data-testid="chat-cost">Questa chat: {chat.costo_chat < 0.01 ? "meno di $ 0,01" : `circa $ ${chat.costo_chat.toLocaleString("it-IT", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</span>}

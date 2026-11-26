@@ -7,7 +7,7 @@ export default function BottomSheet({ open, onClose, title, testId, children }) 
     <div className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center no-print" onClick={onClose} data-testid={`${testId}-overlay`}>
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative w-full rounded-t-3xl bg-white p-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-xl md:max-w-md md:rounded-3xl"
+        className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-xl md:max-w-md md:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
         data-testid={testId}
       >
