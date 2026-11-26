@@ -64,6 +64,10 @@ async def migrate_legacy_photos() -> int:
             await _copy_legacy(doc)
             moved += 1
         except Exception as e:
+            if "401" in str(e) or "403" in str(e) or "non configurato" in str(e):
+                left = await db.job_photos.count_documents({"file_id": {"$exists": False}, "storage_path": {"$exists": True}})
+                log.warning("Foto vecchie non copiabili (%d): chiave EMERGENT_LLM_KEY non valida o assente", left)
+                break
             log.warning("Foto %s non copiata: %s", doc.get("id"), e)
     if moved:
         log.info("Foto copiate nel database: %d", moved)

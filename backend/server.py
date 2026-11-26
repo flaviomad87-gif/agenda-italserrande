@@ -71,6 +71,11 @@ api.include_router(assistente_router)
 app.include_router(api)
 app.include_router(ai_well_known)
 
+
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+async def root_ok():
+    return {"ok": True}
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
