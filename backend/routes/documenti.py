@@ -4,15 +4,20 @@ from datetime import datetime, timezone
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pymongo.errors import DuplicateKeyError
 
 from db import db
 from firebase_auth import get_current_user
+from models import iso_date
 
 router = APIRouter()
 
 Kind = Literal["pratica", "ce", "manutenzione", "verifica"]
+
+
+def _opt_date(v):
+    return iso_date(v) if v else v
 
 
 class DocumentoIn(BaseModel):
@@ -24,6 +29,11 @@ class DocumentoIn(BaseModel):
     data: str = ""
     fields: dict = Field(default_factory=dict)
 
+    @field_validator("data")
+    @classmethod
+    def _valid_data(cls, v):
+        return _opt_date(v)
+
 
 class DocumentoPatch(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -31,6 +41,11 @@ class DocumentoPatch(BaseModel):
     indirizzo: Optional[str] = None
     data: Optional[str] = None
     fields: Optional[dict] = None
+
+    @field_validator("data")
+    @classmethod
+    def _valid_data(cls, v):
+        return _opt_date(v)
 
 
 def _now() -> str:
@@ -96,8 +111,9 @@ async def update_documento(doc_id: str, payload: DocumentoPatch, user=Depends(ge
     if not res:
         raise HTTPException(404, "Documento non trovato")
     if res.get("kind") == "pratica" and not res.get("public_token"):
-        await db.documenti.update_one({"id": doc_id, "public_token": {"$exists": False}}, {"$set": {"public_token": uuid.uuid4().hex}})
-        res["public_token"] = (await db.documenti.find_one({"id": doc_id}, {"_id": 0, "public_token": 1}))["public_token"]
+        own = {"id": doc_id, "user_id": user["uid"]}
+        await db.documenti.update_one({**own, "public_token": {"$exists": False}}, {"$set": {"public_token": uuid.uuid4().hex}})
+        res["public_token"] = (await db.documenti.find_one(own, {"_id": 0, "public_token": 1}))["public_token"]
     return res
 
 

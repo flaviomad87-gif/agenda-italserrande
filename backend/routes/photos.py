@@ -39,6 +39,16 @@ async def _copy_legacy(doc: dict) -> bytes:
     return data
 
 
+async def _drop_files(docs: list):
+    # Libera lo spazio nel database: il file vero viene cancellato
+    for d in docs:
+        if d.get("file_id"):
+            try:
+                await _bucket.delete(d["file_id"])
+            except Exception as e:
+                log.warning("File foto %s non eliminato: %s", d["file_id"], e)
+
+
 async def migrate_legacy_photos() -> int:
     """Copia nel MongoDB le foto ancora su Emergent. Idempotente."""
     moved = 0
@@ -112,17 +122,19 @@ async def photo_file(photo_id: str, user=Depends(get_current_user)):
 
 @router.delete("/photos/{photo_id}")
 async def delete_photo(photo_id: str, user=Depends(get_current_user)):
-    res = await db.job_photos.update_one(
+    doc = await db.job_photos.find_one_and_update(
         {"id": photo_id, "user_id": user["uid"], "is_deleted": False}, {"$set": {"is_deleted": True}}
     )
-    if res.matched_count == 0:
+    if not doc:
         raise HTTPException(404, "Foto non trovata")
+    await _drop_files([doc])
     return {"ok": True}
 
 
 @router.delete("/clients/{client_id}/photos")
 async def delete_job_photos(client_id: str, user=Depends(get_current_user)):
-    res = await db.job_photos.update_many(
-        {"user_id": user["uid"], "client_id": client_id, "is_deleted": False}, {"$set": {"is_deleted": True}}
-    )
+    q = {"user_id": user["uid"], "client_id": client_id, "is_deleted": False}
+    docs = await db.job_photos.find(q, {"_id": 0, "file_id": 1}).to_list(500)
+    res = await db.job_photos.update_many(q, {"$set": {"is_deleted": True}})
+    await _drop_files(docs)
     return {"ok": True, "deleted": res.modified_count}

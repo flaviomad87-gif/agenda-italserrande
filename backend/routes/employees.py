@@ -54,6 +54,8 @@ async def create_employee(payload: EmployeeCreate, user=Depends(get_current_user
         name=payload.name.strip(),
         daily_hours=payload.daily_hours,
         default_break_minutes=payload.default_break_minutes,
+        default_clock_in=payload.default_clock_in,
+        default_clock_out=payload.default_clock_out,
         sort_order=next_sort,
     )
     d = emp.model_dump()

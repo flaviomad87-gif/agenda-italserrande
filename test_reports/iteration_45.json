@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 45 was a full regression of the backend and the UI. Backend: a new suite of 26 tests plus 2 concurrency probes, and the earlier suites for iterations 31/32/35/37/39/40/42/43 (89 of 89 still pass). The new tests cover the job lifecycle (pending, to_quote, awaiting, execute, to_invoice, reorder, search, week range, payments/unpaid with VAT and withholding, payment deletion, idempotent id), quotes (numbering, unlinking from the job on delete), rilievi, photos in GridFS (upload, list, file bytes, delete, isolation), documenti (numbering per kind and year, public QR page with no client data), contratti (in-scadenza, visit registration, validation, isolation), materials with atomic adjust, expenses (recurring applied only once), advances, employees and time entries, summaries with bad months (no 500s), A/B user isolation, and no _id in any response. UI: two Playwright scripts at 390px and 1920px, 74/76 and 14/14 checks passing. The 3 failures were problems in my test scripts (window.confirm not accepted, a wrong assumption about Clienti, clicking a disabled button), not app bugs. The app has no 500s, no page errors and no horizontal overflow on the 17 main routes. I found no critical bugs. I did find one real concurrency bug (duplicate quote numbers) and several input-validation gaps.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/quotes", "issue": "Quote numbering is not atomic. _next_number reads max(counter, numbers) and then writes counter = n. In 8 parallel creates, 2 numbers were duplicated (003 and 004 twice). This can happen with two devices, or when the offline queue replays. Fix: use find_one_and_update with $inc on quote_settings.counter (seed it with max(existing) the first time), like documenti._next_number does."},
+      {"endpoint": "POST/PUT /api/clients, POST /api/clients/{id}/execute", "issue": "date is not validated. 'not-a-date' and '31/02/2027' are accepted with 200. A job with a bad date drops out of Agenda and the month summaries without any warning. Validate YYYY-MM-DD with date.fromisoformat, return 422."},
+      {"endpoint": "POST/PUT /api/contratti", "issue": "data_inizio is not validated. 'garbage' is accepted, anno is saved as 'garb', numbering runs on a bogus year, and compute() silently uses today as the start. Return 422."},
+      {"endpoint": "POST /api/clients (amount, payments[].amount, materials[].amount)", "issue": "Negative amounts are accepted with 200 (amount=-100). Add ge=0, unless negative values are intended (credit notes or discounts)."},
+      {"endpoint": "POST /api/materials", "issue": "A negative quantity is accepted on create and update (quantity=-5 is stored). adjust clamps to 0, but create and PUT do not."},
+      {"endpoint": "POST /api/clients/{client_id}/photos", "issue": "The endpoint does not check that client_id exists or belongs to the user. User B can upload to A's job id with 200. Nothing leaks (list and file are filtered by user_id), but orphan files pile up. Check db.clients.find_one({id, user_id}) and return 404 if missing."},
+      {"endpoint": "DELETE /api/photos/{id}, DELETE /api/clients/{id}", "issue": "Photos are only soft-deleted (is_deleted). The GridFS file in photo_files is never removed, so the user's MongoDB grows forever, and it may be a capped Atlas tier. Delete the GridFS file (_bucket.delete(file_id)) on photo delete or job delete, or add a periodic cleanup."},
+      {"endpoint": "POST /api/employees", "issue": "default_clock_in and default_clock_out from EmployeeCreate are ignored (the Employee is built without them), so 07:30/16:30 are saved as 08:00/17:00. The UI only sets them later with PUT, so users are not affected today, but the API does not match its own contract."},
+      {"endpoint": "GET /api/clients?month=, /api/summary?month=", "issue": "month goes into $regex without re.escape and without format validation. month='.' matches every month. Validate ^\\d{4}-\\d{2}$."},
+      {"endpoint": "PUT /api/documenti/{id}", "issue": "Setting public_token uses update_one({'id': doc_id, ...}) and find_one({'id': doc_id}) without user_id. Ids are client-providable, so a collision could touch another user's document. Add user_id to the filter."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "QuoteEditor header", "issues": ["The amount in the top right (quote-total) is the taxable amount without VAT (EUR 1.000,00 for a 1000 + 22% line), but it has no label. Add 'Imponibile', or show 'Totale IVA inclusa' next to it."]},
+      {"screen": "Clienti", "issues": ["The search only covers executed jobs (lavoro_eseguito) of the selected year. Quotes and jobs from other years cannot be found here. Consider a 'tutti gli anni' option or a note about the filter."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter45_full_regression.py", "/app/backend/tests/test_iter45_concurrency.py", "/app/tests/iter45_full_regression_ui.py", "/app/tests/iter45_flows_ui.py", "/app/test_reports/pytest/iter45_results.xml"],
+  "action_items": [
+    "Make quote numbering atomic ($inc on quote_settings.counter)",
+    "Validate ISO dates (clients.date, execute ?date, contratti.data_inizio, documenti.data, the month query param) and return 422",
+    "Reject negative amounts and quantities (clients amount/payments/materials, materials quantity) unless intended",
+    "Return 404 on photo upload when the client_id is not the user's",
+    "Delete GridFS files when a photo or job is deleted, to avoid storage growth",
+    "Pass default_clock_in/default_clock_out in create_employee",
+    "Add user_id to the public_token update in update_documento",
+    "UX: label the QuoteEditor total as imponibile"
+  ],
+  "critical_code_review_comments": [
+    "Deleting a client leaves its linked rilievi, quotes (client_id) and GridFS files orphaned. Consider cascading or a cleanup.",
+    "Lists are capped with to_list(2000/5000) and there is no pagination, so results are silently cut off once data grows (clients, unpaid).",
+    "Reorder endpoints run N sequential update_one calls. bulk_write would be faster.",
+    "The /api/me 500 'fb_auth not defined' in backend.err.log comes from an old version. The current firebase_auth.py is clean."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter45_full_regression.py", "/app/backend/tests/test_iter45_concurrency.py", "/app/tests/iter45_full_regression_ui.py", "/app/tests/iter45_flows_ui.py"],
+  "success_rate": {"backend": "82% new suite (23/28 incl. concurrency; the 5 failures are validation/race findings), 100% of earlier suites (89/89)", "frontend": "100% of app checks (88/88). The 3 initial failures were test-script issues."},
+  "seed_data_creation": "Only ephemeral Firebase users (testuser+iter45*) with TEST_ data. Everything was deleted by user_id, and the Firebase accounts were deleted at the end.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/test_iter45_full_regression.py tests/test_iter45_concurrency.py -p no:xdist. Then python3 /app/tests/iter45_full_regression_ui.py and python3 /app/tests/iter45_flows_ui.py. ProssimiLavori execute-today uses window.confirm, so accept dialogs in Playwright. The Magazzino decrement button is disabled at 0. Clienti shows only lavoro_eseguito of the selected year. The new suite's validation tests are expected to fail until the main agent adds validation. Firebase-only auth: create users via the REST signUp API."
+}

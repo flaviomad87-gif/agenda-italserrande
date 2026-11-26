@@ -121,7 +121,10 @@ export default function QuoteEditor() {
 
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="font-display text-3xl font-bold tracking-tight">Preventivo N° {q.number}</h1>
-        <div className="font-display text-xl font-bold tabular-nums" data-testid="quote-total">€ {money(quoteTotal(q))}</div>
+        <div className="text-right">
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Imponibile</div>
+          <div className="font-display text-xl font-bold tabular-nums" data-testid="quote-total">€ {money(quoteTotal(q))}</div>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5" data-testid="quote-status">

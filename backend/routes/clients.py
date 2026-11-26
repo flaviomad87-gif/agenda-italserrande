@@ -3,13 +3,15 @@ import re
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from db import db
 from firebase_auth import get_current_user
 from models import Client, ClientCreate, ReorderRequest
 
 router = APIRouter()
+DATE_RE = r"^\d{4}-\d{2}-\d{2}$"
+MONTH_RE = r"^\d{4}-\d{2}$"
 
 
 @router.post("/clients", response_model=Client)
@@ -30,10 +32,10 @@ async def create_client(payload: ClientCreate, user=Depends(get_current_user)):
 
 @router.get("/clients", response_model=List[Client])
 async def list_clients(
-    date: Optional[str] = None,
-    month: Optional[str] = None,  # YYYY-MM
-    from_date: Optional[str] = None,  # YYYY-MM-DD inclusivo
-    to_date: Optional[str] = None,    # YYYY-MM-DD inclusivo
+    date: Optional[str] = Query(None, pattern=DATE_RE),
+    month: Optional[str] = Query(None, pattern=MONTH_RE),  # YYYY-MM
+    from_date: Optional[str] = Query(None, pattern=DATE_RE),  # YYYY-MM-DD inclusivo
+    to_date: Optional[str] = Query(None, pattern=DATE_RE),    # YYYY-MM-DD inclusivo
     user=Depends(get_current_user),
 ):
     # I clienti "pending" (in Prossimi lavori) sono esclusi dall'Agenda giornaliera/mensile.
@@ -151,7 +153,7 @@ async def reorder_to_invoice_clients(req: ReorderRequest, user=Depends(get_curre
 @router.post("/clients/{client_id}/execute")
 async def execute_pending_client(
     client_id: str,
-    date: Optional[str] = None,
+    date: Optional[str] = Query(None, pattern=DATE_RE),
     user=Depends(get_current_user),
 ):
     """Sposta un cliente dal backlog 'Prossimi lavori' all'Agenda del giorno indicato.

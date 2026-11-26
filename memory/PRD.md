@@ -457,3 +457,13 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - routes/photos.py: nuovi upload in GridFS (bucket `photo_files`, campo `file_id` su job_photos). Lettura da GridFS; foto vecchie (storage_path su Emergent) copiate automaticamente all'avvio (migrate_legacy_photos, idempotente) e al primo accesso.
 - Upload non richiede più EMERGENT_LLM_KEY. La copia delle foto vecchie in produzione richiede che EMERGENT_LLM_KEY resti su Render fino al primo riavvio dopo il deploy; poi si può togliere.
 - Verificato: upload/lista/download/delete via curl, 14 foto di anteprima migrate, pytest foto 12/12.
+
+### Giu 2026 — Regressione completa (iteration_45) e correzioni
+- Numerazione preventivi atomica ($max + $inc su quote_settings.counter): niente più numeri doppi da due dispositivi.
+- Validazione date AAAA-MM-GG (lavori POST/PUT, execute, contratti.data_inizio, documenti.data) e parametro month/date nelle query → 422 invece di dati sporchi.
+- Magazzino: quantità negative rifiutate su crea/modifica.
+- Foto: eliminando una foto (o le foto di un lavoro) si cancella anche il file nel database.
+- Dipendenti: orari predefiniti rispettati alla creazione. Documenti: public_token filtrato per utente.
+- Editor preventivo: totale etichettato "Imponibile".
+- Scelte volute (test saltati): importi/righe negative ammesse (sconti), foto caricabili su bozze non salvate.
+- Test: nuove suite 25 pass + 3 skip, vecchie suite 89/89.

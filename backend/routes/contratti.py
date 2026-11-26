@@ -11,12 +11,13 @@ from typing import List, Literal, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pymongo.errors import DuplicateKeyError
 
 from db import db
 from email_service import send_email
 from firebase_auth import get_current_user
+from models import iso_date
 from routes.documenti import _next_number
 
 router = APIRouter()
@@ -57,6 +58,11 @@ class ContrattoIn(BaseModel):
     note: str = ""
     visite: List[Visita] = Field(default_factory=list)
     stato: Literal["attivo", "disdetto"] = "attivo"
+
+    @field_validator("data_inizio")
+    @classmethod
+    def _valid_start(cls, v):
+        return iso_date(v)
 
 
 def _today() -> date:

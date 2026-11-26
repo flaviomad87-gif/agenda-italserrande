@@ -71,11 +71,12 @@ async def _settings(uid: str) -> dict:
 
 
 async def _next_number(uid: str) -> str:
-    s = await _settings(uid)
+    # Allinea il contatore al numero più alto esistente, poi incremento atomico
     nums = await db.quotes.find({"user_id": uid}, {"_id": 0, "number": 1}).to_list(10000)
-    n = max([s.get("counter", 0)] + [_num(q.get("number")) for q in nums]) + 1
-    await db.quote_settings.update_one({"user_id": uid}, {"$set": {"counter": n}}, upsert=True)
-    return str(n).zfill(3)
+    top = max([_num(q.get("number")) for q in nums] + [0])
+    await db.quote_settings.update_one({"user_id": uid}, {"$max": {"counter": top}}, upsert=True)
+    res = await db.quote_settings.find_one_and_update({"user_id": uid}, {"$inc": {"counter": 1}}, return_document=True)
+    return str(res["counter"]).zfill(3)
 
 
 def _out(doc: dict) -> dict:

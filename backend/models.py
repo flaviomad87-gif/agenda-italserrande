@@ -3,6 +3,7 @@
 Nessuna dipendenza da db o firebase: importabile senza side-effect.
 """
 import uuid
+from datetime import date as date_cls
 from datetime import datetime, timezone
 from typing import List, Literal, Optional
 
@@ -246,8 +247,21 @@ class ClientBase(BaseModel):
 
 
 
+def iso_date(v: str) -> str:
+    """Data obbligatoria nel formato AAAA-MM-GG."""
+    try:
+        return date_cls.fromisoformat(v).isoformat()
+    except (TypeError, ValueError):
+        raise ValueError("Data non valida: usa il formato AAAA-MM-GG")
+
+
 class ClientCreate(ClientBase):
     id: Optional[str] = None  # opzionale: idempotency key dal client (offline queue)
+
+    @field_validator("date")
+    @classmethod
+    def _valid_date(cls, v):
+        return iso_date(v)
 
 
 class Client(ClientBase):
@@ -409,12 +423,13 @@ class StockItemBase(BaseModel):
 
 class StockItemCreate(StockItemBase):
     id: Optional[str] = None  # idempotency key opzionale
+    quantity: float = Field(0.0, ge=0)
 
 
 class StockItemUpdate(BaseModel):
     model_config = ConfigDict(extra="ignore")
     name: Optional[str] = None
-    quantity: Optional[float] = None
+    quantity: Optional[float] = Field(None, ge=0)
     notes: Optional[str] = None
 
 

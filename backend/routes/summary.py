@@ -1,5 +1,5 @@
 """Endpoint riepiloghi mensili/annuali, dettaglio pagamenti per metodo, fornitori."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from db import db
 from firebase_auth import get_current_user
@@ -9,13 +9,13 @@ router = APIRouter()
 
 
 @router.get("/summary")
-async def monthly_summary(month: str, user=Depends(get_current_user)):
+async def monthly_summary(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), user=Depends(get_current_user)):
     """Aggregated totals for a month (YYYY-MM)."""
     return await _compute_summary(user["uid"], month)
 
 
 @router.get("/suppliers/summary")
-async def suppliers_summary(month: str, user=Depends(get_current_user)):
+async def suppliers_summary(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), user=Depends(get_current_user)):
     """Riepilogo materiali del mese raggruppati per fornitore.
 
     Serve all'utente per sapere quanto deve pagare ai fornitori a fine mese.
@@ -108,7 +108,7 @@ async def suppliers_summary(month: str, user=Depends(get_current_user)):
 
 
 @router.get("/payments/by-method")
-async def payments_by_method(month: str, method: str, user=Depends(get_current_user)):
+async def payments_by_method(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), method: str = Query(...), user=Depends(get_current_user)):
     """Restituisce il dettaglio dei singoli pagamenti per metodo (contanti/pos/bonifico)
     per un dato mese. Allinea con il calcolo del Riepilogo:
     filtra i clienti per JOB DATE nel mese, poi elenca i pagamenti con quel metodo.
