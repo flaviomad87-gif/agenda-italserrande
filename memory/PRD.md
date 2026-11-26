@@ -452,3 +452,8 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - P1: Connettore ChatGPT (MCP + OAuth, sola lettura, bozze preventivi da approvare) — scelte utente raccolte, non ancora costruito.
 - P1: Togliere backend/firebase-admin.json dal repository (tracciato in git) e ruotare la chiave.
 - P2: Cestino 30 giorni, normalizzazione dati legacy, margine lato backend.
+
+### Giu 2026 — Foto spostate nel MongoDB dell'utente (via da Emergent)
+- routes/photos.py: nuovi upload in GridFS (bucket `photo_files`, campo `file_id` su job_photos). Lettura da GridFS; foto vecchie (storage_path su Emergent) copiate automaticamente all'avvio (migrate_legacy_photos, idempotente) e al primo accesso.
+- Upload non richiede più EMERGENT_LLM_KEY. La copia delle foto vecchie in produzione richiede che EMERGENT_LLM_KEY resti su Render fino al primo riavvio dopo il deploy; poi si può togliere.
+- Verificato: upload/lista/download/delete via curl, 14 foto di anteprima migrate, pytest foto 12/12.

@@ -1,21 +1,56 @@
-"""Foto dei lavori (per ricordare il luogo). File su Object Storage, riferimenti su Mongo."""
+"""Foto dei lavori (per ricordare il luogo). File nel MongoDB dell'utente (GridFS); le vecchie su Emergent vengono copiate."""
 import asyncio
 import logging
 import os
 import uuid
 from datetime import datetime, timezone
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 
 from db import db
 from firebase_auth import get_current_user
-from storage import APP_NAME, get_object, put_object
 
 router = APIRouter()
 log = logging.getLogger(__name__)
 
 ALLOWED = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/heic": "heic", "image/heif": "heif"}
 MAX_BYTES = 12 * 1024 * 1024
+_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="photo_files")
+
+
+async def _legacy_bytes(path: str) -> bytes:
+    # Foto caricate quando l'archivio era su Emergent
+    if not os.environ.get("EMERGENT_LLM_KEY"):
+        raise RuntimeError("archivio Emergent non configurato")
+    from storage import get_object
+
+    data, _ = await asyncio.to_thread(get_object, path)
+    return data
+
+
+async def _copy_legacy(doc: dict) -> bytes:
+    data = await _legacy_bytes(doc["storage_path"])
+    fid = await _bucket.upload_from_stream(f"{doc['id']}", data, metadata={"content_type": doc["content_type"]})
+    res = await db.job_photos.update_one({"id": doc["id"], "file_id": {"$exists": False}}, {"$set": {"file_id": fid}})
+    if res.modified_count == 0:
+        await _bucket.delete(fid)
+    return data
+
+
+async def migrate_legacy_photos() -> int:
+    """Copia nel MongoDB le foto ancora su Emergent. Idempotente."""
+    moved = 0
+    async for doc in db.job_photos.find({"file_id": {"$exists": False}, "storage_path": {"$exists": True}}, {"_id": 0}):
+        try:
+            await _copy_legacy(doc)
+            moved += 1
+        except Exception as e:
+            log.warning("Foto %s non copiata: %s", doc.get("id"), e)
+    if moved:
+        log.info("Foto copiate nel database: %d", moved)
+    return moved
 
 
 def _public(doc: dict) -> dict:
@@ -39,11 +74,8 @@ async def upload_photo(client_id: str, file: UploadFile = File(...), user=Depend
     if not data or len(data) > MAX_BYTES:
         raise HTTPException(400, "Immagine vuota o troppo grande (max 12 MB)")
     photo_id = str(uuid.uuid4())
-    path = f"{APP_NAME}/job-photos/{user['uid']}/{photo_id}.{ALLOWED[ctype]}"
-    if not os.environ.get("EMERGENT_LLM_KEY"):
-        raise HTTPException(503, "Foto non attive: manca EMERGENT_LLM_KEY nelle impostazioni del server")
     try:
-        result = await asyncio.to_thread(put_object, path, data, ctype)
+        fid = await _bucket.upload_from_stream(f"{photo_id}.{ALLOWED[ctype]}", data, metadata={"content_type": ctype})
     except Exception as e:
         log.exception("Upload foto fallito: %s", e)
         raise HTTPException(502, f"Caricamento foto non riuscito ({type(e).__name__}), riprova")
@@ -51,9 +83,9 @@ async def upload_photo(client_id: str, file: UploadFile = File(...), user=Depend
         "id": photo_id,
         "user_id": user["uid"],
         "client_id": client_id,
-        "storage_path": result["path"],
+        "file_id": fid,
         "content_type": ctype,
-        "size": result.get("size", len(data)),
+        "size": len(data),
         "is_deleted": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -67,7 +99,11 @@ async def photo_file(photo_id: str, user=Depends(get_current_user)):
     if not doc:
         raise HTTPException(404, "Foto non trovata")
     try:
-        data, _ = await asyncio.to_thread(get_object, doc["storage_path"])
+        if doc.get("file_id"):
+            stream = await _bucket.open_download_stream(ObjectId(doc["file_id"]))
+            data = await stream.read()
+        else:
+            data = await _copy_legacy(doc)
     except Exception as e:
         log.exception("Download foto fallito: %s", e)
         raise HTTPException(502, "Foto non disponibile al momento")

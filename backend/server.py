@@ -110,3 +110,17 @@ async def ensure_indexes():
         await db.documenti_counters.create_index([("user_id", 1), ("kind", 1), ("anno", 1)], unique=True)
     except Exception as e:
         logger.warning("Indice documenti_counters non creato: %s", e)
+
+
+_bg_tasks = set()
+
+
+@app.on_event("startup")
+async def migrate_photos_in_background():
+    import asyncio
+
+    from routes.photos import migrate_legacy_photos
+
+    t = asyncio.create_task(migrate_legacy_photos())
+    _bg_tasks.add(t)
+    t.add_done_callback(_bg_tasks.discard)
