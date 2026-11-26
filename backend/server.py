@@ -39,6 +39,7 @@ from routes.summary import router as summary_router
 from routes.ai_oauth import router as ai_oauth_router, well_known as ai_well_known
 from routes.ai_mcp import router as ai_mcp_router
 from routes.assistente import router as assistente_router
+from routes.ai_chat import router as ai_chat_router
 
 # Re-export per retro-compatibilità con i test che fanno `from server import _compute_summary`.
 from summary_service import _compute_summary  # noqa: F401
@@ -65,6 +66,7 @@ api.include_router(ai_oauth_router)
 api.include_router(ai_well_known)
 api.include_router(ai_mcp_router)
 api.include_router(assistente_router)
+api.include_router(ai_chat_router)
 
 # ---------- Mount + middleware ----------
 
@@ -110,6 +112,8 @@ INDEXES = {
     "ai_tokens": [[("access_hash", 1)], [("refresh_hash", 1)], [("uid", 1)]],
     "ai_proposte": [[("uid", 1), ("stato", 1)]],
     "ai_attivita": [[("uid", 1), ("at", -1)]],
+    "ai_chats": [[("uid", 1), ("updated_at", -1)], [("id", 1)]],
+    "ai_settings": [[("uid", 1)]],
     "documenti": [[("public_token", 1)], [("user_id", 1), ("id", 1)], [("user_id", 1), ("kind", 1), ("anno", 1), ("numero", -1)]],
 }
 

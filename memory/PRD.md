@@ -474,3 +474,9 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Frontend: pages/Assistente.jsx (/assistente, in Ufficio → Assistente IA), setupProxy.js per /.well-known in sviluppo.
 - Produzione Render: aggiungere FIREBASE_WEB_API_KEY (= REACT_APP_FIREBASE_API_KEY) alle variabili del backend. Indirizzo connettore: https://agenda-italserrande-api.onrender.com/api/mcp
 - Test: iteration_46 backend 14/14 + frontend 100%; e2e tests/test_ai_connector_e2e.py; client MCP ufficiale (SDK 2.3) OK.
+
+### Giu 2026 — Chat assistente dentro l'agenda (IN CORSO: manca ANTHROPIC_API_KEY)
+- Assistente IA ha 2 modalità: "Chat nell'agenda" (Claude Haiku 5.5 / Sonnet 5.5 via SDK `anthropic` con chiave utente ANTHROPIC_API_KEY, NO Emergent) e "App Claude" (connettore MCP).
+- routes/ai_chat.py: /api/assistente/chat (+/conferma, lista, dettaglio), /api/assistente/credito (GET/PUT). Strumenti MCP riusati; strumenti di modifica in sospeso finché l'utente tocca Conferma. Costo stimato da usage token × prezzi ($/MTok: Haiku 0.10/0.50, Sonnet 2/10), contatore credito con soglia di avviso.
+- Frontend: components/AssistenteChat.jsx, components/CreditoBox.jsx, pages/Assistente.jsx (selettore modalità).
+- requirements.txt: anthropic>=2.14.0. Render: aggiungere ANTHROPIC_API_KEY.

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Check, Copy, FileText, History, Link2Off, Loader2, X } from "lucide-react";
+import { Bot, Check, Copy, FileText, History, Link2Off, Loader2, MessageCircle, Smartphone, X } from "lucide-react";
+import AssistenteChat from "../components/AssistenteChat";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Button } from "../components/ui/button";
@@ -85,8 +86,36 @@ const Proposta = ({ p, onDone }) => {
   );
 };
 
+const MODES = [
+  { key: "chat", label: "Chat nell'agenda", sub: "a consumo, credito Anthropic", icon: MessageCircle },
+  { key: "claude", label: "App Claude", sub: "incluso nel tuo abbonamento", icon: Smartphone },
+];
+
+const ModePicker = ({ mode, onPick }) => (
+  <div className="grid grid-cols-2 gap-2" data-testid="assistente-mode">
+    {MODES.map((m) => (
+      <button
+        key={m.key}
+        type="button"
+        onClick={() => onPick(m.key)}
+        data-testid={`assistente-mode-${m.key}`}
+        className={`rounded-2xl border p-3 text-left transition-colors ${mode === m.key ? "border-[#0047ab] bg-[#0047ab] text-white" : "border-stone-200 bg-white"}`}
+      >
+        <m.icon className="mb-1 h-5 w-5" />
+        <div className="text-sm font-bold">{m.label}</div>
+        <div className={`text-[11px] ${mode === m.key ? "text-white/80" : "text-stone-500"}`}>{m.sub}</div>
+      </button>
+    ))}
+  </div>
+);
+
 export default function Assistente() {
   const [s, setS] = useState(null);
+  const [mode, setMode] = useState(() => localStorage.getItem("agenda_ai_mode") || "chat");
+  const pickMode = (k) => {
+    setMode(k);
+    localStorage.setItem("agenda_ai_mode", k);
+  };
   const load = () => api.get("/assistente/stato").then((r) => setS(r.data)).catch(() => toast.error("Impossibile caricare l'assistente"));
   useEffect(() => {
     load();
@@ -106,8 +135,10 @@ export default function Assistente() {
     <div className="space-y-5" data-testid="assistente-page">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Assistente IA</h1>
-        <p className="text-sm text-stone-500">Collega Claude o un altro assistente: legge l'agenda e lavora solo con la tua conferma.</p>
+        <p className="text-sm text-stone-500">Scegli come usarlo: legge l'agenda e modifica solo con la tua conferma.</p>
       </div>
+      <ModePicker mode={mode} onPick={pickMode} />
+      {mode === "chat" && <Card title="Chat con l'assistente" icon={MessageCircle} testId="assistente-chat-card"><AssistenteChat /></Card>}
       <Card title={`Bozze di preventivo (${s.proposte.length})`} icon={FileText} testId="assistente-proposte">
         {s.proposte.length ? (
           <div className="space-y-3">{s.proposte.map((p) => <Proposta key={p.id} p={p} onDone={load} />)}</div>
@@ -115,8 +146,8 @@ export default function Assistente() {
           <p className="text-sm text-stone-500">Nessuna bozza. Quando l'assistente prepara un preventivo lo trovi qui.</p>
         )}
       </Card>
-      <Connect url={s.mcp_url} />
-      <Card title="Assistenti collegati" icon={Bot} testId="assistente-collegamenti">
+      {mode === "claude" && <Connect url={s.mcp_url} />}
+      {mode === "claude" && <Card title="Assistenti collegati" icon={Bot} testId="assistente-collegamenti">
         {s.collegamenti.length ? (
           s.collegamenti.map((c) => (
             <div key={c.id} className="flex items-center justify-between gap-2 border-b border-stone-100 py-2 last:border-0" data-testid={`collegamento-${c.id}`}>
@@ -130,7 +161,7 @@ export default function Assistente() {
         ) : (
           <p className="text-sm text-stone-500">Nessun assistente collegato.</p>
         )}
-      </Card>
+      </Card>}
       <Card title="Ultime operazioni dell'assistente" icon={History} testId="assistente-attivita">
         {s.attivita.length ? (
           <ul className="space-y-2">
