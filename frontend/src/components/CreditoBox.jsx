@@ -5,7 +5,11 @@ import { api } from "../lib/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
-const usd = (n) => `$ ${Number(n || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const usd = (n) => {
+  const v = Number(n || 0);
+  if (v > 0 && v < 0.01) return "meno di $ 0,01";
+  return `$ ${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 // Contatore del credito Anthropic: stima dal consumo di ogni risposta
 export default function CreditoBox({ credito, onChange }) {
@@ -51,7 +55,7 @@ export default function CreditoBox({ credito, onChange }) {
           {credito.esaurito ? "Credito finito: ricarica su console.anthropic.com" : `Sta per finire: sei sotto ${usd(credito.soglia)}. Ricarica su console.anthropic.com`}
         </p>
       )}
-      <p className="mt-1 text-[11px] text-stone-500">Spesi questo mese: {usd(credito.speso_mese)} · stima calcolata dall'agenda, il saldo esatto è su console.anthropic.com</p>
+      <p className="mt-1 text-[11px] text-stone-500">Spesi questo mese: {usd(credito.speso_mese)}{credito.speso > 0 ? ` · dall'ultima ricarica: ${usd(credito.speso)}` : ""} · stima calcolata dall'agenda, il saldo esatto è su console.anthropic.com</p>
       {edit && (
         <div className="mt-3 grid grid-cols-2 gap-2">
           <label className="text-xs font-semibold text-stone-600">

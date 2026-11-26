@@ -220,7 +220,7 @@ export default function Assistente() {
         <p className="text-sm text-stone-500">Scegli come usarlo: legge l'agenda e modifica solo con la tua conferma.</p>
       </div>
       <ModePicker mode={mode} onPick={pickMode} />
-      {mode === "chat" && <Card title="Chat con l'assistente" icon={MessageCircle} testId="assistente-chat-card"><AssistenteChat /></Card>}
+      {mode === "chat" && <Card title="Chat con l'assistente" icon={MessageCircle} testId="assistente-chat-card"><AssistenteChat onChange={load} /></Card>}
       <Card title={`Bozze di preventivo (${s.proposte.length})`} icon={FileText} testId="assistente-proposte">
         {s.proposte.length ? (
           <div className="space-y-3">{s.proposte.map((p) => <Proposta key={p.id} p={p} onDone={load} />)}</div>

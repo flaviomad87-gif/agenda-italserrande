@@ -213,10 +213,10 @@ def test_mcp_protocol(A):
     assert A.rpc("ping").json()["result"] == {}
     tools = A.rpc("tools/list").json()["result"]["tools"]
     names = {t["name"] for t in tools}
-    assert len(tools) == 14
+    assert len(tools) == 16
     assert names == {"cerca_lavori", "agenda", "elenco_lavori", "scheda_lavoro", "foto_lavoro", "cerca_preventivi", "cerca_documenti",
                      "leggi_documento", "contratti_manutenzione", "crea_lavoro", "modifica_lavoro", "registra_pagamento",
-                     "registra_visita_manutenzione", "prepara_preventivo"}
+                     "registra_visita_manutenzione", "prepara_preventivo", "elenco_bozze", "scarta_bozza"}
     assert not any(re.search(r"cancell|elimin|delete", t["name"]) for t in tools)
     assert all(t["annotations"]["destructiveHint"] is False for t in tools)
     assert A.rpc("foo/bar").json()["error"]["code"] == -32601

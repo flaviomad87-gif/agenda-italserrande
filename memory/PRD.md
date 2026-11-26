@@ -481,3 +481,11 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Frontend: components/AssistenteChat.jsx, components/CreditoBox.jsx, pages/Assistente.jsx (selettore modalità).
 - requirements.txt: anthropic>=2.14.0. Render: aggiungere ANTHROPIC_API_KEY.
 - Test iteration_47: backend 6/6, frontend 95% → corretti: doppia conferma (CHAT_INSTRUCTIONS dedicate, conferma solo col pulsante), testo Annulla chiaro, grassetto markdown, formato costo, pulsante credito. Verificato con chiamate reali Haiku/Sonnet.
+
+### Giu 2026 — Controllo assistente IA (iteration_48) e correzioni
+- Cronologia chat sempre valida: _clean toglie testi vuoti e tool_use senza tool_result (chat bloccate tornano a funzionare); risposte interrotte non lasciano tool_use orfani; max_tokens 4000.
+- Errori Anthropic con codice 424 (il 502 veniva sostituito dal proxy): messaggi chiari arrivano all'app.
+- Riquadro di conferma con nome del cliente/lavoro (riepilogo) al posto dell'id. Foto non salvate in pending.
+- Bozze e Ultime operazioni si aggiornano dopo ogni risposta (onChange). Contatore: "meno di $ 0,01" e speso dall'ultima ricarica.
+- Approva: collegamento fallito → client_id azzerato. DELETE quote azzera anche quote_number sul lavoro (fix testing agent).
+- Test: iteration_48 + correzioni → test_iter48 11/11, e2e connettore OK.

@@ -99,13 +99,29 @@ def _block(b) -> dict:
     return {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
 
 
+def _answered(m: Optional[dict]) -> set:
+    if not m or m["role"] != "user" or not isinstance(m["content"], list):
+        return set()
+    return {b.get("tool_use_id") for b in m["content"] if b.get("type") == "tool_result"}
+
+
 def _clean(messages: list) -> list:
-    """Ripulisce le chat salvate con la versione precedente."""
-    for m in messages:
+    """Cronologia sempre valida per Anthropic: niente campi extra, testi vuoti o strumenti rimasti senza risposta."""
+    out = []
+    for i, m in enumerate(messages):
         if m["role"] == "assistant" and isinstance(m["content"], list):
-            m["content"] = [{k: v for k, v in b.items() if k in ("type", "text", "id", "name", "input")}
-                            for b in m["content"] if b.get("type") in ("text", "tool_use")]
-    return messages
+            done = _answered(messages[i + 1] if i + 1 < len(messages) else None)
+            blocks = []
+            for b in m["content"]:
+                if b.get("type") == "text" and (b.get("text") or "").strip():
+                    blocks.append({"type": "text", "text": b["text"]})
+                elif b.get("type") == "tool_use" and b.get("id") in done:
+                    blocks.append({k: b[k] for k in ("type", "id", "name", "input")})
+            if not blocks:
+                continue
+            m = {"role": "assistant", "content": blocks}
+        out.append(m)
+    return out
 
 
 def _strip_images(messages: list) -> list:
@@ -131,6 +147,21 @@ def _visible(messages: list) -> list:
     return out
 
 
+async def _riepilogo(uid: str, args: dict) -> str:
+    """Nome leggibile al posto degli id nel riquadro di conferma."""
+    parts = []
+    for key, coll, field in (("id", "clients", "name"), ("lavoro_id", "clients", "name"), ("contratto_id", "contratti", "cliente")):
+        if args.get(key):
+            d = await db[coll].find_one({"id": args[key], "user_id": uid}, {"_id": 0, field: 1, "address": 1})
+            if d:
+                parts.append(" · ".join(x for x in (d.get(field), d.get("address")) if x))
+    if args.get("id") and not parts:
+        d = await db.ai_proposte.find_one({"id": args["id"], "uid": uid}, {"_id": 0, "cliente": 1})
+        if d:
+            parts.append(f"Bozza {d['cliente']}")
+    return " | ".join(parts)
+
+
 async def _exec(user: dict, name: str, args: dict) -> tuple:
     res = await _call(user, name, args)
     content = [{"type": "image", "source": {"type": "base64", "media_type": b["mimeType"], "data": b["data"]}} if b["type"] == "image" else b
@@ -150,29 +181,34 @@ async def _run(chat: dict, user: dict, before: int) -> dict:
     ok = False
     try:
         for _ in range(MAX_ROUNDS):
-            resp = await client.messages.create(model=MODELS[model]["id"], max_tokens=2000, system=system, tools=TOOL_DEFS,
+            resp = await client.messages.create(model=MODELS[model]["id"], max_tokens=4000, system=system, tools=TOOL_DEFS,
                                                 messages=_clean(chat["messages"]))
             c = _cost(model, resp.usage)
             cost += c
             await _spend(user["uid"], c)
-            chat["messages"].append({"role": "assistant", "content": [_block(b) for b in resp.content if b.type in ("text", "tool_use")]})
-            uses = [b for b in resp.content if b.type == "tool_use"]
-            if resp.stop_reason != "tool_use" or not uses:
+            uses = [b for b in resp.content if b.type == "tool_use"] if resp.stop_reason == "tool_use" else []
+            blocks = [_block(b) for b in resp.content if (b.type == "text" and b.text.strip()) or b in uses]
+            if not blocks:
+                blocks = [{"type": "text", "text": "Risposta interrotta: riprova o riformula la richiesta."}]
+            chat["messages"].append({"role": "assistant", "content": blocks})
+            if not uses:
                 break
             results, pending = [], []
             for u in uses:
                 if u.name in WRITE:
-                    pending.append({"id": u.id, "name": u.name, "input": u.input, "title": TOOLS[u.name]["def"]["title"]})
+                    pending.append({"id": u.id, "name": u.name, "input": u.input, "title": TOOLS[u.name]["def"]["title"],
+                                    "riepilogo": await _riepilogo(user["uid"], u.input)})
                 else:
                     content, err = await _exec(user, u.name, u.input)
                     results.append({"type": "tool_result", "tool_use_id": u.id, "content": content, "is_error": err})
             if pending:
+                _strip_images([{"content": results}])
                 chat["pending"] = {"results": results, "actions": pending}
                 break
             chat["messages"].append({"role": "user", "content": results})
         ok = True
     except anthropic.AuthenticationError:
-        raise HTTPException(502, "La chiave Anthropic non è valida: sostituiscila")
+        raise HTTPException(424, "La chiave Anthropic non è valida: sostituiscila")
     except anthropic.RateLimitError:
         raise HTTPException(429, "Troppe richieste ad Anthropic: riprova tra un minuto")
     except anthropic.BadRequestError as e:
@@ -180,10 +216,10 @@ async def _run(chat: dict, user: dict, before: int) -> dict:
         if "credit" in msg.lower():
             raise HTTPException(402, "Credito Anthropic esaurito: ricarica su console.anthropic.com")
         log.warning("Richiesta Anthropic rifiutata (%s, %d messaggi): %s", model, len(chat["messages"]), msg[:500])
-        raise HTTPException(502, "Anthropic ha rifiutato la richiesta, riprova")
+        raise HTTPException(424, "Anthropic ha rifiutato la richiesta, riprova")
     except anthropic.APIError as e:
         log.warning("Errore Anthropic: %s", e)
-        raise HTTPException(502, "Assistente non raggiungibile al momento, riprova")
+        raise HTTPException(424, "Assistente non raggiungibile al momento, riprova")
     finally:
         if not ok:
             # Errore: la conversazione torna com'era, senza mezze risposte

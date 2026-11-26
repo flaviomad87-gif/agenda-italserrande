@@ -174,7 +174,7 @@ async def delete_quote(quote_id: str, user=Depends(get_current_user)):
     res = await db.quotes.update_one({"id": quote_id, "user_id": user["uid"]}, {"$set": {"is_deleted": True, "updatedAt": _now()}})
     if res.matched_count == 0:
         raise HTTPException(404, "Preventivo non trovato")
-    await db.clients.update_many({"user_id": user["uid"], "quote_ref": quote_id}, {"$set": {"quote_ref": ""}})
+    await db.clients.update_many({"user_id": user["uid"], "quote_ref": quote_id}, {"$set": {"quote_ref": "", "quote_number": ""}})
     # Se era l'ultimo numero, il prossimo preventivo lo riprende (niente buchi in coda)
     top = await _top_number(user["uid"])
     await db.quote_settings.update_one({"user_id": user["uid"], "counter": {"$gt": top}}, {"$set": {"counter": top}})

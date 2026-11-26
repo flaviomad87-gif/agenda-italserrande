@@ -29,8 +29,9 @@ const Pending = ({ actions, busy, onAnswer }) => (
     {actions.map((a) => (
       <div key={a.id} className="mb-2 rounded-xl bg-white p-2 text-xs">
         <div className="font-semibold">{a.title}</div>
+        {a.riepilogo && <div className="mt-0.5 font-semibold text-[#0047ab]" data-testid="chat-pending-riepilogo">{a.riepilogo}</div>}
         <ul className="mt-1 space-y-0.5 text-stone-600">
-          {Object.entries(a.input).map(([k, v]) => (
+          {Object.entries(a.input).filter(([k]) => !(a.riepilogo && ["id", "lavoro_id", "contratto_id"].includes(k))).map(([k, v]) => (
             <li key={k}><span className="font-semibold">{k.replace(/_/g, " ")}:</span> {Array.isArray(v) ? v.join(" · ") : String(v)}</li>
           ))}
         </ul>
@@ -47,7 +48,7 @@ const Pending = ({ actions, busy, onAnswer }) => (
   </div>
 );
 
-export default function AssistenteChat() {
+export default function AssistenteChat({ onChange }) {
   const [model, setModel] = useState(() => localStorage.getItem("agenda_ai_model") || "haiku");
   const [chat, setChat] = useState(null);
   const [credito, setCredito] = useState(null);
@@ -72,6 +73,7 @@ export default function AssistenteChat() {
     setChat(data);
     setCredito(data.credito);
     localStorage.setItem("agenda_ai_chat", data.id);
+    onChange?.();
     if (data.credito?.avviso) toast.warning("Il credito dell'assistente sta per finire");
   };
   const send = async (t = text) => {

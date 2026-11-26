@@ -1,0 +1,63 @@
+{
+  "summary": "Ho ricontrollato l'assistente IA: chat con Haiku reale, conferme, bozze, collegamento preventivo-lavoro, credito, pulsante Assistente e connettore MCP. Il flusso principale funziona. Una chat lunga (5 messaggi + 5 Conferma: crea_lavoro, modifica_lavoro con sposta_in agenda e data 2026-12-10, registra_pagamento, prepara_preventivo con lavoro_id, scarta_bozza) è andata a buon fine senza nessun 400. Haiku ha proposto ogni modifica subito, con il riquadro Conferma/Annulla e senza chiedere un 'sì' a parole (0 casi su 6). Annulla ora riceve una risposta chiara. Le ultime operazioni vengono registrate. Bozze: l'approvazione collegata a un lavoro funziona (GET /quotes/{id}/lavoro, quote_ref e quote_number sul lavoro, client_id sul preventivo). Funzionano anche: doppia approvazione 404, Scarta/Ripristina/Elimina dallo storico, eliminazione del preventivo approvato con recupero del numero (003 riutilizzato, poi 004) e isolamento tra utenti A e B. Interfaccia: JobPicker e approvazione portano a /preventivi/:id con 'Collegato al lavoro'. QuoteJobLink Cambia funziona e resta dopo il ricaricamento. Storico Apri ed Elimina funzionano (con il messaggio di conferma). Il pulsante ai-fab sta nell'intestazione, scorre via con la pagina e non copre nulla su /prossimi-lavori né sulla barra in basso di /preventivi/:id. side-ai-button apre il pannello. Chat su mobile: 2 domande, poi chiusura e riapertura del pannello e poi ricaricamento della pagina, e la conversazione resta. Nuova chat svuota localStorage. Il riquadro in sospeso disattiva il campo di testo. CreditoBox: Aggiungi, soglia con avviso, Riparti da qui e toast 'Controlla gli importi' con valori sbagliati. Connettore: 16 strumenti, test_ai_connector_e2e.py passa. Restano due bug di robustezza nella cronologia della chat (riprodotti con chat salvate a mano), tre problemi minori di integrazione e interfaccia, e il fatto che l'errore 502 viene sostituito da Cloudflare.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/assistente/chat (ai_chat._run)", "issue": "Uno strumento rimasto senza risposta blocca la chat per sempre. In _run, se stop_reason non è 'tool_use' (max_tokens, pause_turn, refusal) ma la risposta contiene blocchi tool_use, si esce dal ciclo e il messaggio dell'assistente con tool_use viene salvato senza i tool_result. Da quel momento ogni messaggio in quella chat riceve 400 da Anthropic ('tool_use ids were found without tool_result blocks') e l'utente vede 'Anthropic ha rifiutato la richiesta, riprova' finché non apre una Nuova chat. L'ho riprodotto con una chat salvata a mano (test_iter48_ai_chat_robustness.py::orphan_tool_use). Rischio realistico con Sonnet e prepara_preventivo con molte righe (max_tokens=2000).", "priority": "HIGH"},
+      {"endpoint": "POST /api/assistente/chat (_block/_clean)", "issue": "Un blocco di testo vuoto nella cronologia blocca la chat. _block e _clean salvano anche {'type':'text','text':''}, e il messaggio dopo riceve 400 'text content blocks must be non-empty' (riprodotto: test_iter48_ai_chat_robustness.py::empty_text). Correzione: in _block e _clean togliere i blocchi di testo vuoti o fatti solo di spazi; se il content dell'assistente resta vuoto, non salvare quel messaggio (oppure mettere un testo segnaposto).", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "Errori di /api/assistente/chat con codice 502", "issue": "Cloudflare o l'ingress sostituisce il corpo delle risposte 502 con una sua pagina HTML. Così i messaggi 'La chiave Anthropic non è valida', 'Anthropic ha rifiutato la richiesta' e 'Assistente non raggiungibile' non arrivano mai al frontend: errMsg mostra quello generico 'L'assistente non ha risposto, riprova'. Usare un codice che passa intatto, per esempio 424 o 400 con detail."},
+      {"endpoint": "POST /api/assistente/proposte/{pid}/approva", "issue": "Se il collegamento a p.lavoro_id non riesce (lavoro eliminato), il preventivo resta con client_id = lavoro_id che non esiste più. Inoltre qualsiasi eccezione dopo create_quote che non sia HTTPException lascia la bozza nello stato 'in_corso', invisibile sia nelle bozze sia nello storico."},
+      {"endpoint": "DELETE /api/quotes/{id}", "issue": "CORRETTO DA ME: azzerava quote_ref ma non quote_number. Dopo 'storico-elimina' su una bozza approvata il lavoro mostrava ancora 'Preventivo N° 001' (MakeQuoteButton), 'ha già il preventivo N° 001' (JobPicker) e il numero nel messaggio WhatsApp. Ora azzera anche quote_number (verificato)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AssistenteChat Pending", "issue": "Per modifica_lavoro, registra_pagamento e scarta_bozza il riquadro di conferma mostra l'id grezzo ('id: 9eeb524d-8754-...') invece del nome del cliente o del lavoro: l'utente non capisce quale lavoro sta confermando. Si può risolvere il nome lato backend aggiungendo un campo 'riepilogo' o 'lavoro_nome' all'azione in sospeso.", "selector": "[data-testid=chat-pending]", "priority": "MEDIUM"},
+      {"component": "CreditoBox", "issue": "'Spesi questo mese: $ 0,00' e 'Credito rimasto $ 20,00 su $ 20,00' anche dopo diverse risposte di Haiku (circa $0,003): con 2 decimali sembra che il contatore non conti. Meglio mostrare 'meno di $ 0,01' come fa chat-cost.", "selector": "[data-testid=credito-box]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Chat nella pagina /assistente, poi Conferma di prepara_preventivo o scarta_bozza", "issue": "Dopo la Conferma le sezioni 'Bozze di preventivo' e 'Ultime operazioni' non si aggiornano: la bozza nuova compare solo dopo il ricaricamento della pagina. AssistenteChat non ha una callback (es. onChange) che faccia chiamare load() ad Assistente.jsx dopo apply() o answer(). Inoltre su /assistente si può aprire anche il pannello side-ai-button: le due istanze della chat hanno stati separati.", "affected_selectors": ["[data-testid=assistente-proposte]", "[data-testid=assistente-attivita]", "[data-testid=chat-confirm]"]}
+    ],
+    "design_issues": [
+      {"screen": "QuoteEditor", "issues": ["Il campo Data usa il selettore di data nativo del browser (formato mm/dd/yyyy in un browser in inglese) invece di un calendario shadcn"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter48_ai_assistente.py",
+    "/app/backend/tests/test_iter48_ai_chat_robustness.py",
+    "/app/backend/tests/iter48_ui_setup.py",
+    "/app/backend/tests/test_iter46_ai_connector.py",
+    "/app/backend/tests/test_ai_connector_e2e.py",
+    "/app/test_reports/pytest/iter48.xml"
+  ],
+  "action_items": [
+    "ai_chat._run: se la risposta contiene tool_use ma stop_reason != 'tool_use', togliere i blocchi tool_use dal messaggio salvato (o aggiungere tool_result di errore), così la cronologia non resta con tool_use senza risposta. Valutare anche max_tokens più alto per prepara_preventivo",
+    "ai_chat._block/_clean: togliere i blocchi di testo vuoti e i messaggi dell'assistente rimasti vuoti; _clean va applicato anche alle chat già salvate, così quelle già bloccate tornano a funzionare",
+    "Errori Anthropic: sostituire HTTPException(502, ...) con un codice che Cloudflare non sostituisce (es. 424), così il detail arriva al frontend",
+    "AssistenteChat: aggiungere la prop onChange e da Assistente.jsx richiamare load() dopo ogni risposta o conferma, così Bozze e Ultime operazioni si aggiornano",
+    "Riquadro di conferma: mostrare il nome del lavoro o cliente al posto dell'id grezzo",
+    "CreditoBox: mostrare 'meno di $ 0,01' per gli importi spesi molto piccoli",
+    "approva: se link_quote non riesce, azzerare client_id; gestire qualsiasi eccezione dopo create_quote riportando la bozza a 'da_approvare' (o approvandola comunque)"
+  ],
+  "critical_code_review_comments": [
+    "ai_chat.py: chat_confirm imposta pending=None in modo atomico (la doppia conferma dà 404, verificato). Ma se il processo si ferma tra find_one_and_update e il salvataggio, nella cronologia resta il tool_use senza tool_result, con lo stesso blocco del bug sopra",
+    "ai_chat.py: dopo un errore di Anthropic in chat_confirm, nella cronologia restano i tool_result (giusto, perché la modifica è stata fatta) e il messaggio dopo crea due turni utente di fila: Anthropic li accetta (verificato, 200)",
+    "ai_chat.py: quando un turno contiene sia strumenti di lettura sia di modifica, le immagini base64 di foto_lavoro vengono salvate in Mongo dentro pending.results finché l'utente non conferma; _strip_images non le tocca lì",
+    "test_ai_connector_e2e.py crea ogni volta un lavoro 'TEST_AI Rossi Mario' con bozza, attività e token OAuth sull'utente layout.test e non li cancella (MCP non ha un'operazione di cancellazione). Ho cancellato i 3 lavori e i 3 token creati dalle mie esecuzioni; ne resta 1 delle 19:30 (non mio, non toccato)"
+  ],
+  "updated_files": [
+    "/app/backend/routes/quotes.py (delete_quote azzera anche quote_number)",
+    "/app/backend/tests/test_iter46_ai_connector.py (aggiornato a 16 strumenti con elenco_bozze/scarta_bozza)",
+    "/app/backend/tests/test_iter48_ai_assistente.py (nuovo)",
+    "/app/backend/tests/test_iter48_ai_chat_robustness.py (nuovo)",
+    "/app/backend/tests/iter48_ui_setup.py (nuovo)"
+  ],
+  "success_rate": {"backend": "92% (24/26: in test_iter48_ai_chat_robustness.py falliscono empty_text e orphan_tool_use)", "frontend": "90% (tutti i flussi funzionano; mancato aggiornamento di Bozze e Ultime operazioni dopo la conferma in chat; id grezzi nel riquadro di conferma)"},
+  "test_credentials": "Utenti Firebase temporanei creati con REST signUp (testuser+iter48*@italserrande.test / TestPassword123!) e cancellati alla fine. test_ai_connector_e2e usa layout.test.jun26@italserrande.test",
+  "seed_data_creation": "Per l'utente temporaneo: 2 lavori TEST_UI, 1 bozza ai_proposte inserita direttamente in Mongo, 1 preventivo, 1 chat con azione in sospeso inserita in Mongo. Tutto cancellato con iter48_ui_setup.py cleanup (Mongo per uid, poi cancellazione dell'account Firebase).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Chiamate Anthropic reali in questa iterazione: circa 14 messaggi utente più 7 Conferma o Annulla (Haiku). Per i bug di robustezza eseguire test_iter48_ai_chat_robustness.py: costa al massimo 5 chiamate brevi e i due casi in errore non vengono addebitati. test_iter48_ai_assistente.py -k 'not multiturn' non usa il modello. Il caso multiturn costa 5 messaggi + 5 conferme. iter48_ui_setup.py setup|cleanup crea e cancella l'utente per le prove nell'interfaccia (/tmp/iter48_ui.json). Nella finestra di dialogo di Playwright usare un handler async def.",
+  "rca of the issue": "Errore 400 'Anthropic ha rifiutato la richiesta' al secondo messaggio: la correzione _block/_clean funziona per i campi in più (caso legacy_extra_fields: 200) e la chat a 5 messaggi con strumenti passa. Restano due modi per corrompere la cronologia: (1) un blocco di testo vuoto salvato, che dà 400 'text content blocks must be non-empty'; (2) un tool_use senza tool_result quando stop_reason è max_tokens, pause_turn o refusal, che dà 400 'tool_use ids were found without tool_result blocks'. In entrambi i casi tutti i messaggi successivi di quella chat ricevono 400 finché non si apre una Nuova chat. In produzione il messaggio specifico non si vede perché Cloudflare sostituisce il corpo della risposta 502."
+}

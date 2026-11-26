@@ -57,8 +57,9 @@ async def approva(pid: str, body: Optional[ApprovaIn] = None, user=Depends(get_c
     if job_id:
         try:
             await link_quote(user["uid"], q, job_id)
-        except HTTPException:
+        except Exception:
             job_id = None
+            await db.quotes.update_one({"id": q["id"], "user_id": user["uid"]}, {"$set": {"client_id": None}})
     await db.ai_proposte.update_one({"id": pid}, {"$set": {"stato": "approvata", "quote_id": q["id"], "gestita_at": now().isoformat()}})
     return {"quote_id": q["id"], "number": q["number"], "lavoro_id": job_id}
 
