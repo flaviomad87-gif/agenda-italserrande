@@ -20,6 +20,7 @@ import {
   Ruler,
   FolderCheck,
   UserPlus,
+  Bot,
 } from "lucide-react";
 
 // Le 4 aree dell'agenda: ogni pagina appartiene a una sola area
@@ -71,6 +72,7 @@ export const AREAS = [
       { to: "/contratti", label: "Contratti", icon: FileSignature, testId: "nav-contratti", badgeKey: "contratti" },
       { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino" },
       { to: "/ore-lavoro", label: "Ore lavoro", icon: BriefcaseBusiness, testId: "nav-ore-lavoro" },
+      { to: "/assistente", label: "Assistente IA", icon: Bot, testId: "nav-assistente" },
       { to: "/profilo", label: "Profilo", icon: User, testId: "nav-profilo" },
     ],
   },

@@ -26,6 +26,7 @@ const Magazzino = lazy(() => import("./pages/Magazzino"));
 const Rilievi = lazy(() => import("./pages/Rilievi"));
 const Documenti = lazy(() => import("./pages/Documenti"));
 const Contratti = lazy(() => import("./pages/Contratti"));
+const Assistente = lazy(() => import("./pages/Assistente"));
 const ImpiantoPubblico = lazy(() => import("./pages/ImpiantoPubblico"));
 const QuoteEditor = lazy(() => import("./pages/QuoteEditor"));
 const PrintArchive = lazy(() => import("./pages/PrintArchive"));
@@ -92,6 +93,7 @@ function App() {
                 <Route path="/rilievi" element={<Rilievi />} />
                 <Route path="/documenti" element={<Documenti />} />
                 <Route path="/contratti" element={<Contratti />} />
+                <Route path="/assistente" element={<Assistente />} />
                 <Route path="/preventivi/:id" element={<QuoteEditor />} />
                 <Route path="/archivio/:month" element={<PrintArchive />} />
               </Route>

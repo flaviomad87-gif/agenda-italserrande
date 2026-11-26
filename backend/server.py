@@ -36,6 +36,9 @@ from routes.contratti import router as contratti_router
 from routes.photos import router as photos_router
 from routes.quotes import router as quotes_router
 from routes.summary import router as summary_router
+from routes.ai_oauth import router as ai_oauth_router, well_known as ai_well_known
+from routes.ai_mcp import router as ai_mcp_router
+from routes.assistente import router as assistente_router
 
 # Re-export per retro-compatibilità con i test che fanno `from server import _compute_summary`.
 from summary_service import _compute_summary  # noqa: F401
@@ -58,10 +61,15 @@ api.include_router(documenti_router)
 api.include_router(contratti_router)
 api.include_router(photos_router)
 api.include_router(quotes_router)
+api.include_router(ai_oauth_router)
+api.include_router(ai_well_known)
+api.include_router(ai_mcp_router)
+api.include_router(assistente_router)
 
 # ---------- Mount + middleware ----------
 
 app.include_router(api)
+app.include_router(ai_well_known)
 
 app.add_middleware(
     CORSMiddleware,

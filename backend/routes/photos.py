@@ -39,6 +39,13 @@ async def _copy_legacy(doc: dict) -> bytes:
     return data
 
 
+async def photo_bytes(doc: dict) -> bytes:
+    if doc.get("file_id"):
+        stream = await _bucket.open_download_stream(ObjectId(doc["file_id"]))
+        return await stream.read()
+    return await _copy_legacy(doc)
+
+
 async def _drop_files(docs: list):
     # Libera lo spazio nel database: il file vero viene cancellato
     for d in docs:
@@ -109,11 +116,7 @@ async def photo_file(photo_id: str, user=Depends(get_current_user)):
     if not doc:
         raise HTTPException(404, "Foto non trovata")
     try:
-        if doc.get("file_id"):
-            stream = await _bucket.open_download_stream(ObjectId(doc["file_id"]))
-            data = await stream.read()
-        else:
-            data = await _copy_legacy(doc)
+        data = await photo_bytes(doc)
     except Exception as e:
         log.exception("Download foto fallito: %s", e)
         raise HTTPException(502, "Foto non disponibile al momento")
