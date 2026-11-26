@@ -8,7 +8,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from routes.quotes import LineItem, QuoteIn, create_quote, link_quote
+from routes.quotes import LineItem, QuoteIn, create_quote, delete_quote, link_quote
 
 router = APIRouter(prefix="/assistente")
 
@@ -68,6 +68,21 @@ async def ripristina(pid: str, user=Depends(get_current_user)):
     res = await db.ai_proposte.update_one({"id": pid, "uid": user["uid"], "stato": "scartata"}, {"$set": {"stato": "da_approvare"}, "$unset": {"gestita_at": ""}})
     if not res.matched_count:
         raise HTTPException(404, "Bozza non trovata o non scartata")
+    return {"ok": True}
+
+
+@router.delete("/proposte/{pid}/storico")
+async def elimina_storico(pid: str, user=Depends(get_current_user)):
+    """Toglie la bozza dallo storico; se era approvata elimina anche il suo preventivo (numero recuperato se era l'ultimo)."""
+    p = await db.ai_proposte.find_one({"id": pid, "uid": user["uid"], "stato": {"$in": ["approvata", "scartata"]}}, {"_id": 0})
+    if not p:
+        raise HTTPException(404, "Bozza non trovata")
+    if p["stato"] == "approvata" and p.get("quote_id"):
+        try:
+            await delete_quote(p["quote_id"], user)
+        except HTTPException:
+            pass
+    await db.ai_proposte.update_one({"id": pid}, {"$set": {"stato": "eliminata", "gestita_at": now().isoformat()}})
     return {"ok": True}
 
 

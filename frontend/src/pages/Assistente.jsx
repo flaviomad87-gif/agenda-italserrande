@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Check, Copy, FileText, History, Link2Off, Loader2, MessageCircle, Smartphone, X } from "lucide-react";
+import { Trash2, Bot, Check, Copy, FileText, History, Link2Off, Loader2, MessageCircle, Smartphone, X } from "lucide-react";
 import AssistenteChat from "../components/AssistenteChat";
 import JobPicker from "../components/JobPicker";
 import { toast } from "sonner";
@@ -108,6 +108,17 @@ const STATI = { approvata: ["Approvata", "bg-emerald-100 text-emerald-800"], sca
 const Storico = ({ items, onDone }) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const remove = async (p) => {
+    const msg = p.stato === "approvata" ? "Eliminare questa bozza e il suo preventivo? Il preventivo verrà eliminato." : "Togliere questa bozza dallo storico?";
+    if (!window.confirm(msg)) return;
+    try {
+      await api.delete(`/assistente/proposte/${p.id}/storico`);
+      toast.success(p.stato === "approvata" ? "Bozza e preventivo eliminati" : "Bozza eliminata");
+      onDone();
+    } catch {
+      toast.error("Eliminazione non riuscita");
+    }
+  };
   const restore = async (id) => {
     try {
       await api.post(`/assistente/proposte/${id}/ripristina`);
@@ -136,13 +147,16 @@ const Storico = ({ items, onDone }) => {
                   </div>
                   <div className="text-xs text-stone-500">{fmt(p.created_at)} · {p.oggetto}</div>
                   <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-stone-700">{p.righe.map((r, i) => <li key={i}>{r}</li>)}</ul>
-                  <div className="mt-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {p.stato === "approvata" && p.quote_id && (
                       <Button size="sm" variant="outline" onClick={() => navigate(`/preventivi/${p.quote_id}`)} data-testid={`storico-apri-${p.id}`}>Apri preventivo</Button>
                     )}
                     {p.stato === "scartata" && (
                       <Button size="sm" variant="outline" onClick={() => restore(p.id)} data-testid={`storico-ripristina-${p.id}`}>Ripristina</Button>
                     )}
+                    <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => remove(p)} data-testid={`storico-elimina-${p.id}`}>
+                      <Trash2 className="mr-1 h-4 w-4" /> Elimina
+                    </Button>
                   </div>
                 </div>
               ))}
