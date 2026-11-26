@@ -92,6 +92,22 @@ async def set_credito(p: CreditoIn, user=Depends(get_current_user)):
     return _credito_out(await db.ai_settings.find_one({"uid": user["uid"]}, {"_id": 0}))
 
 
+def _block(b) -> dict:
+    # Solo i campi accettati in ingresso: le versioni nuove della libreria aggiungono campi extra
+    if b.type == "text":
+        return {"type": "text", "text": b.text}
+    return {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
+
+
+def _clean(messages: list) -> list:
+    """Ripulisce le chat salvate con la versione precedente."""
+    for m in messages:
+        if m["role"] == "assistant" and isinstance(m["content"], list):
+            m["content"] = [{k: v for k, v in b.items() if k in ("type", "text", "id", "name", "input")}
+                            for b in m["content"] if b.get("type") in ("text", "tool_use")]
+    return messages
+
+
 def _strip_images(messages: list) -> list:
     """Le foto restano solo nel turno in cui servono: in archivio diventano un segnaposto."""
     for m in messages:
@@ -135,11 +151,11 @@ async def _run(chat: dict, user: dict, before: int) -> dict:
     try:
         for _ in range(MAX_ROUNDS):
             resp = await client.messages.create(model=MODELS[model]["id"], max_tokens=2000, system=system, tools=TOOL_DEFS,
-                                                messages=chat["messages"])
+                                                messages=_clean(chat["messages"]))
             c = _cost(model, resp.usage)
             cost += c
             await _spend(user["uid"], c)
-            chat["messages"].append({"role": "assistant", "content": [b.model_dump(exclude_none=True) for b in resp.content]})
+            chat["messages"].append({"role": "assistant", "content": [_block(b) for b in resp.content if b.type in ("text", "tool_use")]})
             uses = [b for b in resp.content if b.type == "tool_use"]
             if resp.stop_reason != "tool_use" or not uses:
                 break
@@ -163,7 +179,7 @@ async def _run(chat: dict, user: dict, before: int) -> dict:
         msg = str(e)
         if "credit" in msg.lower():
             raise HTTPException(402, "Credito Anthropic esaurito: ricarica su console.anthropic.com")
-        log.warning("Richiesta Anthropic rifiutata: %s", msg)
+        log.warning("Richiesta Anthropic rifiutata (%s, %d messaggi): %s", model, len(chat["messages"]), msg[:500])
         raise HTTPException(502, "Anthropic ha rifiutato la richiesta, riprova")
     except anthropic.APIError as e:
         log.warning("Errore Anthropic: %s", e)
