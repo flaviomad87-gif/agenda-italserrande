@@ -208,8 +208,8 @@ export default function Profilo() {
       <div className="rounded-3xl border border-stone-200/60 bg-white p-6 shadow-sm">
         <h2 className="font-display text-lg font-semibold">Account</h2>
         <div className="mt-3 space-y-2">
-          <div className="flex items-center gap-2 text-sm text-stone-600">
-            <Mail className="h-4 w-4 text-stone-400" /> {user?.email}
+          <div className="flex min-w-0 items-center gap-2 text-sm text-stone-600">
+            <Mail className="h-4 w-4 shrink-0 text-stone-400" /> <span className="truncate">{user?.email}</span>
           </div>
         </div>
         <Button

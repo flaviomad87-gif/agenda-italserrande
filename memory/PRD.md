@@ -440,3 +440,15 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Invio PDF: condivisione nativa (WhatsApp come file); etichette "Invia PDF".
 - QR targhetta: public_token per pratica, GET /api/public/impianto/{token} (senza dati personali), pagina pubblica /impianto/:token con scheda impianto, manutenzioni, contatti; QR in ogni targhetta (libreria qrcode).
 - Test: iteration_43 backend 100%, frontend 100%.
+
+### Giu 2026 — Nuova disposizione: 4 aree + tasto Nuovo
+- Barra mobile: Agenda · Lavori · (+) · Soldi · Ufficio. Lavori = Prossimi/In attesa/Da preventivare/Da fatturare (pagine separate, chip in alto). Soldi = Incassi/Margine/Spese/Fornitori. Ufficio = pannello a riquadri (Clienti, Rilievi, Documenti CE, Contratti, Magazzino, Ore lavoro, Profilo).
+- Tasto "+": nuovo lavoro, preventivo, rilievo, pratica impianto, contratto.
+- Logo piccolo in alto (mobile) e nella sidebar desktop divisa per aree. Apertura resta su Prossimi lavori.
+- File: layouts/navConfig.js, layouts/AppShell.jsx, components/AreaTabs.jsx, components/BottomSheet.jsx; Rilievi/Contratti aprono il nuovo con location.state.nuovo. SW v36.
+- Test: iteration_44 frontend 123/124 (overflow email in Profilo corretto).
+
+## Backlog
+- P1: Connettore ChatGPT (MCP + OAuth, sola lettura, bozze preventivi da approvare) — scelte utente raccolte, non ancora costruito.
+- P1: Togliere backend/firebase-admin.json dal repository (tracciato in git) e ruotare la chiave.
+- P2: Cestino 30 giorni, normalizzazione dati legacy, margine lato backend.

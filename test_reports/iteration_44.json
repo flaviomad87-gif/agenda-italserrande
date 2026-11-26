@@ -1,0 +1,44 @@
+{
+  "summary": "Frontend-only test of the new layout and navigation (4 areas + central '+' button, AreaTabs, Ufficio and Nuovo sheets, small logo, desktop sidebar grouped by area), at 390px and 1400px, with ephemeral Firebase users. 123 of 124 checks passed in the main script. The follow-up script confirmed numeric badges with real data. The one failure is a small horizontal overflow on /profilo. It only happens with long emails and is not a regression from this layout change.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Profilo > card Account (pages/Profilo.jsx ~line 212)", "issue": "The '<Mail/> {user.email}' row has no truncate or break-all. With a long email (the test ones are ~50 characters) the page scrolls sideways by 3-15px at 390px. The text node runs past the card, so document scrollWidth is 404 against a 390 viewport. With a short real email it does not show up. This code was there before the layout change.", "selector": "Profilo Account card email row", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified": [
+    "/ redirects to /prossimi-lavori",
+    "mobile-bottom-nav order: bar-agenda, bar-lavori, mobile-new-button (centre, raised), bar-soldi, bar-ufficio",
+    "bar-lavori goes to /prossimi-lavori, bar-soldi to /incassi, bar-agenda to /agenda",
+    "bar-ufficio opens ufficio-sheet. All 7 tiles (clienti, rilievi, documenti, contratti, magazzino, ore-lavoro, profilo) go to the right page and close the sheet. ufficio-sheet-close works.",
+    "Active area is highlighted correctly: lavori on /prossimi-lavori, /in-attesa and /preventivi/:id; soldi on /margine, with lavori not active there; ufficio on every Ufficio page; agenda on /agenda",
+    "area-tabs-lavori, area-tabs-soldi and area-tabs-ufficio show up. Every chip goes to its own page and the active chip turns blue. Badges show real counts: Prossimi 2, In attesa 1, Preventivi 1, bar-lavori-badge 2. Contratti badge works on bar-ufficio, menu-nav-contratti and the sidebar.",
+    "new-sheet: new-lavoro opens client-form-dialog on /prossimi-lavori, also when you are already on that page. Reloading does not reopen it.",
+    "new-preventivo creates a quote and opens /preventivi/:id",
+    "new-rilievo opens rilievo-dialog, also when you are already on /rilievi",
+    "new-pratica opens pratica-dialog and clears ?nuova",
+    "new-contratto opens contratto-dialog",
+    "new-sheet closes with the X button and with a click on the overlay",
+    "mobile-logo is 28px tall. app-logo in the desktop sidebar is 36px. On desktop the bottom nav and the mobile logo are hidden.",
+    "Desktop sidebar has the groups LAVORI / SOLDI / UFFICIO with all 16 items and badges. side-new-button opens new-sheet, and new-contratto from there works.",
+    "contratti-scadenza-banner shows on /prossimi-lavori ('1 manutenzione in scadenza...')",
+    "No horizontal overflow at 390px on prossimi, in-attesa, da-preventivare, da-fatturare, spese, fornitori, agenda, clienti, rilievi, documenti, contratti, magazzino, ore-lavoro or the quote editor. The chip row scrolls inside itself (scrollWidth 519 vs 390).",
+    "No pageerror"
+  ],
+  "test_report_links": ["/app/tests/iter44_layout_nav_ui.py", "/app/tests/iter44_badges_overflow.py"],
+  "action_items": ["Optional: add 'min-w-0 break-all' (or truncate) to the email row in the Profilo Account card"],
+  "critical_code_review_comments": [
+    "AppShell: badges are only counted for keys pending/awaiting/to_quote/to_invoice/unpaid/contratti. The bar-lavori badge shows only 'pending', not awaiting, to_quote or to_invoice. That looks deliberate, but check it is what you want.",
+    "areaOf() uses exact path matching for items, so a page not listed in AREAS (e.g. /archivio/... is in extra, fine) gets no highlighted area. New routes must be added to navConfig.",
+    "The contratti badge loader re-fetches on every window focus with no throttling. Not a big problem."
+  ],
+  "updated_files": ["/app/tests/iter44_layout_nav_ui.py", "/app/tests/iter44_badges_overflow.py"],
+  "success_rate": {"backend": "N/A (not requested)", "frontend": "99% (123/124 + follow-up all pass)"},
+  "seed_data_creation": "Ephemeral Firebase users only. The scripts created TEST_ clients, one contract and one quote, deleted them by id through the API, then deleted the Firebase users. Leftover quotes: 0.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: python3 /app/tests/iter44_layout_nav_ui.py (full layout and navigation) and python3 /app/tests/iter44_badges_overflow.py (badges with pending/to_quote/awaiting clients, created with pending:true and then a PUT to set to_quote or awaiting_materials). After login, wait for mobile-bottom-nav: the old mobile-menu-button no longer exists. A contract with data_inizio 6 months ago and frequenza_mesi 6 makes the in-scadenza banner appear.",
+  "test_credentials": "Ephemeral Firebase signUp testuser+iter44<ts>@italserrande.test / TestPassword123!"
+}
