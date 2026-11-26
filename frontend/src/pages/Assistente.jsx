@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bot, Check, Copy, FileText, History, Link2Off, Loader2, MessageCircle, Smartphone, X } from "lucide-react";
 import AssistenteChat from "../components/AssistenteChat";
+import JobPicker from "../components/JobPicker";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Button } from "../components/ui/button";
@@ -46,12 +47,14 @@ const Connect = ({ url }) => {
 const Proposta = ({ p, onDone }) => {
   const navigate = useNavigate();
   const [busy, setBusy] = useState("");
+  const [job, setJob] = useState(null);
+  const [picking, setPicking] = useState(false);
   const act = async (kind) => {
     setBusy(kind);
     try {
       if (kind === "ok") {
-        const { data } = await api.post(`/assistente/proposte/${p.id}/approva`);
-        toast.success(`Preventivo N° ${data.number} creato: inserisci i prezzi`);
+        const { data } = await api.post(`/assistente/proposte/${p.id}/approva`, { lavoro_id: job?.id || null });
+        toast.success(`Preventivo N° ${data.number} creato${data.lavoro_id ? " e collegato al lavoro" : ""}: inserisci i prezzi`);
         navigate(`/preventivi/${data.quote_id}`);
       } else {
         await api.delete(`/assistente/proposte/${p.id}`);
@@ -74,6 +77,20 @@ const Proposta = ({ p, onDone }) => {
       <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-stone-500">{p.oggetto}</div>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{p.righe.map((r, i) => <li key={i}>{r}</li>)}</ul>
       {p.note && <p className="mt-2 text-xs text-stone-500">{p.note}</p>}
+      <div className="mt-3 text-sm" data-testid={`proposta-lavoro-${p.id}`}>
+        {job ? (
+          <span>Collegata a <strong>{job.name}</strong> · <button type="button" className="text-xs font-semibold text-[#0047ab]" onClick={() => setPicking(true)} data-testid={`proposta-lavoro-cambia-${p.id}`}>Cambia</button></span>
+        ) : p.lavoro_id ? (
+          <span className="text-stone-600">Già collegata al lavoro indicato dall'assistente · <button type="button" className="text-xs font-semibold text-[#0047ab]" onClick={() => setPicking(true)} data-testid={`proposta-lavoro-cambia-${p.id}`}>Cambia</button></span>
+        ) : (
+          <button type="button" className="text-xs font-semibold text-[#0047ab]" onClick={() => setPicking(true)} data-testid={`proposta-lavoro-collega-${p.id}`}>+ Collega a un cliente/lavoro</button>
+        )}
+        {picking && (
+          <div className="mt-2">
+            <JobPicker initial={p.cliente.split(" ")[0]} onPick={(c) => { setJob(c); setPicking(false); }} onClose={() => setPicking(false)} testId={`proposta-picker-${p.id}`} />
+          </div>
+        )}
+      </div>
       <div className="mt-3 flex gap-2">
         <Button size="sm" onClick={() => act("ok")} disabled={!!busy} data-testid={`proposta-approva-${p.id}`}>
           {busy === "ok" ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />} Approva e metti i prezzi

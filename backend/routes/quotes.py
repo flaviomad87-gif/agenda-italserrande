@@ -140,6 +140,35 @@ async def update_quote(quote_id: str, payload: QuoteIn, user=Depends(get_current
     return res
 
 
+class LinkIn(BaseModel):
+    lavoro_id: str
+
+
+async def link_quote(uid: str, q: dict, job_id: str) -> dict:
+    """Collega il preventivo a un lavoro: il lavoro mostra 'Apri preventivo N°'."""
+    job = await db.clients.find_one({"id": job_id, "user_id": uid}, {"_id": 0, "id": 1, "name": 1})
+    if not job:
+        raise HTTPException(404, "Lavoro non trovato")
+    await db.clients.update_many({"user_id": uid, "quote_ref": q["id"], "id": {"$ne": job_id}}, {"$set": {"quote_ref": "", "quote_number": ""}})
+    await db.clients.update_one({"id": job_id, "user_id": uid}, {"$set": {"quote_ref": q["id"], "quote_number": q.get("number", "")}})
+    await db.quotes.update_one({"id": q["id"], "user_id": uid}, {"$set": {"client_id": job_id, "updatedAt": _now()}})
+    return {"ok": True, "lavoro_id": job_id, "lavoro_nome": job.get("name", "")}
+
+
+@router.post("/quotes/{quote_id}/collega")
+async def collega_quote(quote_id: str, p: LinkIn, user=Depends(get_current_user)):
+    q = await db.quotes.find_one({"id": quote_id, "user_id": user["uid"], "is_deleted": {"$ne": True}}, {"_id": 0, "id": 1, "number": 1})
+    if not q:
+        raise HTTPException(404, "Preventivo non trovato")
+    return await link_quote(user["uid"], q, p.lavoro_id)
+
+
+@router.get("/quotes/{quote_id}/lavoro")
+async def quote_job(quote_id: str, user=Depends(get_current_user)):
+    job = await db.clients.find_one({"user_id": user["uid"], "quote_ref": quote_id}, {"_id": 0, "id": 1, "name": 1, "address": 1})
+    return job or {}
+
+
 @router.delete("/quotes/{quote_id}")
 async def delete_quote(quote_id: str, user=Depends(get_current_user)):
     res = await db.quotes.update_one({"id": quote_id, "user_id": user["uid"]}, {"$set": {"is_deleted": True, "updatedAt": _now()}})

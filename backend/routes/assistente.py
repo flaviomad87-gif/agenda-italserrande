@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from ai_auth import base_url, now
 from db import db
 from firebase_auth import get_current_user
-from routes.quotes import LineItem, QuoteIn, create_quote
+from typing import Optional
+
+from pydantic import BaseModel
+
+from routes.quotes import LineItem, QuoteIn, create_quote, link_quote
 
 router = APIRouter(prefix="/assistente")
 
@@ -29,8 +33,12 @@ async def scollega(conn_id: str, user=Depends(get_current_user)):
     return {"ok": True}
 
 
+class ApprovaIn(BaseModel):
+    lavoro_id: Optional[str] = None
+
+
 @router.post("/proposte/{pid}/approva")
-async def approva(pid: str, user=Depends(get_current_user)):
+async def approva(pid: str, body: Optional[ApprovaIn] = None, user=Depends(get_current_user)):
     p = await db.ai_proposte.find_one_and_update(
         {"id": pid, "uid": user["uid"], "stato": "da_approvare"}, {"$set": {"stato": "in_corso"}}
     )
@@ -44,8 +52,14 @@ async def approva(pid: str, user=Depends(get_current_user)):
     except Exception:
         await db.ai_proposte.update_one({"id": pid}, {"$set": {"stato": "da_approvare"}})
         raise
+    job_id = (body.lavoro_id if body else None) or p.get("lavoro_id")
+    if job_id:
+        try:
+            await link_quote(user["uid"], q, job_id)
+        except HTTPException:
+            job_id = None
     await db.ai_proposte.update_one({"id": pid}, {"$set": {"stato": "approvata", "quote_id": q["id"], "gestita_at": now().isoformat()}})
-    return {"quote_id": q["id"], "number": q["number"]}
+    return {"quote_id": q["id"], "number": q["number"], "lavoro_id": job_id}
 
 
 @router.delete("/proposte/{pid}")

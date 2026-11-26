@@ -7,6 +7,7 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import ClientFormDialog from "../components/ClientFormDialog";
+import QuoteJobLink from "../components/QuoteJobLink";
 import { QuotePages, QUOTE_STATUS, VAT_RATES, buildQuotePdf, money, quoteFileName, quoteTotal } from "../lib/quoteDoc";
 
 const localToday = () => {
@@ -126,6 +127,8 @@ export default function QuoteEditor() {
           <div className="font-display text-xl font-bold tabular-nums" data-testid="quote-total">€ {money(quoteTotal(q))}</div>
         </div>
       </div>
+
+      <QuoteJobLink quote={q} />
 
       <div className="flex flex-wrap gap-1.5" data-testid="quote-status">
         {QUOTE_STATUS.map((s) => (
