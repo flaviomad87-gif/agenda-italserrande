@@ -21,8 +21,9 @@ async def stato(request: Request, user=Depends(get_current_user)):
     ).sort("created_at", -1).to_list(50)
     conns = [c for c in conns if c.get("refresh_exp", "") > now().isoformat()]
     proposte = await db.ai_proposte.find({"uid": uid, "stato": "da_approvare"}, {"_id": 0, "uid": 0}).sort("created_at", -1).to_list(50)
+    storico = await db.ai_proposte.find({"uid": uid, "stato": {"$in": ["approvata", "scartata"]}}, {"_id": 0, "uid": 0}).sort("created_at", -1).to_list(40)
     attivita = await db.ai_attivita.find({"uid": uid}, {"_id": 0, "uid": 0}).sort("at", -1).to_list(30)
-    return {"mcp_url": f"{base_url(request)}/api/mcp", "collegamenti": conns, "proposte": proposte, "attivita": attivita}
+    return {"mcp_url": f"{base_url(request)}/api/mcp", "collegamenti": conns, "proposte": proposte, "storico": storico, "attivita": attivita}
 
 
 @router.delete("/collegamenti/{conn_id}")
@@ -60,6 +61,14 @@ async def approva(pid: str, body: Optional[ApprovaIn] = None, user=Depends(get_c
             job_id = None
     await db.ai_proposte.update_one({"id": pid}, {"$set": {"stato": "approvata", "quote_id": q["id"], "gestita_at": now().isoformat()}})
     return {"quote_id": q["id"], "number": q["number"], "lavoro_id": job_id}
+
+
+@router.post("/proposte/{pid}/ripristina")
+async def ripristina(pid: str, user=Depends(get_current_user)):
+    res = await db.ai_proposte.update_one({"id": pid, "uid": user["uid"], "stato": "scartata"}, {"$set": {"stato": "da_approvare"}, "$unset": {"gestita_at": ""}})
+    if not res.matched_count:
+        raise HTTPException(404, "Bozza non trovata o non scartata")
+    return {"ok": True}
 
 
 @router.delete("/proposte/{pid}")

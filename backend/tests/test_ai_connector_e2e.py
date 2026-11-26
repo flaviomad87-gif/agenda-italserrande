@@ -62,7 +62,7 @@ step("initialize", init["result"]["protocolVersion"] == "2025-06-18")
 n = requests.post(f"{BASE}/api/mcp", headers=H, json={"jsonrpc": "2.0", "method": "notifications/initialized"})
 step("notifica 202", n.status_code == 202)
 tools = rpc("tools/list")["result"]["tools"]
-step("tools/list", len(tools) == 14, [t["name"] for t in tools])
+step("tools/list", len(tools) == 16, [t["name"] for t in tools])
 
 
 def call(name, args):

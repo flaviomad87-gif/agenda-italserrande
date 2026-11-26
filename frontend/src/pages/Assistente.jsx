@@ -39,7 +39,7 @@ const Connect = ({ url }) => {
         <li>Si apre la pagina dell'agenda: entra con la tua email e password e tocca Autorizza.</li>
         <li>Fatto: chiedi per esempio "Quali contratti di manutenzione sono in scadenza?".</li>
       </ol>
-      <p className="mt-3 text-xs text-stone-500">L'assistente legge tutto, chiede conferma prima di ogni modifica e non può cancellare nulla. Lo stesso indirizzo funziona con altri assistenti compatibili (es. ChatGPT Business).</p>
+      <p className="mt-3 text-xs text-stone-500">L'assistente legge tutto, chiede conferma prima di ogni modifica e non può cancellare lavori o documenti (solo scartare le sue bozze). Lo stesso indirizzo funziona con altri assistenti compatibili (es. ChatGPT Business).</p>
     </Card>
   );
 };
@@ -103,6 +103,57 @@ const Proposta = ({ p, onDone }) => {
   );
 };
 
+const STATI = { approvata: ["Approvata", "bg-emerald-100 text-emerald-800"], scartata: ["Scartata", "bg-stone-200 text-stone-600"] };
+
+const Storico = ({ items, onDone }) => {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const restore = async (id) => {
+    try {
+      await api.post(`/assistente/proposte/${id}/ripristina`);
+      toast.success("Bozza ripristinata");
+      onDone();
+    } catch {
+      toast.error("Ripristino non riuscito");
+    }
+  };
+  return (
+    <Card title={`Bozze precedenti (${items.length})`} icon={History} testId="assistente-storico">
+      {!items.length ? (
+        <p className="text-sm text-stone-500">Nessuna bozza approvata o scartata.</p>
+      ) : (
+        <>
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-sm font-semibold text-[#0047ab]" data-testid="storico-toggle">
+            {open ? "Nascondi" : "Mostra le bozze precedenti"}
+          </button>
+          {open && (
+            <div className="mt-3 space-y-2">
+              {items.map((p) => (
+                <div key={p.id} className="rounded-xl border border-stone-200 p-3" data-testid={`storico-${p.id}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 truncate text-sm font-semibold">{p.cliente}</div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATI[p.stato][1]}`}>{STATI[p.stato][0]}</span>
+                  </div>
+                  <div className="text-xs text-stone-500">{fmt(p.created_at)} · {p.oggetto}</div>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-stone-700">{p.righe.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                  <div className="mt-2">
+                    {p.stato === "approvata" && p.quote_id && (
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/preventivi/${p.quote_id}`)} data-testid={`storico-apri-${p.id}`}>Apri preventivo</Button>
+                    )}
+                    {p.stato === "scartata" && (
+                      <Button size="sm" variant="outline" onClick={() => restore(p.id)} data-testid={`storico-ripristina-${p.id}`}>Ripristina</Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </Card>
+  );
+};
+
 const MODES = [
   { key: "chat", label: "Chat nell'agenda", sub: "a consumo, credito Anthropic", icon: MessageCircle },
   { key: "claude", label: "App Claude", sub: "incluso nel tuo abbonamento", icon: Smartphone },
@@ -163,6 +214,7 @@ export default function Assistente() {
           <p className="text-sm text-stone-500">Nessuna bozza. Quando l'assistente prepara un preventivo lo trovi qui.</p>
         )}
       </Card>
+      <Storico items={s.storico || []} onDone={load} />
       {mode === "claude" && <Connect url={s.mcp_url} />}
       {mode === "claude" && <Card title="Assistenti collegati" icon={Bot} testId="assistente-collegamenti">
         {s.collegamenti.length ? (

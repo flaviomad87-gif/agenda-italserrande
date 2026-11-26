@@ -32,8 +32,9 @@ cancelli e automazioni. Rispondi sempre in italiano, in modo pratico e breve.
 Regole:
 - Prima di OGNI strumento che modifica l'agenda (crea_lavoro, modifica_lavoro, registra_pagamento,
   registra_visita_manutenzione, prepara_preventivo) riepiloga cosa farai e attendi un "sì" esplicito dell'utente.
-- Non puoi cancellare nulla: se te lo chiedono, spiega che va fatto dall'agenda. Bozze non ancora approvate:
-  Ufficio → Assistente IA → Bozze di preventivo → Scarta. Preventivi già approvati (hanno un numero): si aprono da
+- Non puoi cancellare lavori, preventivi o documenti: se te lo chiedono, spiega che va fatto dall'agenda.
+  Puoi invece scartare le bozze di preventivo non ancora approvate (elenco_bozze, scarta_bozza): restano nello storico
+  e il titolare può ripristinarle da Ufficio → Assistente IA → Bozze precedenti. Preventivi già approvati (hanno un numero): si aprono da
   Lavori → Preventivi o dall'archivio preventivi e si eliminano con il cestino in basso nella pagina del preventivo.
 - Prepara UNA sola bozza per richiesta. Prima di prepararne un'altra per lo stesso cliente, controlla con
   cerca_preventivi e chiedi se va sostituita.
@@ -301,6 +302,24 @@ async def prepara_preventivo(user, cliente: str, righe: list, indirizzo: str = "
     return {"bozza": p["id"], "messaggio": "Bozza salvata. Il titolare la trova in Ufficio → Assistente IA, inserisce i prezzi e la approva."}
 
 
+async def elenco_bozze(user, stato: str = "da_approvare"):
+    q: dict = {"uid": user["uid"]}
+    if stato != "tutte":
+        q["stato"] = stato
+    docs = await db.ai_proposte.find(q, {"_id": 0, "uid": 0}).sort("created_at", -1).to_list(40)
+    return {"bozze": [{"id": d["id"], "stato": d["stato"], "creata": d["created_at"][:16], "cliente": d["cliente"], "oggetto": d.get("oggetto"),
+                       "righe": d["righe"], "lavoro_id": d.get("lavoro_id"), "quote_id": d.get("quote_id")} for d in docs]}
+
+
+async def scarta_bozza(user, id: str):
+    d = await db.ai_proposte.find_one_and_update({"id": id, "uid": user["uid"], "stato": "da_approvare"},
+                                                {"$set": {"stato": "scartata", "gestita_at": now().isoformat()}})
+    if not d:
+        raise ValueError("Bozza non trovata o già approvata/scartata: usa elenco_bozze")
+    await _log(user, "Bozza scartata", f"{d['cliente']}: {len(d['righe'])} righe", id)
+    return {"scartata": id, "cliente": d["cliente"], "nota": "Ripristinabile da Ufficio → Assistente IA → Bozze precedenti"}
+
+
 # ---------------- Catalogo ----------------
 
 S, I, B = {"type": "string"}, {"type": "integer"}, {"type": "boolean"}
@@ -342,6 +361,10 @@ TOOLS = {t["def"]["name"]: t for t in [
         "metodo": {"type": "string", "enum": ["contanti", "pos", "bonifico", ""]}, "data": S}, ["id", "importo"], RW),
     _t(registra_visita_manutenzione, "Registra visita di manutenzione", "Segna eseguita una visita su un contratto: ricalcola la prossima scadenza." + CONF,
        {"contratto_id": S, "data": S, "nota": S}, ["contratto_id"], RW),
+    _t(elenco_bozze, "Elenco bozze di preventivo", "Bozze preparate dall'assistente: da_approvare, approvata, scartata o tutte.",
+       {"stato": {"type": "string", "enum": ["da_approvare", "approvata", "scartata", "tutte"]}}, [], RO),
+    _t(scarta_bozza, "Scarta bozza di preventivo", "Scarta (non approva) una bozza da_approvare; resta nello storico e si può ripristinare." + CONF,
+       {"id": S}, ["id"], RW),
     _t(prepara_preventivo, "Prepara bozza di preventivo", "Salva una BOZZA (solo descrizioni, niente prezzi) che il titolare approva nell'agenda." + CONF,
        {"cliente": S, "indirizzo": S, "oggetto": S, "righe": {"type": "array", "items": S}, "note": S, "lavoro_id": S}, ["cliente", "righe"], RW),
 ]}

@@ -114,7 +114,7 @@ input{{width:100%;box-sizing:border-box;padding:12px;border:1px solid #d5d9e0;bo
 <ul><li>leggere appuntamenti, lavori, foto, preventivi, documenti e contratti</li>
 <li>creare e spostare lavori e appuntamenti</li><li>registrare pagamenti e visite di manutenzione</li>
 <li>preparare preventivi come bozze da approvare (senza prezzi)</li></ul>
-<p>Non può cancellare nulla. Puoi scollegarlo quando vuoi da Ufficio → Assistente IA.</p>{err}
+<p>Non può cancellare lavori, preventivi o documenti (può solo scartare le sue bozze). Puoi scollegarlo quando vuoi da Ufficio → Assistente IA.</p>{err}
 <input type="hidden" name="req" value="{html.escape(req_id)}">
 <label>Email dell'agenda</label><input name="email" type="email" autocomplete="username" required data-testid="oauth-email">
 <label>Password</label><input name="password" type="password" autocomplete="current-password" data-testid="oauth-password">
