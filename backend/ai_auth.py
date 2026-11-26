@@ -55,5 +55,6 @@ async def user_from_bearer(request: Request) -> Optional[dict]:
     doc = await db.ai_tokens.find_one({"access_hash": sha(auth[7:].strip()), "revoked": False}, {"_id": 0})
     if not doc or doc["access_exp"] < now().isoformat():
         return None
-    await db.ai_tokens.update_one({"id": doc["id"]}, {"$set": {"last_used": now().isoformat()}})
+    if (doc.get("last_used") or "") < (now() - timedelta(minutes=5)).isoformat():
+        await db.ai_tokens.update_one({"id": doc["id"]}, {"$set": {"last_used": now().isoformat()}})
     return {"uid": doc["uid"], "email": doc.get("email", ""), "conn": doc["id"], "client_name": doc.get("client_name", "")}

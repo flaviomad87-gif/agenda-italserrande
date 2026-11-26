@@ -102,6 +102,9 @@ INDEXES = {
     "rilievi_sezionali": [[("user_id", 1), ("id", 1)], [("user_id", 1), ("client_id", 1)]],
     "quote_settings": [[("user_id", 1)]],
     "contratti": [[("user_id", 1), ("id", 1)], [("stato", 1)]],
+    "ai_tokens": [[("access_hash", 1)], [("refresh_hash", 1)], [("uid", 1)]],
+    "ai_proposte": [[("uid", 1), ("stato", 1)]],
+    "ai_attivita": [[("uid", 1), ("at", -1)]],
     "documenti": [[("public_token", 1)], [("user_id", 1), ("id", 1)], [("user_id", 1), ("kind", 1), ("anno", 1), ("numero", -1)]],
 }
 
@@ -121,6 +124,18 @@ async def ensure_indexes():
 
 
 _bg_tasks = set()
+
+
+@app.on_event("startup")
+async def ai_ttl_indexes():
+    # Richieste, codici e tentativi falliti dell'accesso assistente si cancellano da soli alla scadenza
+    from db import db
+
+    for coll in ("ai_oauth_requests", "ai_oauth_codes", "ai_login_fail"):
+        try:
+            await db[coll].create_index("exp_at", expireAfterSeconds=0)
+        except Exception as e:
+            logger.warning("Indice TTL %s non creato: %s", coll, e)
 
 
 @app.on_event("startup")

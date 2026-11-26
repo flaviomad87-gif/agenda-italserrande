@@ -36,10 +36,14 @@ async def approva(pid: str, user=Depends(get_current_user)):
     )
     if not p:
         raise HTTPException(404, "Bozza non trovata o già gestita")
-    q = await create_quote(QuoteIn(
-        clientName=p["cliente"], clientAddress=p["indirizzo"], subject=p["oggetto"] or "OFFERTA", notes=p["note"],
-        lineItems=[LineItem(description=r, amount=0) for r in p["righe"]] or [LineItem()], client_id=p.get("lavoro_id"),
-    ), user)
+    try:
+        q = await create_quote(QuoteIn(
+            clientName=p["cliente"], clientAddress=p["indirizzo"], subject=p["oggetto"] or "OFFERTA", notes=p["note"],
+            lineItems=[LineItem(description=r, amount=0) for r in p["righe"]] or [LineItem()], client_id=p.get("lavoro_id"),
+        ), user)
+    except Exception:
+        await db.ai_proposte.update_one({"id": pid}, {"$set": {"stato": "da_approvare"}})
+        raise
     await db.ai_proposte.update_one({"id": pid}, {"$set": {"stato": "approvata", "quote_id": q["id"], "gestita_at": now().isoformat()}})
     return {"quote_id": q["id"], "number": q["number"]}
 

@@ -8,7 +8,8 @@ import os
 import secrets
 from datetime import timedelta
 from typing import Optional
-from urllib.parse import urlencode
+import re
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from fastapi import APIRouter, Form, Request
@@ -21,6 +22,7 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/oauth")
 well_known = APIRouter()
 CODE_TTL = timedelta(minutes=10)
+MAX_FAILS = 5
 
 
 def _as_meta(request: Request) -> dict:
@@ -78,6 +80,9 @@ async def _client(client_id: str) -> Optional[dict]:
     doc = await db.ai_clients.find_one({"client_id": client_id}, {"_id": 0})
     if doc or not client_id.startswith("https://"):
         return doc
+    host = urlparse(client_id).hostname or ""
+    if host == "localhost" or host.endswith(".local") or "." not in host or re.fullmatch(r"[\d.:\[\]a-f]+", host):
+        return None
     # Client ID Metadata Document: il client_id è un URL con i suoi dati
     try:
         async with httpx.AsyncClient(timeout=8) as c:
@@ -138,6 +143,7 @@ async def authorize(
     await db.ai_oauth_requests.insert_one({
         "id": req_id, "client_id": client_id, "client_name": client["client_name"], "redirect_uri": redirect_uri,
         "state": state, "code_challenge": code_challenge, "scope": scope, "exp": (now() + CODE_TTL).isoformat(),
+        "exp_at": now() + CODE_TTL,
     })
     return _page(req_id, client["client_name"])
 
@@ -161,14 +167,18 @@ async def authorize_submit(req: str = Form(...), action: str = Form(...), email:
     if action != "allow":
         await db.ai_oauth_requests.delete_one({"id": req})
         return RedirectResponse(f"{back}?{urlencode({'error': 'access_denied', 'state': pend['state']})}", 302)
-    user = await _firebase_login(email.strip(), password)
+    mail = email.strip().lower()
+    if await db.ai_login_fail.count_documents({"email": mail}) >= MAX_FAILS:
+        return _page(req, pend["client_name"], "Troppi tentativi: riprova tra 15 minuti.")
+    user = await _firebase_login(mail, password)
     if not user:
+        await db.ai_login_fail.insert_one({"email": mail, "exp_at": now() + timedelta(minutes=15)})
         return _page(req, pend["client_name"], "Email o password non corretti.")
     code = secrets.token_urlsafe(32)
     await db.ai_oauth_codes.insert_one({
         "code_hash": sha(code), "uid": user["uid"], "email": user["email"], "client_id": pend["client_id"],
         "client_name": pend["client_name"], "redirect_uri": back, "code_challenge": pend["code_challenge"],
-        "exp": (now() + CODE_TTL).isoformat(),
+        "exp": (now() + CODE_TTL).isoformat(), "exp_at": now() + CODE_TTL,
     })
     await db.ai_oauth_requests.delete_one({"id": req})
     return RedirectResponse(f"{back}?{urlencode({'code': code, 'state': pend['state']})}", 302)

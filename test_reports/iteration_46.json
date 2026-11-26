@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 46 tested the AI assistant connector (OAuth 2.1 + MCP + the /assistente page). All tests ran on ephemeral Firebase users A, B and UI. Backend: the new suite tests/test_iter46_ai_connector.py passes 14/14. It covers the 401 + WWW-Authenticate resource_metadata, the well-known metadata at the root and under /api (JSON), DCR validation, the authorize page (unknown client, bad redirect_uri, plain PKCE gives invalid_request, wrong password, Annulla gives access_denied with state, the request is single-use), and the token endpoint (wrong PKCE gives 400, the code is single-use even after a failed attempt, refresh rotation: the old access and old refresh tokens are rejected, unsupported_grant_type). It also covers MCP initialize/version negotiation, the 202 notification, ping, the 14 tools (none destructive), unknown method -32601, batch requests, bad JSON 400, GET 405, and every tool with data checks in MongoDB and the app APIs. foto_lavoro returns JPEG base64 images. registra_visita_manutenzione recalculates the contract. prepara_preventivo then approve creates a quote with 0-price lines linked to the job, and scarta removes the draft. Activity entries are logged. A/B isolation holds on all tools and on the /assistente endpoints, and Scollega revokes both the access and refresh tokens. Frontend: mobile 390 (Ufficio sheet > menu-nav-assistente) and desktop (nav-assistente). The page shows the MCP URL, copy (toast 'Indirizzo copiato'), drafts, connections and activity. Scarta removes the card. Approva shows the toast 'Preventivo N° 001 creato' and opens /preventivi/:id. Scollega (with confirm) removes the connection, and MCP then returns 401. A job created by the AI appears in Prossimi. No 500s and no horizontal overflow. Main findings: prepara_preventivo splits a string 'righe' into single characters, crea_lavoro accepts an empty name, and the root /.well-known path depends on setupProxy, which only runs in development.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "MCP tools/call prepara_preventivo", "issue": "If 'righe' is a string instead of an array (an LLM can send this), the list comprehension iterates over the characters. 'Serranda' became the draft ['S','e','r','r','a','n','d','a']. Fix: if isinstance(righe, str), split it on newlines, else raise ValueError."},
+      {"endpoint": "MCP tools/call crea_lavoro", "issue": "Empty or whitespace-only nome is accepted and creates a job with no name. Raise ValueError when nome.strip() is empty."},
+      {"endpoint": "MCP tools/call (all)", "issue": "Arguments are not validated against inputSchema (types and enums). Python errors leak to the model as text, e.g. elenco_lavori lista='boh' gives a KeyError logged as an exception with 'Errore interno (KeyError)', and limite=-1 gives 'length must be non-negative'. These are not 500s, but returning a clear message would help the assistant (e.g. 'lista non valida: usa prossimi|in_attesa|...')."},
+      {"endpoint": "POST /api/assistente/proposte/{id}/approva", "issue": "The status goes to 'in_corso' before create_quote runs. If create_quote fails, the draft is stuck in 'in_corso' and disappears from the page forever. Revert to da_approvare on exception."},
+      {"endpoint": "/.well-known/oauth-authorization-server (root)", "issue": "In preview this works only because frontend/src/setupProxy.js forwards /.well-known to the backend, and setupProxy only runs in the CRA dev server. In a production static build, root /.well-known/* (without /api) will probably be served by the frontend (index.html), and Claude's AS discovery will fail. Verify the production routing, or make the issuer and metadata discoverable under /api (e.g. issuer=<base>/api with /api/.well-known/... and RFC 8414 path insertion), or add an ingress or static-server rule."},
+      {"endpoint": "ai_oauth_requests / ai_oauth_codes", "issue": "Expired authorize requests and codes are never deleted (no TTL index). Each GET /authorize inserts a document. Add TTL indexes on exp, stored as a Date."},
+      {"endpoint": "GET /api/oauth/authorize (client_id as https URL)", "issue": "The Client ID Metadata Document fetch calls arbitrary https URLs (a small SSRF risk), and the password form has no rate limiting, so passwords can be brute-forced. Consider an allowlist or blocking private IPs, and a simple per-IP or per-email throttle."},
+      {"endpoint": "MCP leggi_documento", "issue": "The rilievi fallback does not filter is_deleted, so soft-deleted rilievi can still be read by id."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Assistente", "issues": ["revoke() has no try/catch. If the DELETE fails, there is an unhandled rejection and no error toast. copy() also has no fallback when navigator.clipboard is unavailable or denied."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter46_ai_connector.py", "/app/test_reports/pytest/iter46_results.xml"],
+  "action_items": [
+    "prepara_preventivo: accept a string 'righe' by splitting it on newlines (or reject it), and don't split it into characters",
+    "crea_lavoro: reject an empty nome",
+    "Check that root /.well-known/oauth-authorization-server is served by the backend in the PRODUCTION deployment (setupProxy is dev-only)",
+    "approva: roll the status back to da_approvare if create_quote fails",
+    "Give clear errors for invalid enum arguments (elenco_lavori lista) instead of KeyError",
+    "Optional: TTL indexes for oauth requests/codes, throttle on the authorize password form, try/catch in revoke/copy"
+  ],
+  "critical_code_review_comments": [
+    "Tokens are stored hashed, PKCE S256 is mandatory, codes are single-use (find_one_and_delete), and refresh rotation reuses the connection id. This is solid.",
+    "user_from_bearer writes last_used on every MCP call (one extra DB write per request). Consider throttling it.",
+    "The app's ClientCreate/date validation from iteration 45 now also blocks bad dates in crea_lavoro (verified: '31/02/2027' returns isError)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter46_ai_connector.py"],
+  "success_rate": {"backend": "100% (14/14 suite tests). Edge probes found 2 validation gaps.", "frontend": "100% of the flows tested (navigation mobile and desktop, copy, scarta, approva > quote editor, scollega > MCP 401, AI job visible in Prossimi)"},
+  "seed_data_creation": "Only ephemeral Firebase users (testuser+iter46*) with TEST_ data. Everything was deleted by uid/user_id, the DCR clients were deleted by client_id, and the Firebase accounts were deleted. The layout.test.jun26 account was not used or modified.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/test_iter46_ai_connector.py -p no:xdist. The suite creates its own Firebase users and does the OAuth dance with redirect_uri https://claude.ai/api/mcp/auth_callback. There is no GET /api/clients/{id}, so verify jobs in MongoDB. There is no /preventivi list route (only /preventivi/:id and /da-preventivare). The Ufficio bottom bar is data-testid=bar-ufficio. Scollega uses window.confirm, so accept dialogs. The real Claude OAuth flow and the production /.well-known routing were not testable here."
+}

@@ -449,7 +449,6 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Test: iteration_44 frontend 123/124 (overflow email in Profilo corretto).
 
 ## Backlog
-- P1: Connettore ChatGPT (MCP + OAuth, sola lettura, bozze preventivi da approvare) — scelte utente raccolte, non ancora costruito.
 - P1: Togliere backend/firebase-admin.json dal repository (tracciato in git) e ruotare la chiave.
 - P2: Cestino 30 giorni, normalizzazione dati legacy, margine lato backend.
 
@@ -467,3 +466,11 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Editor preventivo: totale etichettato "Imponibile".
 - Scelte volute (test saltati): importi/righe negative ammesse (sconti), foto caricabili su bozze non salvate.
 - Test: nuove suite 25 pass + 3 skip, vecchie suite 89/89.
+
+### Giu 2026 — Collegamento assistente IA (MCP + OAuth 2.1)
+- Utente: ChatGPT Go (non supporta MCP), ha Claude Pro → collegamento standard MCP usabile da Claude ora, ChatGPT Business/altri in futuro.
+- Permessi scelti: legge tutto, crea/sposta lavori e appuntamenti, registra pagamenti e visite manutenzione, prepara BOZZE di preventivo (prezzi a mano, approvazione in app). Nessuna cancellazione.
+- Backend: ai_auth.py (token hash, 1h access, 90gg refresh con rotazione), routes/ai_oauth.py (metadati /.well-known in radice e sotto /api, DCR, CIMD, pagina login email+password Firebase via REST con FIREBASE_WEB_API_KEY, blocco 5 tentativi/15 min, TTL indici), routes/ai_mcp.py (POST /api/mcp JSON-RPC, 14 strumenti, validazione argomenti, attività registrata), routes/assistente.py (/api/assistente/stato, approva/scarta bozze, scollega).
+- Frontend: pages/Assistente.jsx (/assistente, in Ufficio → Assistente IA), setupProxy.js per /.well-known in sviluppo.
+- Produzione Render: aggiungere FIREBASE_WEB_API_KEY (= REACT_APP_FIREBASE_API_KEY) alle variabili del backend. Indirizzo connettore: https://agenda-italserrande-api.onrender.com/api/mcp
+- Test: iteration_46 backend 14/14 + frontend 100%; e2e tests/test_ai_connector_e2e.py; client MCP ufficiale (SDK 2.3) OK.

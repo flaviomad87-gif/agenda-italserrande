@@ -222,6 +222,8 @@ def _place(data: dict, lista: str, data_agenda: str = ""):
 
 async def crea_lavoro(user, nome: str, indirizzo: str = "", telefono: str = "", note: str = "", lista: str = "prossimi",
                       data: str = "", appuntamento: str = "", nota_appuntamento: str = "", importo: float = 0):
+    if not nome.strip():
+        raise ValueError("Serve il nome del cliente")
     d = {"name": nome.strip(), "address": indirizzo, "phone": telefono, "notes": note, "date": data or _today(),
          "appointment_at": appuntamento or None, "appointment_note": nota_appuntamento, "amount": importo}
     _place(d, lista, data)
@@ -280,6 +282,8 @@ async def registra_visita_manutenzione(user, contratto_id: str, data: str = "", 
 
 
 async def prepara_preventivo(user, cliente: str, righe: list, indirizzo: str = "", oggetto: str = "OFFERTA", note: str = "", lavoro_id: str = ""):
+    if isinstance(righe, str):
+        righe = righe.splitlines()
     righe = [str(r).strip() for r in righe if str(r).strip()]
     if not righe:
         raise ValueError("Servono le righe del preventivo")
@@ -347,11 +351,35 @@ def _fail(rid, code: int, msg: str) -> dict:
     return {"jsonrpc": "2.0", "id": rid, "error": {"code": code, "message": msg}}
 
 
+TYPES = {"string": str, "integer": int, "number": (int, float), "boolean": bool, "array": list}
+
+
+def _check(schema: dict, args: dict):
+    """Controllo leggero degli argomenti con messaggi chiari per l'assistente."""
+    props = schema["properties"]
+    for k, v in args.items():
+        p = props.get(k)
+        if p is None:
+            raise ValueError(f"Argomento sconosciuto '{k}'. Ammessi: {', '.join(props)}")
+        if p["type"] == "array" and isinstance(v, str):
+            continue
+        if not isinstance(v, TYPES[p["type"]]) or (p["type"] in ("integer", "number") and isinstance(v, bool)):
+            raise ValueError(f"'{k}' deve essere di tipo {p['type']}")
+        if "enum" in p and v not in p["enum"]:
+            raise ValueError(f"'{k}' non valido: usa {' | '.join(x for x in p['enum'] if x) }")
+        if p["type"] == "integer" and v < 1:
+            raise ValueError(f"'{k}' deve essere almeno 1")
+    missing = [r for r in schema["required"] if r not in args]
+    if missing:
+        raise ValueError(f"Mancano: {', '.join(missing)}")
+
+
 async def _call(user: dict, name: str, args: dict) -> dict:
     tool = TOOLS.get(name)
     if not tool:
         return {"content": [{"type": "text", "text": f"Strumento sconosciuto: {name}"}], "isError": True}
     try:
+        _check(tool["def"]["inputSchema"], args or {})
         out: Any = await tool["fn"](user, **(args or {}))
     except (ValueError, TypeError) as e:
         return {"content": [{"type": "text", "text": f"Errore: {e}"}], "isError": True}

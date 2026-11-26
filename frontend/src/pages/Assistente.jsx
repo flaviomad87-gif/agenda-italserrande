@@ -18,8 +18,12 @@ const Card = ({ title, icon: Icon, children, testId }) => (
 
 const Connect = ({ url }) => {
   const copy = async () => {
-    await navigator.clipboard.writeText(url);
-    toast.success("Indirizzo copiato");
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Indirizzo copiato");
+    } catch {
+      window.prompt("Copia questo indirizzo:", url);
+    }
   };
   return (
     <Card title="Collega un assistente" icon={Bot} testId="assistente-collega">
@@ -89,9 +93,13 @@ export default function Assistente() {
   }, []);
   const revoke = async (id) => {
     if (!window.confirm("Scollegare questo assistente? Non potrà più accedere all'agenda.")) return;
-    await api.delete(`/assistente/collegamenti/${id}`);
-    toast.success("Assistente scollegato");
-    load();
+    try {
+      await api.delete(`/assistente/collegamenti/${id}`);
+      toast.success("Assistente scollegato");
+      load();
+    } catch {
+      toast.error("Scollegamento non riuscito, riprova");
+    }
   };
   if (!s) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-stone-400" /></div>;
   return (
