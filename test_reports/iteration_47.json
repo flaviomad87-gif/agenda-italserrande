@@ -1,0 +1,40 @@
+{
+  "summary": "Ho testato la chat IA nell'agenda (Haiku, chiamate Anthropic reali, circa 13 domande in tutto) e il contatore del credito. Backend: 6/6 test passano, ma i due test sulle modifiche passano solo perché aggirano un problema. Funzionano: credito GET/PUT (azzera, aggiungi, soglia, avviso, errore 422 con valori sbagliati), errore 409 quando c'è un'operazione in sospeso, 404 alla doppia conferma, Annulla senza creare nulla, Conferma che crea il lavoro (visibile in Prossimi e registrato in attività come 'Chat agenda · Haiku 5.5'), isolamento A/B (404), credito.speso che sale. Frontend: selettore modalità e modello con scelta ricordata, CreditoBox con avviso ambra e toast, stato 'Sto lavorando', richiesta in sospeso con campo di testo e invio disabilitati, Annulla/Conferma, Nuova chat, microfono presente, nessun overflow a 390px. PROBLEMA PRINCIPALE: doppia conferma. Haiku non propone mai subito la modifica (3 casi su 3): prima chiede un 'sì' scritto in chat e solo dopo compare il riquadro con Conferma.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/assistente/chat (prompt)", "issue": "Doppia conferma: in routes/ai_mcp.py INSTRUCTIONS chiede di 'riepilogare e attendere un sì esplicito' prima di ogni modifica, e questa regola vince su SYSTEM_EXTRA in ai_chat.py. Haiku risponde con un riepilogo e 'Rispondi sì'; il riquadro di conferma compare solo dopo. Riprodotto 3 volte su 3, nei test API e nella UI."},
+      {"endpoint": "/api/assistente/chat/{id}/conferma (ok=false)", "issue": "Dopo Annulla l'assistente risponde in modo confuso: 'Non so se l'annullamento sia partito dall'app o da un problema tecnico'. Il testo del tool_result dovrebbe dire chiaramente che l'utente ha toccato Annulla nell'app."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AssistenteChat Bubble", "issue": "Il markdown non viene interpretato: si vedono gli '**' (es. '**Cliente:** ...') perché le risposte sono mostrate come testo semplice (whitespace-pre-wrap)", "selector": "[data-testid=chat-messages]", "priority": "MEDIUM"},
+      {"component": "chat-cost", "issue": "Dopo una domanda Haiku mostra 'circa $ 0.000' (toFixed(3) su 0,0003), con il punto invece della virgola italiana. Meglio 4 decimali o '< $ 0,01'", "selector": "[data-testid=chat-cost]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Assistente 390px", "issues": ["Nel CreditoBox il pulsante 'Riparti da questo importo' è stretto: il testo tocca i bordi del pulsante"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter47_ai_chat.py", "/app/test_reports/pytest/iter47.xml"],
+  "action_items": [
+    "Eliminare la doppia conferma: nella chat interna escludere o sovrascrivere la regola 'attendi un sì esplicito' di INSTRUCTIONS (es. un INSTRUCTIONS diverso per la chat, che dica di chiamare subito lo strumento perché la conferma la dà il pulsante). Il testo per il connettore MCP resta com'è",
+    "Rendere più chiaro il testo del tool_result quando l'utente annulla ('L'utente ha toccato Annulla nell'app: non fare nulla')",
+    "Interpretare il markdown nelle bolle della chat, oppure chiedere al modello di non usarlo",
+    "Formato di chat-cost: virgola italiana e più decimali",
+    "Eliminare il lavoro 'TEST_CHAT Bianchi Luca' (id 908ce193-bf49-40f8-974a-5db616713caf) creato dal main agent sull'utente layout.test.jun26: io ho eliminato solo quello creato da me"
+  ],
+  "critical_code_review_comments": [
+    "ai_chat._run: dopo la conferma l'operazione viene eseguita, ma se poi la chiamata ad Anthropic fallisce, il blocco finally riporta i messaggi a before=len(messages), che include già i risultati dello strumento. La modifica resta fatta, ma la risposta in UI è un errore: comportamento accettabile, l'utente dovrebbe però saperlo",
+    "chat_send: find_one + controllo di pending non sono atomici. Due POST quasi simultanei sulla stessa chat possono avviare due giri in parallelo (rischio basso)",
+    "Gli ID modello claude-haiku-5-5 e claude-sonnet-5-5 funzionano: le chiamate reali sono andate a buon fine"
+  ],
+  "updated_files": ["/app/backend/tests/test_iter47_ai_chat.py"],
+  "success_rate": {"backend": "100% (6/6; i test sulle modifiche aggirano la doppia conferma inviando 'Sì, procedi')", "frontend": "95%"},
+  "seed_data_creation": "Utenti Firebase effimeri A/B, cancellati con i loro dati. Su layout.test.jun26: creato ed eliminato il lavoro TEST_CHAT UiTest; il credito è stato modificato durante il test e riportato a 10$ / soglia 2 (speso azzerato). La spesa mensile accumulata ($0,02) è invariata.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "test_iter47_ai_chat.py fa circa 7 chiamate Haiku a pagamento: eseguirlo con -p no:xdist. _ask_create conta in S['double_confirm'] le volte in cui serve il 'sì' scritto: dopo la correzione dovrebbe essere 0 (si può rendere un'asserzione). Login UI: layout.test.jun26@italserrande.test / TestPassword123!.",
+  "rca of the issue": "Doppia conferma: SYSTEM = INSTRUCTIONS (MCP: 'riepiloga e attendi un sì esplicito') + SYSTEM_EXTRA ('chiama pure lo strumento'). Le due istruzioni si contraddicono e Haiku segue la regola esplicita e in maiuscolo ('OGNI'). Soluzione: un prompt dedicato alla chat senza quella regola."
+}

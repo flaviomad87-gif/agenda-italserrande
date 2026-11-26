@@ -2,6 +2,7 @@
 Usa gli stessi strumenti del collegamento esterno; le modifiche partono solo dopo il tocco su Conferma."""
 import logging
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import Literal, Optional
@@ -13,7 +14,7 @@ from pydantic import BaseModel, Field
 from ai_auth import now
 from db import db
 from firebase_auth import get_current_user
-from routes.ai_mcp import INSTRUCTIONS, ROME, TOOLS, _call
+from routes.ai_mcp import CONF, INSTRUCTIONS, ROME, TOOLS, _call
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/assistente")
@@ -25,13 +26,19 @@ MODELS = {
 }
 MAX_ROUNDS = 8
 SYSTEM_EXTRA = """
-Sei dentro l'app dell'agenda: le modifiche le confermo io con un pulsante, quindi chiama pure lo strumento di modifica
-quando ti chiedo un'operazione chiara (verrà eseguito solo dopo il mio Conferma). Se l'operazione non è chiara, chiedi prima.
-Rispondi breve, con elenchi puntati quando servono. Data e ora attuali: {now}."""
+Sei dentro l'app dell'agenda. Rispondi breve, con elenchi puntati quando servono. Data e ora attuali: {now}."""
+
+
+CHAT_CONF = " Chiamalo direttamente: l'utente conferma o annulla con un pulsante nell'app."
+CHAT_RULE = """- Per le modifiche (crea_lavoro, modifica_lavoro, registra_pagamento, registra_visita_manutenzione,
+  prepara_preventivo) chiama subito lo strumento senza chiedere conferma a parole: l'app mostra all'utente un riquadro
+  Conferma/Annulla e lo esegue solo dopo il suo tocco. Chiedi prima solo se mancano dati indispensabili."""
+CHAT_INSTRUCTIONS = re.sub(r"- Prima di OGNI strumento.*?dell'utente\.", CHAT_RULE, INSTRUCTIONS, flags=re.S)
 
 
 def _tools_for_claude() -> list:
-    defs = [{"name": t["def"]["name"], "description": t["def"]["description"], "input_schema": t["def"]["inputSchema"]} for t in TOOLS.values()]
+    defs = [{"name": t["def"]["name"], "description": t["def"]["description"].replace(CONF, CHAT_CONF),
+             "input_schema": t["def"]["inputSchema"]} for t in TOOLS.values()]
     defs[-1]["cache_control"] = {"type": "ephemeral"}
     return defs
 
@@ -121,7 +128,7 @@ async def _run(chat: dict, user: dict, before: int) -> dict:
         raise HTTPException(503, "Chiave Anthropic non impostata sul server")
     client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     model = chat["model"]
-    system = [{"type": "text", "text": INSTRUCTIONS + SYSTEM_EXTRA.format(now=datetime.now(ROME).strftime("%A %d/%m/%Y %H:%M")),
+    system = [{"type": "text", "text": CHAT_INSTRUCTIONS + SYSTEM_EXTRA.format(now=datetime.now(ROME).strftime("%A %d/%m/%Y %H:%M")),
                "cache_control": {"type": "ephemeral"}}]
     cost = 0.0
     ok = False
@@ -217,7 +224,7 @@ async def chat_confirm(cid: str, p: ConfermaIn, user=Depends(get_current_user)):
         if p.ok:
             content, err = await _exec(me, a["name"], a["input"])
         else:
-            content, err = [{"type": "text", "text": "Operazione annullata dall'utente: non è stato modificato nulla."}], False
+            content, err = [{"type": "text", "text": "L'utente ha toccato Annulla nel riquadro di conferma dell'app: l'operazione NON è stata eseguita e non è cambiato nulla. Prendine atto in una frase e chiedi se vuole cambiare qualcosa."}], False
         results.append({"type": "tool_result", "tool_use_id": a["id"], "content": content, "is_error": err})
     chat["pending"] = None
     chat["messages"].append({"role": "user", "content": results})

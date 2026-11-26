@@ -18,7 +18,7 @@ const errMsg = (e) => e?.response?.data?.detail || "L'assistente non ha risposto
 const Bubble = ({ m }) => (
   <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
     <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm ${m.role === "user" ? "bg-[#0047ab] text-white" : "bg-stone-100 text-stone-800"}`}>
-      {m.text}
+      {m.text.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") && p.endsWith("**") ? <strong key={i}>{p.slice(2, -2)}</strong> : p))}
     </div>
   </div>
 );
@@ -168,7 +168,7 @@ export default function AssistenteChat() {
         <button type="button" onClick={() => setChat(null)} className="inline-flex items-center gap-1 font-semibold text-[#0047ab]" data-testid="chat-new">
           <MessageSquarePlus className="h-3.5 w-3.5" /> Nuova chat
         </button>
-        {chat?.costo_chat > 0 && <span data-testid="chat-cost">Questa chat: circa $ {chat.costo_chat.toFixed(3)}</span>}
+        {chat?.costo_chat > 0 && <span data-testid="chat-cost">Questa chat: {chat.costo_chat < 0.01 ? "meno di $ 0,01" : `circa $ ${chat.costo_chat.toLocaleString("it-IT", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</span>}
       </div>
     </div>
   );

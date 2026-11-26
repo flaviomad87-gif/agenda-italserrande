@@ -63,7 +63,7 @@ export default function CreditoBox({ credito, onChange }) {
             <Input inputMode="decimal" value={soglia} onChange={(e) => setSoglia(e.target.value)} data-testid="credito-soglia" />
           </label>
           <Button size="sm" onClick={() => save(false)} data-testid="credito-aggiungi">Aggiungi al credito</Button>
-          <Button size="sm" variant="outline" onClick={() => save(true)} data-testid="credito-azzera">Riparti da questo importo</Button>
+          <Button size="sm" variant="outline" onClick={() => save(true)} data-testid="credito-azzera">Riparti da qui</Button>
         </div>
       )}
     </div>
