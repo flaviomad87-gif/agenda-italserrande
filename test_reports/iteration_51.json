@@ -1,0 +1,28 @@
+{
+  "summary": "Light frontend-only retest of the Pratica impianto refinements after iteration_50, using a temporary Firebase user, on mobile (390) and desktop (1920). All 6 requested points PASS. (1) CE inside the full pratica PDF, the single 'ce' PDF and the standalone CE: page 1 reads 'La conformità della chiusura motorizzata' (no 'serranda'), also for cancello scorrevole/battente. Page 2 shows 'Responsabile dell'impianto: Amm. TEST Rossi' (absent in the standalone CE, which has no such field) and an 'Avvertenze' box with points 1-6. The Avvertenze text ends at y=321, the first signature label starts at y=336 and the boxes at 352/470. No text falls inside the signature boxes except the Data value, nothing goes outside the page (max x=544.6 of 595), and this was confirmed visually. (2) Standalone CE (documenti-tab-ce → DocumentoDialog → documento-share) still builds correctly as a 2-page PDF with no console errors. (3) Full-PDF order is Fascicolo, CE, Collaudo, Rischi, Componenti, DM 37/08 + schema, Manuale, Informativa, Registro primo intervento, Registro a righe, Targhetta, for all 5 types. The fascicolo index lists the same order (checked by text positions). (4) Verbale di collaudo: each delivery-check group (Preliminari, Montaggio, Funzionali, Prove prestazionali) has its heading and its last item on the same page, in all 5 types and in the single collaudo PDF; visual check done. (5) componenti-toggle reads 'Apri elenco componenti' when closed (details has no open attribute), 'Chiudi elenco componenti' when open, and goes back when closed again. (6) Full PDF for the 5 types: avvolgibile 15 pages, sezionale 17, basculante 15, scorrevole 17, battente 17, with no console error or pageerror. Test data and the user were deleted.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Full pratica PDF (scorrevole, sezionale, battente)", "issues": [
+        "Orphan page 7: 'ANALISI DEI RISCHI (segue)' holds only the 'Il tecnico (Italserrande S.r.l.)' signature box. The signatures should be kept with the end of the table, or the content tightened so it fits on one page.",
+        "Orphan page 11: 'DICHIARAZIONE DI CONFORMITÀ ... (segue)' holds a single line, 'fabbricanti delle apparecchiature installate.', and is otherwise blank ('Pagina 3 di 3'). The last DM 37/08 paragraph overflows by one line. Use ensure() on the whole paragraph or shrink the spacing a little. Avvolgibile and basculante are not affected."
+      ]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter51_pdf_check.py", "/app/backend/tests/iter51_ui_setup.py"],
+  "action_items": [
+    "Optional polish: remove the near-empty overflow pages in the full PDF for scorrevole, sezionale and battente (Analisi rischi signature-only page 7, DM 37/08 one-line page 11)"
+  ],
+  "critical_code_review_comments": [
+    "documentiPdf.drawCe: 'Responsabile dell'impianto' is written on one line with no width check or wrapping. A very long name or company would run past the right margin (x>544). Use splitTextToSize or pen.value-style shrinking.",
+    "drawCe page 2 uses fixed y coordinates (Avvertenze 251-318.5, signatures at 352). This is safe with the current 6 fixed points, but adding a 7th point or a longer wording would collide with the signature labels at y~346."
+  ],
+  "updated_files": ["/app/backend/tests/iter51_pdf_check.py", "/app/backend/tests/iter51_ui_setup.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% of requested points"},
+  "seed_data_creation": "Temporary Firebase user testuser+iter51ui5ea95136@italserrande.test with 1 pratica and 1 standalone CE. All deleted (by API and by user_id filter) and the user was removed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iter51_ui_setup.py setup|cleanup (state in /tmp/iter51_ui.json). In Playwright, add_init_script sets navigator.canShare/share to undefined so PDFs download, then expect_download captures them. Pratica: documenti-tab-pratica → documenti-add, inputs documento-input-<id> (cliente, indirizzo, motore, responsabile), pratica-tipo-<tipo>, pratica-consegna-tutte, pratica-save, pratica-pdf-<k>, pratica-share-all. Standalone CE: documenti-tab-ce → documenti-add → documento-input-cliente → documento-save → documento-share. iter51_pdf_check.py <names> checks the CE wording, responsabile, avvertenze and signature overlap, the document order and fascicolo index, and that collaudo groups are not split (files /tmp/iter51_<name>.pdf)."
+}

@@ -70,8 +70,9 @@ export class Flow {
   }
   para(t, { size = 9, style = "normal", color = INK, indent = 0 } = {}) {
     this.font(size, style, color);
-    this.doc.splitTextToSize(t, W - indent).forEach((l) => {
-      this.ensure(size * 1.4);
+    const lines = this.doc.splitTextToSize(t, W - indent);
+    lines.forEach((l, i) => {
+      this.ensure(size * 1.4 - (i === lines.length - 1 ? 8 : 0));
       this.font(size, style, color);
       this.doc.text(l, L + indent, this.y);
       this.y += size * 1.38;
@@ -323,8 +324,7 @@ function rischi(fl, d) {
   fl.para(sicurezzeOn(f).map(([, l]) => l).join("; ") + ".");
   fl.h2("Rischi residui");
   fl.para(f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT);
-  fl.para(`Data: ${fmtDate(d.data)}`);
-  fl.signatures(["Il tecnico (Italserrande S.r.l.)"]);
+  fl.signatures([`Il tecnico (Italserrande S.r.l.) — data ${fmtDate(d.data)}`]);
 }
 
 function manuale(fl, d) {
