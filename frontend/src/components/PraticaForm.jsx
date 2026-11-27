@@ -5,7 +5,7 @@ import JobPhotos from "./JobPhotos";
 import MicButton, { appendText } from "./MicButton";
 import { NORME, normaLabel, isNuovoReg } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
-import { SITI } from "../lib/praticaExtra";
+import { COLLAUDO_GRUPPI } from "../lib/praticaExtra";
 
 function Choice({ options, value, onChange, testId, multi = false, cols = 2 }) {
   const isOn = (k) => (multi ? (value || []).includes(k) : value === k);
@@ -102,8 +102,6 @@ export function ImpiantoSection({ form, setField, setTipo }) {
       <Choice options={Object.entries(T.COMANDI)} value={f.comando_tipo} onChange={(v) => setField("comando_tipo", v)} testId="pratica-comando" cols={1} />
       <Lbl>Utilizzo</Lbl>
       <Choice options={Object.entries(T.USI_IMPIANTO)} value={f.uso} onChange={(v) => setField("uso", v)} testId="pratica-uso" cols={1} />
-      <Lbl>Tipo di sito</Lbl>
-      <Choice options={Object.entries(SITI)} value={f.sito} onChange={(v) => setField("sito", v)} testId="pratica-sito" />
       <Field id="responsabile" label="Responsabile impianto (proprietario / amministratore)" value={f.responsabile} onChange={(v) => setField("responsabile", v)} />
     </Section>
   );
@@ -125,6 +123,8 @@ export function CollaudoSection({ form, setField }) {
   const set = (id, v) => setField("collaudo", { ...f.collaudo, [id]: f.collaudo?.[id] === v ? undefined : v });
   const allOk = () =>
     setField("collaudo", Object.fromEntries(items.map((c) => [c.id, !c.sic || f.sicurezze.includes(c.sic) ? "C" : "NA"])));
+  const vc = f.verifiche_consegna || {};
+  const allVc = () => setField("verifiche_consegna", Object.fromEntries(COLLAUDO_GRUPPI.flatMap(([, it]) => it).map((t) => [t, true])));
   return (
     <Section title="4 · Collaudo (check-list sicurezze)">
       <button type="button" onClick={allOk} className="w-full rounded-lg border border-[#4A5D23] bg-[#4A5D23]/10 py-2 text-sm font-semibold text-[#4A5D23]" data-testid="pratica-collaudo-tutto-ok">
@@ -151,6 +151,21 @@ export function CollaudoSection({ form, setField }) {
         </div>
       ))}
       <ForzeNote f={f} />
+      <Lbl>Verifiche di consegna (spunta solo quelle eseguite)</Lbl>
+      <button type="button" onClick={allVc} className="w-full rounded-lg border border-[#4A5D23] bg-[#4A5D23]/10 py-2 text-sm font-semibold text-[#4A5D23]" data-testid="pratica-consegna-tutte">
+        Segna tutte eseguite
+      </button>
+      {COLLAUDO_GRUPPI.map(([g, it]) => (
+        <div key={g} className="space-y-1">
+          <div className="text-xs font-semibold text-stone-600">{g}</div>
+          {it.map((t, i) => (
+            <label key={t} className="flex items-center gap-2 text-[13px] text-stone-700">
+              <input type="checkbox" checked={!!vc[t]} onChange={() => setField("verifiche_consegna", { ...vc, [t]: !vc[t] })} data-testid={`pratica-consegna-${g.split(" ")[0].toLowerCase()}-${g.split(" ").pop().toLowerCase()}-${i}`} />
+              {t}
+            </label>
+          ))}
+        </div>
+      ))}
       <Lbl>Esito del collaudo</Lbl>
       <Choice options={[["positivo", "Positivo"], ["negativo", "Negativo"]]} value={f.esito} onChange={(v) => setField("esito", v)} testId="pratica-esito" />
       <Area id="note-collaudo" label="Note collaudo" value={f.note_collaudo} onChange={(v) => setField("note_collaudo", v)} rows={2} />

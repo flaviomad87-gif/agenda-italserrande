@@ -218,7 +218,7 @@ const sicurezzeOn = (f) => T.SICUREZZE.filter(([k]) => (f.sicurezze || []).inclu
 const ESITI = { C: "Conforme", NC: "Non conforme", NA: "Non applicabile" };
 
 const sitoRows = (f) => [
-  ["Tipo di sito", X.SITI[f.sito] || ""],
+  ["Tipo di sito", T.USI_IMPIANTO[f.uso] || ""],
   ["Responsabile impianto", f.responsabile || ""],
 ];
 
@@ -243,7 +243,7 @@ export const toCe = (d) => {
     indirizzo: d.indirizzo,
     data: d.data,
     fields: {
-      tipologia: [tipoLabel(f), f.modello, X.SITI[f.sito]].filter(Boolean).join(" - "),
+      tipologia: [tipoLabel(f), f.modello, T.USI_IMPIANTO[f.uso]].filter(Boolean).join(" - "),
       comune: f.comune,
       matricola: matricola(d),
       anno_installazione: f.anno_installazione,
@@ -288,14 +288,14 @@ function collaudo(fl, d) {
   fl.h2("Modalità di funzionamento e protezione contro schiacciamento e impatto");
   const nf = T.notaForze(f);
   fl.para(nf.testo, { size: 8.8, style: nf.ok ? "normal" : "bold", color: nf.ok ? INK : RED });
+  const vc = f.verifiche_consegna || {};
+  X.COLLAUDO_GRUPPI.forEach(([g, items]) => {
+    fl.h2(g, "left", 40);
+    fl.checks(items.map((t) => [t, !!vc[t]]), 2);
+  });
   fl.h2("Esito del collaudo");
   fl.checks([["Positivo", f.esito !== "negativo"], ["Negativo", f.esito === "negativo"], [`Radiocomandi consegnati: ${f.n_radiocomandi || "-"}`, null]], 3);
   if (f.note_collaudo) fl.para(`Note: ${f.note_collaudo}`);
-  const pos = f.esito !== "negativo";
-  X.COLLAUDO_GRUPPI.forEach(([g, items]) => {
-    fl.h2(g, "left", 40);
-    fl.checks(items.map((t) => [t, pos]), 2);
-  });
   fl.h2("Consegna", "left", 60);
   fl.para(X.CONSEGNA, { size: 8.6 });
   fl.signatures(["Il tecnico collaudatore", "Il cliente per presa in consegna"]);
@@ -627,10 +627,11 @@ function registroRighe(fl, d) {
     ["Responsabile", f.responsabile || ""],
     ["Installatore", "Italserrande S.r.l."],
   ]);
+  fl.y += 6;
   fl.para("Tipo di intervento: O = ordinario, S = straordinario, P = programmato (contratto). Indicare i componenti sostituiti.", { size: 8.2, color: GREY });
   const blank = " \n \n ";
   const rows = Array.from({ length: 10 }, (_, i) => [String(i + 1), "", "", blank, "", "", ""]);
-  fl.table([["N°", 24], ["Data", 52], ["Ditta / tecnico", 88], ["Descrizione e sostituzioni", W - 304], ["Tipo", 30], ["Firma tecnico", 55], ["Firma cliente", 55]], rows);
+  fl.table([["N°", 24], ["Data", 52], ["Ditta / tecnico", 88], ["Descrizione e sostituzioni", W - 318], ["Tipo", 26], ["Firma tecnico", 64], ["Firma cliente", 64]], rows);
 }
 
 const BUILDERS = {

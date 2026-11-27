@@ -6,7 +6,9 @@ export default function ComponentiSection({ form, setField }) {
   const set = (k, campo, v) => setField("componenti", { ...c, [k]: { ...c[k], [campo]: v } });
   return (
     <Section title="3b · Componenti installati (marca, modello, n. serie)">
-      <p className="text-xs text-muted-foreground">Vuoto = usa motore, centralina e radiocomandi indicati sopra.</p>
+      <details data-testid="componenti-details">
+      <summary className="cursor-pointer text-sm font-semibold text-[#4A5D23]" data-testid="componenti-toggle">Apri elenco componenti</summary>
+      <p className="my-2 text-xs text-stone-500">Vuoto = usa motore, centralina e radiocomandi indicati sopra.</p>
       {COMPONENTI.map(([k, l]) => (
         <div key={k} className="space-y-1 border-b border-border pb-2" data-testid={`componente-${k}`}>
           <div className="text-sm font-semibold">{l}</div>
@@ -20,6 +22,7 @@ export default function ComponentiSection({ form, setField }) {
           </Row>
         </div>
       ))}
+      </details>
     </Section>
   );
 }

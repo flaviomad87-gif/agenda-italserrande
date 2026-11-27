@@ -1,0 +1,32 @@
+{
+  "summary": "Test solo frontend della Pratica impianto in stile certificatore. Utente Firebase temporaneo. Flusso UI su desktop 1920 e mobile 390. Funziona tutto. Sezione 2 · Impianto: i 4 pulsanti Tipo di sito (pratica-sito-privato/condominio/azienda/altro) e il campo Responsabile impianto (documento-input-responsabile) si salvano e restano dopo la riapertura. Sezione 3b · Componenti installati: ci sono 10 blocchi componente-*, con Marca/Modello/N. serie/Q.tà (documento-input-comp-<k>-marca ecc.); i valori del motoriduttore e della costola restano dopo la riapertura. Elenco documenti: compaiono i 4 nuovi (fascicolo, componenti, informativa, registro_righe) e sono selezionati di default. PDF completo generato per tutti e 5 i tipi di chiusura, senza nessun errore in console né pageerror; i download sono stati intercettati e il testo letto con PyMuPDF. Avvolgibile 15 pagine, sezionale 17, basculante 15, scorrevole 17, battente 17. Ogni PDF contiene FASCICOLO TECNICO DELL'IMPIANTO, ELENCO COMPONENTI E ZONE DI PERICOLO (con le zone giuste per ciascun tipo), INFORMATIVA AL COMMITTENTE, REGISTRO DI MANUTENZIONE a righe (10 righe, Firma cliente), VERBALE DI COLLAUDO E PRESA IN CONSEGNA con Verifiche preliminari/di montaggio/funzionali/Prove prestazionali e Consegna, più CE, rischi, manuale, DM37 e targhetta. Ci sono anche i dati inseriti: Condominio, responsabile, CameX/BX-TEST/SN12345/FaacCost. Ogni pagina ha il piè di pagina. Tutti i 9 PDF singoli funzionano (fascicolo, componenti, informativa, registro_righe, ce, dm37, registro, targhetta, collaudo). Regressione: una pratica vecchia (senza sito/componenti e con includi privo delle chiavi nuove) si apre; i documenti nuovi risultano selezionati di default e il PDF completo si genera (15 pagine, i componenti ripresi da motore e centralina). L'eliminazione della pratica dalla UI funziona. Dati di test eliminati.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "praticaPdf.js registroRighe", "issue": "Nel registro a righe l'intestazione 'Firma tecnico' (colonna da 55pt) è troncata o coperta dal bordo della cella vicina: si legge 'Firma tecnic'. Allargare la colonna (es. Tipo 26, firme 60) oppure usare 'Firma tec.'", "selector": "PDF registro_righe", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "PDF Verbale di collaudo", "issues": ["Le caselle dei gruppi COLLAUDO_GRUPPI (preliminari/montaggio/funzionali/prestazionali) sono TUTTE spuntate in automatico quando l'esito è positivo e tutte vuote quando è negativo. Il tecnico non può segnarle una per una, quindi il verbale può attestare verifiche mai fatte.", "Il blocco 'Esito del collaudo' viene prima dei gruppi di verifiche: sarebbe più logico l'ordine verifiche → esito → consegna.", "Registro a righe: la nota grigia 'Tipo di intervento...' è molto attaccata alla tabella dati sopra."]},
+      {"screen": "PraticaDialog sezione 2/3b", "issues": ["'Utilizzo' (Privato/Condominiale/Commerciale/...) e 'Tipo di sito' (Privato/Condominio/Azienda/Altro) sono quasi la stessa domanda: l'utente deve rispondere due volte. Valutare di ricavare sito da uso o di unirli.", "La sezione 3b aggiunge 40 campi sempre aperti, e su mobile il modulo diventa molto lungo: valutare di renderla comprimibile o di mostrare solo i componenti presenti."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter49_ui_setup.py", "/app/backend/tests/iter49_pdf_check.py"],
+  "action_items": [
+    "(LOW) Allargare la colonna 'Firma tecnico' nel registro a righe (praticaPdf.js registroRighe)",
+    "(MEDIUM, scelta di prodotto) Rendere modificabili le voci di COLLAUDO_GRUPPI, oppure legarle alle verifiche compilate, invece di spuntarle tutte in base all'esito",
+    "(LOW) Valutare l'unione di 'Utilizzo' e 'Tipo di sito' e una sezione 3b comprimibile"
+  ],
+  "critical_code_review_comments": [
+    "praticaPdf.js collaudo(): fl.checks(items.map(t => [t, pos])): le spunte dipendono solo da esito, nessun dato utente",
+    "praticaPdf.js fascicolo(): ogni documento è segnato 'Consegnato: Sì' in modo fisso; va bene come indice, ma non segue la consegna reale",
+    "praticaPdf.js ha 717 righe (>700): valutare di spostare i nuovi builder (fascicolo/componenti/informativa/registroRighe) in un modulo separato",
+    "Pratiche vecchie: includi[k] !== false, quindi i 4 documenti nuovi entrano in automatico nel PDF delle pratiche esistenti (+~4 pagine). Probabilmente è voluto, ma va saputo."
+  ],
+  "updated_files": ["/app/backend/tests/iter49_ui_setup.py", "/app/backend/tests/iter49_pdf_check.py"],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100% dei requisiti richiesti; 1 bug di impaginazione minore"},
+  "seed_data_creation": "Utente Firebase temporaneo testuser+iter49ui...@italserrande.test, con 1 pratica vecchia creata via API e 1 creata da UI; tutto cancellato (utente compreso) con iter49_ui_setup.py cleanup",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iter49_ui_setup.py setup|cleanup crea e cancella l'utente e una pratica vecchia (/tmp/iter49_ui.json). Nella UI fare add_init_script con navigator.canShare=undefined, così sharePdf passa al download con <a download>, che si intercetta con page.expect_download. Salvare i PDF in /tmp/iter49_<tipo>.pdf e /tmp/iter49_single_<k>.pdf, poi lanciare iter49_pdf_check.py. Gli id dei campi sono data-testid documento-input-<id>; le scelte sono pratica-<gruppo>-<chiave>."
+}

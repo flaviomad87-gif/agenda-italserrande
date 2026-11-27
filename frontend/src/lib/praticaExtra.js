@@ -1,7 +1,5 @@
 // Testi aggiuntivi della pratica (ispirati alla documentazione di settore, riscritti in stile Italserrande)
 
-export const SITI = { privato: "Privato", condominio: "Condominio", azienda: "Azienda", altro: "Altro" };
-
 export const COMPONENTI = [
   ["motoriduttore", "Motoriduttore"],
   ["quadro", "Quadro di comando"],
