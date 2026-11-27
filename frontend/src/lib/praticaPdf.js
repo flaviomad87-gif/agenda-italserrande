@@ -201,12 +201,16 @@ export class Flow {
     });
     this.y += boxH + 14;
   }
-  page(label) {
-    this.doc.addPage();
-    this.cur.pages.push(this.doc.getNumberOfPages());
-    this.font(8, "italic", GREY);
-    this.doc.text(this.cur.title, L, 40);
-    this.y = 66;
+  page(label, inline = false) {
+    if (inline && this.y + 260 <= BOTTOM) {
+      this.y += 14;
+    } else {
+      this.doc.addPage();
+      this.cur.pages.push(this.doc.getNumberOfPages());
+      this.font(8, "italic", GREY);
+      this.doc.text(this.cur.title, L, 40);
+      this.y = 66;
+    }
     this.font(12, "bold");
     this.doc.text(label, L, this.y);
     this.y += 14;
@@ -222,6 +226,7 @@ export class Flow {
   }
 }
 
+const prodNorm = (f) => (f.tipo_chiusura === "tapparella" ? "UNI EN 13659" : "UNI EN 13241");
 const tipoLabel = (f) => T.TIPI_CHIUSURA[f.tipo_chiusura] || "Chiusura motorizzata";
 const matricola = (d) => d.fields.matricola || (d.numero ? `${d.numero}/${d.anno}` : "");
 const dimensioni = (f) => (f.larghezza || f.altezza ? `L ${f.larghezza || "-"} x H ${f.altezza || "-"} mm` : "");
@@ -259,7 +264,7 @@ export const toCe = (d) => {
       matricola: matricola(d),
       anno_installazione: f.anno_installazione,
       comando: f.motore,
-      norma_riferimento: f.tipo_chiusura === "tapparella" ? "UNI EN 13659" : "UNI EN 13241",
+      norma_riferimento: prodNorm(f),
       collaudo: d.numero ? `${d.numero}/${d.anno}` : "",
       targhetta_ce: d.vuoto ? "" : "Applicata",
       uni_en_13241: d.vuoto ? "" : "Conforme",
@@ -571,7 +576,7 @@ async function targhetta(fl, d) {
       ["Anno", f.anno_installazione || (d.vuoto ? "" : (d.data || "").slice(0, 4))],
       ["Dimensioni", dimensioni(f)],
       ["Alimentazione", f.alimentazione],
-      ["Norma", `UNI EN 13241 - ${isNuovoReg(d.data) ? "Reg. (UE) 2023/1230" : "Dir. 2006/42/CE"}`],
+      ["Norma", `${prodNorm(f)} - ${isNuovoReg(d.data) ? "Reg. (UE) 2023/1230" : "Dir. 2006/42/CE"}`],
     ].forEach(([k, v], i) => {
       p.text(`${k}:`, x + 12, y + 56 + i * 14.5, 8.5, { bold: true, color: [0, 0, 0] });
       p.value(v, x + 78, y + 56 + i * 14.5, 150, 8.5);
@@ -600,15 +605,11 @@ function fascicolo(fl, d) {
   const au = f.automazione || {};
   const mat = matricola(d);
   fl.start(`FASCICOLO TECNICO DI INSTALLAZIONE N. ${mat || "________"}`, `${tipoLabel(f)} - ${nuovo ? "Regolamento (UE) 2023/1230" : "Direttiva Macchine 2006/42/CE"}`);
-  fl.para(X.FASCICOLO_INTRO, { size: 8.6 });
+  fl.para(X.FASCICOLO_INTRO, { size: 8 });
   fl.h2("1. Installatore");
   fl.kv2([
     ["Ragione sociale", "Italserrande S.r.l."],
     ["P.IVA / C.F.", "09270881007"],
-    ["Sede legale e operativa", "Via Castino 29 - 00166 Roma (RM)"],
-    ["C.C.I.A.A.", "1152580"],
-    ["Recapiti", "Tel. 06-6240259 / Cell. 337 743730"],
-    ["Email", "italserrande@libero.it"],
   ]);
   fl.h2("2. Committente e luogo di installazione");
   fl.kv2([
@@ -636,11 +637,11 @@ function fascicolo(fl, d) {
   const mark = (i) => `${d.vuoto ? "[  ] " : ""}${i + 1}. ${docs[i]}`;
   const half = Math.ceil(docs.length / 2);
   fl.table([["Documento", W / 2], ["Documento", W / 2]], Array.from({ length: half }, (_, i) => [mark(i), docs[half + i] ? mark(half + i) : ""]));
-  fl.h2("5. Riferimenti normativi");
+  fl.h2("5. Riferimenti normativi", "left", 215);
   fl.table([["Norma / Direttiva", W * 0.6], ["Applicazione", W * 0.4]], X.NORME_FASCICOLO(nuovo, f.tipo_chiusura));
   fl.para("Dal 20 gennaio 2027 il Regolamento (UE) 2023/1230 sostituisce la Direttiva 2006/42/CE: per le installazioni da quella data la dichiarazione è redatta come Dichiarazione UE di conformità.", { size: 8, color: GREY });
 
-  fl.page("ALLEGATO A - Chiusura, automazione e componenti");
+  fl.page("ALLEGATO A - Chiusura, automazione e componenti", true);
   fl.h2("A.1 Produttore / fornitore della chiusura");
   fl.kv2([
     ["Produttore", ch.produttore || ""],
@@ -841,7 +842,7 @@ export async function buildVerificaPdf(d) {
   fl.para(f.parti || "-");
   fl.para(
     "Il Cliente dichiara di essere stato informato dello stato dell'impianto, delle non conformità rilevate e degli interventi necessari " +
-      "per renderlo sicuro e conforme alle norme UNI EN 13241 e UNI EN 12453.",
+      `per renderlo sicuro e conforme alle norme ${prodNorm(f)} e UNI EN 12453.`,
   );
   fl.checkLine(!!f.cliente_rifiuta, "Il Cliente NON intende eseguire gli interventi indicati e solleva Italserrande S.r.l. da ogni responsabilità per i rischi segnalati.");
   fl.signatures(["Il tecnico (Italserrande S.r.l.)", "Il Cliente"]);

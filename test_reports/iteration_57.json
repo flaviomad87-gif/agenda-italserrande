@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only retest of the iteration_56 fixes on mobile 390px, using a temporary Firebase user and 6 TEST_ pratiche (one per tipo), all deleted afterwards. 26 PDFs downloaded from the UI with 0 console errors and 0 pageerrors: fascicolo for 6 tipi, full documentation for 6 tipi, CE for tapparella and avvolgibile, and 8 blank PDFs (2 regimi x tapparella/avvolgibile x fascicolo/all). PASS: (1) B.1 headers are 'Gruppo 1/2/3', with no overlap or clipping and no text past the margin. The legend row 'Gruppo 1: Persone informate, area privata · ...' sits below the table. Impulsivo with in_vista unset ticks '[X] A impulsi, chiusura non in vista'. The other tipi tick the correct row: uomo presente, in vista, non in vista and Automatico. (2) B.3: with intervento=nuovo plus stale modifiche [motore, sicurezze] and mod_sost=si, only 'Nuova installazione' is crossed, with 0 modifiche and '[ ] Sì [ ] No'. Esistente still shows esito '[X] No'. In the UI, switching to Nuova installazione hides the modifiche. (3) Section 4 is in 2 columns (1-6 / 7-11) and section 5 starts on page 1. (4) There is a gap of about 6pt (4.3pt to the glyph top) between the tables and 'Dichiarazione CE / DoP...', 'Alimentazione:' and the B.1 legend. (5) The tapparella CE says 'secondo la norma EN 13659' in the intro, 'Norma di riferimento: UNI EN 13659', 'UNI EN 13659 Conforme' in the field, and 'norma UNI EN 13659' in the final sentence. The other tipi keep EN 13241. (6) In form 3c, the 'Produttore' and 'Modello' labels and inputs are at the same y (801.8/822.8), and the 'Alimentazione' label sits above the choice. (7) 'Pagina X di Y' is consistent in every PDF, including the 19-page full PDF. Blank PDFs have no ticks. No text runs outside the margins. STILL OPEN: section 5 continues onto page 2, so page 2 holds only 5 table rows plus the note (content ends at y≈181 of 842, about 20% used). The fascicolo is still 5 pages, so the 'senza pagina quasi vuota' requirement is not met.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "praticaPdf.js fascicolo() first page", "issue": "Section 5 starts on page 1 (3 rows: 2006/42, 2014/35, 2014/30) but splits. Page 2 '(segue)' holds only 5 rows plus the note (last content at y=181/842), the same near-empty page as before, and the fascicolo is still 5 pages. Page 1 needs about 120pt more. Suggestions: section 1 'Installatore' repeats the COMPANY header lines, so reduce it to one line (Italserrande S.r.l. - P.IVA 09270881007) or drop it (saves ~70pt); use a smaller intro font or shorter intro; lower the kv2/table row height on page 1; or keep section 5 together (ensure its full height) so it moves as a block. Note that moving it as a block would still leave page 2 mostly empty unless section A starts on it.", "selector": "pratica-pdf-fascicolo", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Tapparella documents (outside the scope of this retest, still inconsistent)", "issues": ["CE norme row 1 is still hardcoded as '1. Serranda / Chiusura — UNI EN 13241' (documentiPdf.js NORME[0] / normaLabel) for tapparella.", "The targhetta CE (praticaPdf.js line 574) prints 'Norma: UNI EN 13241 - Dir. 2006/42/CE' for tapparella.", "The manuale/informativa text says 'UNI EN 13241 (norma di prodotto)' for tapparella.", "The verifica text (praticaPdf.js ~844) says 'conforme alle norme UNI EN 13241 e UNI EN 12453' regardless of tipo."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter57_create.py", "/app/backend/tests/iter57_batch_check.py", "/app/backend/tests/iter56_fascicolo_pdf_check.py", "/app/backend/tests/iter55_ui_setup.py"],
+  "action_items": [
+    "Fascicolo page 1: make sections 1-5 fit, or avoid the near-empty page 2. Easiest fix: condense section 1 'Installatore', which duplicates the header company lines.",
+    "Optional consistency for tapparella: make CE NORME row 1, the targhetta 'Norma', the manuale/informativa product-norm text and the verifica sentence use UNI EN 13659 when tipo_chiusura=tapparella"
+  ],
+  "critical_code_review_comments": [
+    "In normaLabel(i, iso), only row 2 depends on the regime. Row 0 should also depend on tipo (pass f) so the tapparella CE is coherent.",
+    "In the targhetta (praticaPdf.js:574), 'UNI EN 13241' is hardcoded. Reuse the same prodNorm logic as drawCe/toCe (one shared helper normaProdotto(f)).",
+    "Earlier comments still apply: praticaPdf.js is 852 lines (>700), and the def/comp logic is duplicated between fascicolo() and componenti()."
+  ],
+  "updated_files": ["/app/backend/tests/iter57_create.py", "/app/backend/tests/iter57_batch_check.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "~93% (6 of 7 retest items pass fully; the page-1 item is only partly fixed)"},
+  "seed_data_creation": "Temporary Firebase user testuser+iter55ui0c8721d4@italserrande.test with 6 TEST_Iter57 pratiche. All were deleted via the API (200), then a user_id-scoped mongo delete (6 docs), and the Firebase account was deleted.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Setup: python /app/backend/tests/iter55_ui_setup.py setup, then python iter57_create.py (6 tipi, ids in /tmp/iter57_ids.json). Log in, go to /documenti → documenti-tab-pratica → documento-row-<id>. Download with pratica-pdf-<k> and pratica-share-all (add an init script that sets navigator.share/canShare to undefined). Blank PDFs: stampa-vuoto-toggle/regime/tipo/documento/scarica. Save the PDFs to /tmp/iter57 and run iter57_batch_check.py, which prints page totals, whether section 5 is on p1, whether p2 is '(segue)', the p2 fill, B.1 ticks, B.3 esito and norm lines. Clean up with iter55_ui_setup.py cleanup. Retest: page 1 fit / no near-empty page 2."
+}

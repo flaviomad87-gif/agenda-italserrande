@@ -104,7 +104,7 @@ export const INFORMATIVA = [
     "chi interviene se ne assume la responsabilità e deve aggiornare la documentazione."],
   ["Norme di riferimento",
     "Direttiva Macchine 2006/42/CE (dal 20/01/2027 Regolamento UE 2023/1230); Direttive 2014/30/UE (compatibilità elettromagnetica) e 2014/35/UE " +
-    "(bassa tensione); UNI EN 13241 (norma di prodotto); UNI EN 12453 (sicurezza in uso delle porte motorizzate); D.M. 37/2008 per l'impianto elettrico."],
+    "(bassa tensione); UNI EN 13241 (porte e cancelli) o UNI EN 13659 (tapparelle) come norme di prodotto; UNI EN 12453 (sicurezza in uso delle porte motorizzate); D.M. 37/2008 per l'impianto elettrico."],
 ];
 
 export const NORME_FASCICOLO = (nuovo, tipo) => [
