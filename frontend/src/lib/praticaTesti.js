@@ -33,6 +33,11 @@ export const SICUREZZE_DEFAULT = {
   battente: [...BASE, "coste", "rilevamento", "battute"],
 };
 
+export const CONFIG_SERRANDA = {
+  molle: "Motore centrale con molle di bilanciamento ed elettrofreno",
+  tubolare: "Motore tubolare con freno incorporato (senza molle)",
+};
+
 export const COMANDI = {
   impulsivo: "Impulsivo (radiocomando / selettore)",
   uomo_presente: "A uomo presente (pulsante tenuto premuto)",
@@ -47,6 +52,8 @@ export const CHECKLIST = [
   { id: "fissaggi", group: "Meccanica", label: "Fissaggi di struttura, guide e staffe saldi e idonei" },
   { id: "scorrimento", group: "Meccanica", label: "Bilanciamento e scorrimento regolari, senza attriti o punti duri" },
   { id: "paracadute", group: "Meccanica", label: "Dispositivo anticaduta / paracadute presente ed efficiente", sic: "paracadute", types: PORTE },
+  { id: "molle", group: "Meccanica", label: "Molle di bilanciamento integre, ben tensionate e senza segni di cedimento", types: ["avvolgibile", "sezionale", "basculante"], cfg: "molle" },
+  { id: "freno", group: "Meccanica", label: "Elettrofreno / freno del motore: il telo resta fermo in qualsiasi posizione", types: ["avvolgibile", "tapparella"] },
   { id: "battute", group: "Meccanica", label: "Battute d'arresto meccaniche presenti in apertura e chiusura", sic: "battute", types: CANCELLI },
   { id: "terra", group: "Impianto elettrico", label: "Collegamento a terra e continuità dei conduttori di protezione" },
   { id: "differenziale", group: "Impianto elettrico", label: "Linea protetta da interruttore magnetotermico differenziale", sic: "differenziale" },
@@ -66,7 +73,8 @@ export const CHECKLIST = [
   { id: "istruzione", group: "Consegna", label: "Cliente istruito su uso, sblocco di emergenza e rischi residui" },
 ];
 
-export const checklistFor = (tipo, nuovo) => CHECKLIST.filter((c) => (!c.types || c.types.includes(tipo)) && (!c.nuovo || nuovo));
+export const checklistFor = (tipo, nuovo, cfg) =>
+  CHECKLIST.filter((c) => (!c.types || c.types.includes(tipo)) && (!c.nuovo || nuovo) && (!c.cfg || !cfg || tipo !== "avvolgibile" || c.cfg === cfg));
 
 export const USI_IMPIANTO = {
   privato: "Privato / residenziale",
@@ -214,7 +222,7 @@ export const manualeSezioni = (tipo, nuovo) => [
     "Sostituire le batterie dei radiocomandi quando la portata si riduce.",
   ]],
   ["Manutenzione periodica programmata", [
-    "Almeno ogni 6 mesi per uso intensivo o pubblico, almeno ogni 12 mesi per uso privato: controllo da parte di un tecnico qualificato di fissaggi, organi meccanici, molle, sicurezze e impianto elettrico.",
+    "Almeno ogni 12 mesi per uso privato, ogni 6 mesi per uso condominiale, commerciale o intensivo: controllo da parte di un tecnico qualificato di fissaggi, organi meccanici, molle, sicurezze e impianto elettrico.",
     "Ogni intervento deve essere annotato sul Registro di Manutenzione consegnato con l'impianto.",
     `La mancata manutenzione fa decadere la garanzia e la Dichiarazione ${nuovo ? "UE" : "CE"} di conformità.`,
   ]],

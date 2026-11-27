@@ -81,6 +81,12 @@ export function ImpiantoSection({ form, setField, setTipo }) {
     <Section title="2 · Impianto">
       <Lbl>Tipo di chiusura</Lbl>
       <Choice options={Object.entries(T.TIPI_CHIUSURA)} value={f.tipo_chiusura} onChange={setTipo} testId="pratica-tipo" cols={1} />
+      {f.tipo_chiusura === "avvolgibile" && (
+        <>
+          <Lbl>Configurazione serranda</Lbl>
+          <Choice options={Object.entries(T.CONFIG_SERRANDA)} value={f.config_serranda} onChange={(v) => setField("config_serranda", v)} testId="pratica-config-serranda" cols={1} />
+        </>
+      )}
       <Field id="modello" label="Modello / descrizione" value={f.modello} onChange={(v) => setField("modello", v)} />
       <Row>
         <Field id="larghezza" label="Larghezza mm" value={f.larghezza} onChange={(v) => setField("larghezza", v)} numeric />
@@ -119,7 +125,7 @@ const ESITI = [["C", "OK"], ["NC", "NO"], ["NA", "N/A"]];
 
 export function CollaudoSection({ form, setField }) {
   const f = form.fields;
-  const items = T.checklistFor(f.tipo_chiusura, isNuovoReg(form.data));
+  const items = T.checklistFor(f.tipo_chiusura, isNuovoReg(form.data), f.config_serranda);
   const set = (id, v) => setField("collaudo", { ...f.collaudo, [id]: f.collaudo?.[id] === v ? undefined : v });
   const allOk = () =>
     setField("collaudo", Object.fromEntries(items.map((c) => [c.id, !c.sic || f.sicurezze.includes(c.sic) ? "C" : "NA"])));
@@ -275,6 +281,7 @@ export function SchemaSection({ form, setField, onNeedSave }) {
         testId="pratica-schema-continuita"
       />
       <Row>
+        <Field id="schema-continuita-ohm" label="Continuità PE (Ohm)" {...f("continuita_ohm")} numeric />
         <Field id="schema-isolamento" label="Isolamento (MΩ, min 1)" {...f("isolamento")} numeric />
         <Field id="schema-tempo-diff" label="Intervento diff. (ms)" {...f("tempo_diff")} numeric />
       </Row>

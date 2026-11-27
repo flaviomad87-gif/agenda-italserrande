@@ -91,7 +91,7 @@ export const INFORMATIVA = [
     "La norma UNI EN 12453 e le istruzioni del fabbricante prevedono controlli periodici dei dispositivi di sicurezza. In caso di incidente, " +
     "la mancanza di manutenzione documentata ricade sul responsabile dell'impianto, anche ai fini assicurativi."],
   ["Ogni quanto",
-    "Consigliamo una manutenzione ordinaria ogni 6 mesi e comunque almeno una volta l'anno; più spesso in caso di uso intenso (condomini, attività commerciali). " +
+    "Manutenzione programmata almeno ogni 12 mesi per uso privato e ogni 6 mesi per uso condominiale, commerciale o intensivo, come indicato nel manuale d'uso. " +
     "Ogni intervento va annotato sul Registro di manutenzione consegnato con l'impianto."],
   ["Cosa controlliamo",
     "Fotocellule, costole e dispositivi di arresto; forze e inversione del moto; sblocco di emergenza; fine corsa; molle, cavi, guide e fissaggi; " +
@@ -115,6 +115,7 @@ export const NORME_FASCICOLO = (nuovo, tipo) => [
     ? ["UNI EN 13659 — Chiusure oscuranti esterne", "Norma di prodotto"]
     : ["UNI EN 13241 — Porte e cancelli industriali, commerciali e da garage", "Norma di prodotto"],
   ["UNI EN 12453 — Sicurezza in uso delle porte motorizzate", "Requisiti e livelli di protezione"],
+  ["Reg. (UE) 305/2011 (CPR) — Dichiarazione di Prestazione (DoP)", "Porte UNI EN 13241, ove applicabile"],
   ["UNI EN 12604 — Aspetti meccanici", "Ove applicabile (resistenza, guide, sospensione)"],
   ["UNI EN 12445 — Metodi di prova", "Misura strumentale delle forze: non eseguita"],
   ["D.M. 37/2008 — Impianti negli edifici", "Impianto elettrico di alimentazione e comando"],
@@ -161,7 +162,7 @@ export const CONSEGNA_DOMANDE = [
   ["sicura", "Le sicurezze intervengono senza rischi per l'utilizzatore"],
   ["istr_uso", "Istruzioni per l'uso e per lo sblocco manuale spiegate al cliente"],
   ["istr_sic", "Uso dei dispositivi di emergenza e di sicurezza spiegato"],
-  ["istr_man", "Spiegato che le sicurezze vanno controllate almeno due volte l'anno"],
+  ["istr_man", "Spiegata la periodicità della manutenzione (12 mesi privato, 6 mesi altri usi)"],
   ["doc_tec", "Consegnati i documenti tecnici e le dichiarazioni di conformità"],
   ["contratto", "Proposto al cliente un contratto di manutenzione"],
   ["contratto_ok", "Il cliente accetta il contratto di manutenzione"],

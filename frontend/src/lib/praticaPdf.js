@@ -1,4 +1,4 @@
-import { setBlankDates, newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione, isNuovoReg } from "./documentiPdf";
+import { setBlankDates, setEmbedded, newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione, isNuovoReg } from "./documentiPdf";
 import * as T from "./praticaTesti";
 import * as X from "./praticaExtra";
 
@@ -132,15 +132,17 @@ export class Flow {
     const { doc } = this;
     const pad = 5;
     const header = () => {
-      const h = 17;
+      this.font(8.5, "bold");
+      const heads = cols.map(([label, w]) => doc.splitTextToSize(label, w - pad * 2));
+      const h = 7 + Math.max(...heads.map((l) => l.length)) * 10;
       let x = L;
-      cols.forEach(([label, w]) => {
+      cols.forEach(([, w], i) => {
         doc.setFillColor(...FILL);
         doc.setDrawColor(...BORDER);
         doc.setLineWidth(0.75);
         doc.rect(x, this.y, w, h, "FD");
         this.font(8.5, "bold");
-        doc.text(label, x + pad, this.y + 11.8);
+        heads[i].forEach((l, k) => doc.text(l, x + pad, this.y + 11.8 + k * 10));
         x += w;
       });
       this.y += h;
@@ -215,12 +217,20 @@ export class Flow {
     this.doc.text(label, L, this.y);
     this.y += 14;
   }
+  own(title, from) {
+    const pages = [];
+    for (let n = from; n <= this.doc.getNumberOfPages(); n++) pages.push(n);
+    this.sections.push({ title, pages, y: 822 });
+  }
   finish() {
-    this.sections.forEach(({ pages }) =>
+    const tot = this.doc.getNumberOfPages();
+    this.sections.forEach(({ title, pages, y = 804 }) =>
       pages.forEach((pg, i) => {
         this.doc.setPage(pg);
-        this.p.text("Italserrande S.r.l. — Via Castino 29, 00166 Roma (RM)", L, 804, 8.5, { color: GREY });
-        this.p.text(`Pagina ${i + 1} di ${pages.length}`, R, 804, 8.5, { align: "right", color: GREY });
+        const sez = pages.length > 1 ? ` (${i + 1}/${pages.length})` : "";
+        const name = title.length > 60 ? `${title.slice(0, 57)}...` : title;
+        this.p.text(`Italserrande S.r.l. — ${name}${sez}`, L, y, 7.5, { color: GREY });
+        this.p.text(`Pagina ${pg} di ${tot}`, R, y, 8, { align: "right", color: GREY });
       }),
     );
   }
@@ -298,7 +308,7 @@ function collaudo(fl, d) {
   fl.start("VERBALE DI COLLAUDO E PRESA IN CONSEGNA", tipoLabel(f));
   datiImpianto(fl, d, [["Data collaudo", fmtDate(d.data)], ...sitoRows(f)]);
   fl.h2("Verifiche eseguite");
-  const items = T.checklistFor(f.tipo_chiusura, isNuovoReg(d.data)).map((c) => [c.label, ESITI[(f.collaudo || {})[c.id]] || ""]);
+  const items = T.checklistFor(f.tipo_chiusura, isNuovoReg(d.data), f.config_serranda).map((c) => [c.label, ESITI[(f.collaudo || {})[c.id]] || ""]);
   const half = Math.ceil(items.length / 2);
   const rows = items.slice(0, half).map((a, i) => [...a, ...(items[half + i] || ["", ""])]);
   fl.table([["Verifica", W / 2 - 62], ["Esito", 62], ["Verifica", W / 2 - 62], ["Esito", 62]], rows, { blueCols: [1, 3] });
@@ -377,11 +387,11 @@ function dm37(fl, d) {
       "operante nel settore impianti elettrici (art. 1, comma 2, lettera a), con sede in Via Castino 29, 00166 Roma (RM), " +
       "tel. 337743730, P.IVA 09270881007,",
   );
-  fl.checkLine(true, "iscritta nel registro delle imprese (D.P.R. 7/12/1995 n. 581) della Camera C.I.A.A. di Roma n. 1152580");
+  fl.checkLine(true, "iscritta nel registro delle imprese (D.P.R. 7/12/1995 n. 581) della Camera di Commercio (C.C.I.A.A.) di Roma n. 1152580");
   fl.checkLine(false, "iscritta all'Albo Provinciale delle imprese artigiane (L. 8/8/1985 n. 443)");
   fl.para(`esecutrice dell'impianto (descrizione schematica): ${m.descrizione || T.DM37_DESCRIZIONE(f.tipo_chiusura)}`);
   fl.para("inteso come:");
-  fl.checks(Object.entries(T.DM37_TIPI).map(([k, l]) => [l, (m.tipo || (d.vuoto ? "" : "nuovo")) === k]), 4);
+  fl.checks(Object.entries(T.DM37_TIPI).map(([k, l]) => [l, (m.tipo || (d.vuoto ? "" : "nuovo")) === k]), 2);
   const b = (v) => (String(v || "").trim() ? String(v).trim() : "____________________");
   fl.para(
     `commissionato da: ${b(d.cliente)}, installato nei locali siti nel comune di ${b(f.comune)}, in ${b(d.indirizzo)}` +
@@ -509,10 +519,10 @@ function schemaImpianto(fl, d, continua = false) {
   fl.table(
     [["Verifica", W - 150], ["Esito / valore", 150]],
     [
-      ["Continuità dei conduttori di protezione (PE)", sc.continuita === "NC" ? "Non conforme" : "Conforme"],
+      ["Continuità dei conduttori di protezione (PE)", `${d.vuoto ? "[  ] C  [  ] NC" : sc.continuita === "NC" ? "Non conforme" : "Conforme"} - ${sc.continuita_ohm ? `${sc.continuita_ohm} Ohm` : "______ Ohm"}`],
       ["Resistenza di isolamento (valore minimo 1 MOhm)", sc.isolamento ? `${sc.isolamento} MOhm` : "______ MOhm"],
       ["Prova interruttore differenziale: tempo di intervento a Idn (max 300 ms)", sc.tempo_diff ? `${sc.tempo_diff} ms` : "______ ms"],
-      ["Prova funzionale del tasto di test del differenziale", "Conforme"],
+      ["Prova funzionale del tasto di test del differenziale", d.vuoto ? "[  ] C  [  ] NC" : "Conforme"],
     ],
     { blueCols: [1] },
   );
@@ -552,7 +562,7 @@ function ceMark(doc, x, y, h) {
 
 async function targhetta(fl, d) {
   const f = d.fields;
-  fl.start("TARGHETTA CE", "Stampare su carta adesiva o plastificare e applicare sulla chiusura in posizione ben visibile.");
+  fl.start("TARGHETTA CE", "Stampare su etichetta in poliestere o resina con stampante a trasferimento termico (resistente a UV, acqua e abrasione) e applicare sulla chiusura in posizione ben visibile e permanente.");
   const { doc, p } = fl;
   let qr = null;
   if (d.public_token && typeof window !== "undefined") {
@@ -741,7 +751,7 @@ function informativa(fl, d) {
     fl.h2(t, "left", 50);
     fl.para(p, { size: 8.8 });
   });
-  fl.para("Per la manutenzione periodica Italserrande S.r.l. offre contratti con promemoria automatico ogni 6 mesi.", { size: 8.8, style: "bold" });
+  fl.para("Per la manutenzione periodica Italserrande S.r.l. offre contratti con promemoria automatico alla scadenza.", { size: 8.8, style: "bold" });
   fl.signatures(["Il cliente per ricevuta"]);
 }
 
@@ -770,7 +780,9 @@ const BUILDERS = {
   registro_righe: registroRighe,
   ce: async (fl, d) => {
     fl.fresh();
+    const from = fl.doc.getNumberOfPages();
     await drawCe(fl.doc, toCe(d));
+    fl.own(`DICHIARAZIONE ${isNuovoReg(d.data) ? "UE" : "CE"} DI CONFORMITÀ`, from);
   },
   collaudo,
   rischi,
@@ -782,7 +794,9 @@ const BUILDERS = {
   },
   registro: async (fl, d) => {
     fl.fresh();
+    const from = fl.doc.getNumberOfPages();
     await drawManutenzione(fl.doc, toRegistro(d));
+    fl.own("REGISTRO DI MANUTENZIONE - PRIMO INTERVENTO", from);
   },
   targhetta,
 };
@@ -794,10 +808,12 @@ export async function buildPraticaPdf(d, only) {
   const incl = d.fields.includi || {};
   const keys = only ? [only] : T.DOCUMENTI_PRATICA.map(([k]) => k).filter((k) => incl[k] !== false);
   setBlankDates(!!d.vuoto);
+  setEmbedded(true);
   try {
     for (const k of keys) await BUILDERS[k](fl, d);
   } finally {
     setBlankDates(false);
+    setEmbedded(false);
   }
   fl.finish();
   return doc.output("blob");

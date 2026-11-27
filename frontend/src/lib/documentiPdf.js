@@ -24,7 +24,7 @@ export const NORME = [
   "Direttiva Bassa Tensione 2014/35/UE",
   "Direttiva Compatibilità Elettromagnetica 2014/30/UE",
   "Sicurezza in uso — UNI EN 12453",
-  "Regolamento Prodotti da Costruzione (CPR)",
+  "Reg. (UE) 305/2011 (CPR) - DoP",
   "Manutenzione e verifiche periodiche",
 ];
 
@@ -45,6 +45,11 @@ export const REG_DATE = "2027-01-20";
 export const isNuovoReg = (iso) => (iso || new Date().toISOString().slice(0, 10)).slice(0, 10) >= REG_DATE;
 export const regMacchine = (iso) => (isNuovoReg(iso) ? "Regolamento Macchine (UE) 2023/1230" : "Direttiva Macchine 2006/42/CE");
 export const normaLabel = (i, iso) => (i === 2 ? regMacchine(iso) : NORME[i]);
+
+let embedded = false;
+export const setEmbedded = (v) => {
+  embedded = v;
+};
 
 let blankDates = false;
 export const setBlankDates = (v) => {
@@ -129,6 +134,7 @@ export function pen(doc) {
 }
 
 function ceFooter(p, page) {
+  if (embedded) return;
   p.text("Italserrande S.r.l. — Via Castino 29, 00166 Roma (RM)", 51, 804, 8.5, { color: GREY });
   p.text(`Pagina ${page} di 2`, 544.2, 804, 8.5, { align: "right", color: GREY });
 }
@@ -170,8 +176,9 @@ const CE_AVVERTENZE = [
   "Modifiche successive sono coperte solo se autorizzate e controfirmate da Italserrande S.r.l.",
   "Modifiche, riparazioni e manutenzioni devono essere eseguite da personale tecnico qualificato.",
   "Le sostituzioni devono utilizzare ricambi originali o equivalenti per caratteristiche e sicurezza.",
-  "L'impianto va mantenuto secondo le istruzioni e le norme vigenti, con almeno un controllo ogni 6 mesi.",
+  "Manutenzione programmata: almeno ogni 12 mesi per uso privato, ogni 6 mesi per uso condominiale, commerciale o intensivo.",
   "Manutenzioni e interventi vanno annotati nel Registro di manutenzione consegnato con l'impianto.",
+  "Per le porte UNI EN 13241 la prestazione è dichiarata anche ai sensi del Reg. (UE) 305/2011 (CPR) con la DoP, ove applicabile.",
 ];
 
 export async function drawCe(doc, d) {
@@ -336,7 +343,7 @@ export async function drawManutenzione(doc, d) {
   p.line(130, 800, 240, 800);
   p.text("Firma del cliente", 350, 773.7, 9, { color: [0, 0, 0] });
   p.line(440, 780, 545.3, 780);
-  p.text("Pagina 1 di 1", 545.3, 790.9, 7, { align: "right", color: [0, 0, 0] });
+  if (!embedded) p.text("Pagina 1 di 1", 545.3, 790.9, 7, { align: "right", color: [0, 0, 0] });
 }
 
 export function documentoFileName(d) {
