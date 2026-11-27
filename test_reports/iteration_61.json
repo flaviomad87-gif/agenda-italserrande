@@ -1,0 +1,22 @@
+{
+  "summary": "Frontend-only targeted retest after iteration_60 at desktop 1920x1080. Created an ephemeral Firebase user with 7 TEST_Iter60 documenti (avvolgibile molle, avvolgibile tubolare, sezionale, tapparella, scorrevole, Solo CE, Registro). Downloaded 26 PDFs via the UI: full PDF and fascicolo for each of the 5 pratiche; single ce, registro_righe and dm37; Solo CE; and StampaVuoto blank full and fascicolo for avvolgibile, tapparella and sezionale under both regimes (2026 and 2027). Checked them with PyMuPDF and visually. ALL 4 FIXES PASS. (1) The fascicolo is 4 pages in all 11 variants. A.3 ends on page 2 with 'Kit batterie tampone' and there is no '(segue)' page with 1 row. Section 5 row 1 has the right Applicazione text: 'Dal 20/01/2027: Reg. (UE) 2023/1230' for the 2006/42/CE regime and 'Sostituisce la Direttiva 2006/42/CE' for the 2027 regime. (2) CE page 2: there are 7 avvertenze, the widest ends at x=467 (≤544), and the last one ends at y=335, above the signature label at y=336, so there is no overlap. This holds in the pratica CE, Solo CE, the full PDF and the blank 2027 PDF. (3) Registro a righe: 'Tipo' is a whole word on one line in a 34pt column with no 'Tip'/'o' split, and the columns are readable. (4) DM37 Allegati obbligatori headers read 'Allegato' | 'Presente'. (5) The full PDF is now 18 pages (was 19). The global footer 'Pagina X di 18' appears once per page and runs 1..18 correctly in all 11 full PDFs, and single-document PDFs number correctly. No overlaps. 0 console errors and 0 pageerrors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "CE page 2 avvertenze vs signatures", "issues": ["Avvertenza 7 ends at y≈335 and the 'Firma e timbro per accettazione' label starts at y≈336. They do not overlap, but the gap is only about 1pt and looks cramped. Optional: move the sigBox y from 352 to about 362."]},
+      {"screen": "Registro a righe header", "issues": ["'Firma tecnico' wraps onto 2 lines while 'Firma cliente' stays on 1. This is cosmetic only."]},
+      {"screen": "Manuale page 2 (blank 2026 sezionale/tapparella)", "issues": ["The '(segue)' page holds only sections 8–10 (7 lines, last y≈157). This is a legitimate continuation, not a new page, and the page count is unchanged. Informational only."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter61_retest_check.py", "/app/backend/tests/iter60_pdf_check.py", "/app/backend/tests/iter59_layout_check.py", "/app/backend/tests/iter60_create.py", "/app/backend/tests/iter55_ui_setup.py"],
+  "action_items": ["None blocking. Optional cosmetic: add a few pt of space between CE avvertenza 7 and the signature labels."],
+  "critical_code_review_comments": ["documentiPdf.js drawCe still writes CE_AVVERTENZE at fixed y (251 + i*13.5) with no wrapping. The current texts fit, but any longer text will overflow again. splitTextToSize with an accumulated y would be more robust.", "The fascicolo still fits with little slack on page 2. Any further row added to section 5 or A.3 will spill again."],
+  "updated_files": ["/app/backend/tests/iter61_retest_check.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% (all targeted checks pass across 26 PDFs)"},
+  "seed_data_creation": "Ephemeral Firebase user testuser+iter55uia85c4974@italserrande.test with 7 TEST_Iter60 documenti. All were deleted (filtered by this user's uid) and the Firebase user was removed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Setup: python iter55_ui_setup.py setup, then python iter60_create.py. Download via UI to /tmp/iter61 using an init script that sets navigator.share/canShare to undefined: documento-row-<id> → pratica-share-all / pratica-pdf-<k>; documenti-tab-ce → documento-share; stampa-vuoto-toggle/regime/tipo/documento/scarica. Then run iter60_pdf_check.py '/tmp/iter61/*.pdf', iter61_retest_check.py, and iter59_layout_check.py with the glob changed. Finish with iter55_ui_setup.py cleanup. The '1/2026' past-margin hit on the registro primo intervento is the original Nr. box design."
+}

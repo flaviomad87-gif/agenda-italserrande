@@ -286,11 +286,11 @@ export async function drawCe(doc, d) {
     doc.setLineWidth(0.8);
     doc.roundedRect(x, y, w, h, 4, 4);
   };
-  sigBox(51, 352, 236, 80, "Firma e timbro per accettazione:");
-  sigBox(308.2, 352, 236, 80, "Firma Italserrande S.r.l. (timbro e firma):");
-  sigBox(51, 470, 110, 44, "Data:");
-  p.value(fmtDate(d.data), 106, 497, 100, 11, "center");
-  sigBox(180, 470, 364.2, 44, "Firma cliente:");
+  sigBox(51, 362, 236, 80, "Firma e timbro per accettazione:");
+  sigBox(308.2, 362, 236, 80, "Firma Italserrande S.r.l. (timbro e firma):");
+  sigBox(51, 480, 110, 44, "Data:");
+  p.value(fmtDate(d.data), 106, 507, 100, 11, "center");
+  sigBox(180, 480, 364.2, 44, "Firma cliente:");
   ceFooter(p, 2);
 }
 

@@ -510,3 +510,9 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
   Allegato A chiusura/automatismo/componenti; B livello protezione EN 12453 (gruppi, A-E), pericoli, modifica sostanziale; C collaudo, consegna Sì/No, manuali, responsabilità, firme.
 - Nuova sezione modulo 3c (components/PraticaFascicolo.jsx), marche suggerite (ACM, FAAC, DEA, NICE, Elsamec, Benincà, CAME, BFT, Somfy), tipo "tapparella" (UNI EN 13659).
 - Intestazione aziendale aggiornata (COMPANY in documentiPdf.js) con ambito "solo Comune di Roma".
+
+## 27/11/2026 — Revisione documentazione serranda (iteration 60-61)
+- Numerazione globale "Pagina X di TOT" su ogni pagina del PDF pratica (Flow.own per CE/registro, setEmbedded sopprime i vecchi piè di pagina).
+- Intestazioni tabelle a capo; targhetta su etichette poliestere/resina a trasferimento termico; DM37: C.C.I.A.A., caselle 2 colonne, continuità PE in Ohm.
+- Periodicità uniforme 12 mesi privato / 6 mesi condominiale-commerciale-intensivo; DoP/CPR in CE e fascicolo.
+- Config serranda (molle+elettrofreno / tubolare): voce molle solo se molle, voce freno per avvolgibile e tapparella.

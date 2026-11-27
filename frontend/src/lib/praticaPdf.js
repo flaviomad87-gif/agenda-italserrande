@@ -768,7 +768,7 @@ function registroRighe(fl, d) {
   fl.para("Tipo di intervento: O = ordinario, S = straordinario, P = programmato (contratto). Indicare i componenti sostituiti.", { size: 8.2, color: GREY });
   const blank = " \n \n ";
   const rows = Array.from({ length: 10 }, (_, i) => [String(i + 1), "", "", blank, "", "", ""]);
-  fl.table([["N°", 24], ["Data", 52], ["Ditta / tecnico", 88], ["Descrizione e sostituzioni", W - 326], ["Tipo", 34], ["Firma tecnico", 64], ["Firma cliente", 64]], rows);
+  fl.table([["N°", 24], ["Data", 52], ["Ditta / tecnico", 88], ["Descrizione e sostituzioni", W - 330], ["Tipo", 34], ["Firma tecnico", 66], ["Firma cliente", 66]], rows);
 }
 
 const BUILDERS = {
