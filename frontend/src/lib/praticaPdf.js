@@ -296,7 +296,7 @@ function collaudo(fl, d) {
     fl.checks(items.map((t) => [t, !!vc[t]]), 2);
   });
   fl.h2("Esito del collaudo");
-  fl.checks([["Positivo", f.esito !== "negativo"], ["Negativo", f.esito === "negativo"], [`Radiocomandi consegnati: ${f.n_radiocomandi || "-"}`, null]], 3);
+  fl.checks([["Positivo", f.esito === "positivo"], ["Negativo", f.esito === "negativo"], [`Radiocomandi consegnati: ${f.n_radiocomandi || "-"}`, null]], 3);
   if (f.note_collaudo) fl.para(`Note: ${f.note_collaudo}`);
   fl.h2("Consegna", "left", 60);
   fl.para(X.CONSEGNA, { size: 8.6 });

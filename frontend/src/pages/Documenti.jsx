@@ -13,6 +13,7 @@ const TABS = [
   ["ce", "Solo CE", KINDS.ce.icon],
   ["manutenzione", "Registri", KINDS.manutenzione.icon],
 ];
+import StampaVuoto from "../components/StampaVuoto";
 import { fmtDate } from "../lib/documentiPdf";
 
 // Pagina Documenti: Dichiarazioni CE e Registri di Manutenzione. Route: /documenti
@@ -105,6 +106,7 @@ export default function Documenti() {
           Compili una volta e ottieni tutto: Dichiarazione CE, collaudo, analisi rischi, manuale d'uso, DM 37/08, registro e targhetta.
         </p>
       )}
+      {kind === "pratica" && <StampaVuoto />}
 
       {loading ? (
         <div className="flex justify-center p-10">
