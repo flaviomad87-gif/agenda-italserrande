@@ -1,0 +1,26 @@
+{
+  "summary": "Frontend-only retest of the orphan signature page in the Analisi dei rischi, run on mobile (390px) with a temporary Firebase user. The pratica used realistic data (TEST_Condominio Via Appia Nuova 1234, 4200x3100, matricola, motore/centralina, 4 radiocomandi, long responsabile impianto and responsabile tecnico) with ALL 11 sicurezze selected, Collaudo 'tutto OK', 'Consegna tutte' and the default Rischi residui. For each of the 5 types I downloaded the full PDF and the single PDFs rischi/collaudo/dm37/fascicolo/componenti/informativa (35 PDFs) and checked them with PyMuPDF. RESULT: NOT FIXED, and now all 5 types are affected (sezionale, scorrevole, battente, avvolgibile, basculante). Page 7 of the full PDF (16 pages) and page 2 of the single rischi PDF is 'ANALISI DEI RISCHI (segue)' holding only the signature label 'Il tecnico (Italserrande S.r.l.) — data 27/11/2026' and its 28pt box (y 77-105). The smaller box is drawn correctly (28pt). Regression: OK. Collaudo, DM37 and informativa signatures keep the 38pt box, and fascicolo and componenti have their signature labels. No other orphan pages, and 0 console errors or pageerrors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Full pratica PDF p7 + single 'rischi' PDF p2 (all 5 types)", "issues": ["Orphan page 'ANALISI DEI RISCHI (segue)' still holds only the signature box. With all sicurezze selected, 'Dispositivi di sicurezza installati' runs to 3 lines and the 'Rischi residui' text ends at bbox y=733.6."]}
+    ]
+  },
+  "rca of the issue": "In praticaPdf.js, rischi() calls signatures([...], 28), so ensure(28+18=46). After the last Rischi residui line (8.5pt, baseline about 731) para adds 8.5*1.38+4, which puts the cursor at about 746.8. 746.8 + 46 = 792.8 > BOTTOM 786, which forces a new page. Even the exact need (10 + 5 + 28 = 43) gives 789.8 > 786. So reducing the box alone cannot fit with this data. The 28pt box drawn at the end of page 1 would end at about 789.8, still clear of the footer text (top 795, baseline 804), but it exceeds BOTTOM. Mitigation options: (a) in signatures, compact the 10pt pre-gap (e.g. 4) and use ensure(gap+5+boxH); with box 24 it ends at about 779.8, under BOTTOM; or (b) let signatures use a separate limit (e.g. 790) so the box can sit above the footer; or (c) save about 10pt earlier in rischi, e.g. smaller h2 spacing before 'Rischi residui' or a smaller 'Dispositivi' paragraph. Retest with ALL 11 sicurezze, which is the worst case.",
+  "test_report_links": ["/app/backend/tests/iter53_rischi_signature.py", "/app/backend/tests/iter53_ui_setup.py"],
+  "action_items": [
+    "Fix the rischi signature orphan for the worst case (all 11 sicurezze + default rischi residui). The cursor before the signature is at about 746.8, and the signature needs at most 39pt (to end at 786) or 47pt (to end at 794, under the footer). Reduce the pre-gap and/or box height, or give signatures a lower page limit than BOTTOM."
+  ],
+  "critical_code_review_comments": [
+    "Flow.signatures ensure(boxH+18) overestimates the drawn height (10+5+boxH). Compute it exactly so the margin logic and the drawing cannot drift apart.",
+    "The rischi page depends on the number of selected sicurezze (wrapping of the 'Dispositivi' paragraph). Test with the maximum selection, not only with the defaults."
+  ],
+  "updated_files": ["/app/backend/tests/iter53_rischi_signature.py", "/app/backend/tests/iter53_ui_setup.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "50% (regression of the other signatures and console OK; the rischi orphan is still present in 5/5 types)"},
+  "seed_data_creation": "Temporary Firebase user testuser+iter53ui5a935f62@italserrande.test with 1 pratica (TEST_Condominio Via Appia Nuova 1234). Deleted by API (200) plus a user_id-scoped sweep (1 leftover documenti record). Firebase user deleted.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Setup: python iter53_ui_setup.py setup|cleanup (state in /tmp/iter53_ui.json). In Playwright, add_init_script sets navigator.canShare/share to undefined so PDFs download. Flow: login → /documenti → documenti-tab-pratica → documenti-add → fill documento-input-<id> (responsabile appears twice: nth 0 is the impianto, nth 1 is DM37) → for each tipo: pratica-tipo-<tipo>, click every pratica-sic-* not selected (no 'text-white' class), pratica-collaudo-tutto-ok, pratica-consegna-tutte, pratica-share-all, then pratica-pdf-<k>. Save the files as /tmp/iter53_<tipo>_<all|k>.pdf and run iter53_rischi_signature.py."
+}

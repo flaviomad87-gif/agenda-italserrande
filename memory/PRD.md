@@ -489,3 +489,12 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Bozze e Ultime operazioni si aggiornano dopo ogni risposta (onChange). Contatore: "meno di $ 0,01" e speso dall'ultima ricarica.
 - Approva: collegamento fallito → client_id azzerato. DELETE quote azzera anche quote_number sul lavoro (fix testing agent).
 - Test: iteration_48 + correzioni → test_iter48 11/11, e2e connettore OK.
+
+## 26/11/2026 — Documentazione pratica stile certificatore (iteration 49-53)
+- Confronto con documenti di un certificatore (analisi in /app/memory/amico_docs/ANALISI.md, originali solo per consultazione).
+- Nuovi documenti nella Pratica: Indice fascicolo tecnico (conservazione 10 anni), Elenco componenti + zone di pericolo per tipo chiusura,
+  Informativa al committente su obblighi/manutenzione/norme, Registro manutenzioni a righe (O/S/P, firme).
+- Collaudo: verifiche preliminari/montaggio/funzionali/prestazionali spuntabili una per una + clausola di consegna; ordine verifiche → esito → consegna.
+- CE: "chiusura motorizzata" (non più solo serranda), responsabile impianto, 6 avvertenze di validità; direttive aggiornate (2014/30/UE, 2014/35/UE, Reg. UE 2023/1230).
+- Modulo: campo Responsabile impianto, sezione 3b Componenti (comprimibile). File: lib/praticaExtra.js, components/PraticaComponenti.jsx.
+- Pagine orfane PDF corrette.

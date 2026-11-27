@@ -320,8 +320,6 @@ function rischi(fl, d) {
     return [r.pericolo, r.zona(f.tipo_chiusura), misure || "-", present.length || r.fisso ? "Ridotto" : "Da valutare"];
   });
   fl.table([["Pericolo", 108], ["Zona", 128], ["Misure adottate", W - 108 - 128 - 72], ["Esito", 72]], rows, { blueCols: [3] });
-  fl.h2("Dispositivi di sicurezza installati");
-  fl.para(sicurezzeOn(f).map(([, l]) => l).join("; ") + ".", { size: 8.5 });
   fl.h2("Rischi residui", "left", 40);
   fl.para(f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT, { size: 8.5 });
   fl.signatures([`Il tecnico (Italserrande S.r.l.) — data ${fmtDate(d.data)}`], 28);
