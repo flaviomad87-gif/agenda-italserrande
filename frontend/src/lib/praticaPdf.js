@@ -410,7 +410,7 @@ function dm37(fl, d) {
   fl.checkLine(true, "controllato l'impianto ai fini della sicurezza e della funzionalità con esito positivo, avendo eseguito le verifiche richieste dalle norme e dalle disposizioni di legge.");
   fl.h2("Allegati obbligatori");
   fl.table(
-    [["Allegato", W - 110], ["Allegato", 110]],
+    [["Allegato", W - 110], ["Presente", 110]],
     [
       ["Relazione con tipologie dei materiali utilizzati (in fondo a questa dichiarazione)", "Sì"],
       ["Schema di impianto realizzato (pagina seguente)", "Sì"],
@@ -649,7 +649,6 @@ function fascicolo(fl, d) {
   fl.table([["Documento", W / 2], ["Documento", W / 2]], Array.from({ length: half }, (_, i) => [mark(i), docs[half + i] ? mark(half + i) : ""]));
   fl.h2("5. Riferimenti normativi", "left", 215);
   fl.table([["Norma / Direttiva", W * 0.6], ["Applicazione", W * 0.4]], X.NORME_FASCICOLO(nuovo, f.tipo_chiusura));
-  fl.para("Dal 20 gennaio 2027 il Regolamento (UE) 2023/1230 sostituisce la Direttiva 2006/42/CE: per le installazioni da quella data la dichiarazione è redatta come Dichiarazione UE di conformità.", { size: 8, color: GREY });
 
   fl.page("ALLEGATO A - Chiusura, automazione e componenti", true);
   fl.h2("A.1 Produttore / fornitore della chiusura");
@@ -661,7 +660,6 @@ function fascicolo(fl, d) {
     ["N. ante / sezioni", ch.ante || ""],
     ["Peso totale (kg)", ch.peso || ""],
   ]);
-  fl.y += 6;
   fl.checks([["Dichiarazione CE / DoP del fabbricante della chiusura:", null], [sn(ch.ce), null]], 2);
   fl.h2("A.2 Produttore dell'automatismo");
   fl.kv2([
@@ -770,7 +768,7 @@ function registroRighe(fl, d) {
   fl.para("Tipo di intervento: O = ordinario, S = straordinario, P = programmato (contratto). Indicare i componenti sostituiti.", { size: 8.2, color: GREY });
   const blank = " \n \n ";
   const rows = Array.from({ length: 10 }, (_, i) => [String(i + 1), "", "", blank, "", "", ""]);
-  fl.table([["N°", 24], ["Data", 52], ["Ditta / tecnico", 88], ["Descrizione e sostituzioni", W - 318], ["Tipo", 26], ["Firma tecnico", 64], ["Firma cliente", 64]], rows);
+  fl.table([["N°", 24], ["Data", 52], ["Ditta / tecnico", 88], ["Descrizione e sostituzioni", W - 326], ["Tipo", 34], ["Firma tecnico", 64], ["Firma cliente", 64]], rows);
 }
 
 const BUILDERS = {

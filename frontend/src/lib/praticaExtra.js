@@ -108,7 +108,7 @@ export const INFORMATIVA = [
 ];
 
 export const NORME_FASCICOLO = (nuovo, tipo) => [
-  [nuovo ? "Regolamento (UE) 2023/1230 — Macchine (dal 20/01/2027)" : "Direttiva Macchine 2006/42/CE (fino al 19/01/2027)", "Requisiti essenziali di sicurezza"],
+  [nuovo ? "Regolamento (UE) 2023/1230 — Macchine (dal 20/01/2027)" : "Direttiva Macchine 2006/42/CE (fino al 19/01/2027)", nuovo ? "Sostituisce la Direttiva 2006/42/CE" : "Dal 20/01/2027: Reg. (UE) 2023/1230"],
   ["Direttiva 2014/35/UE — Bassa tensione", "Parte elettrica dell'automazione"],
   ["Direttiva 2014/30/UE — Compatibilità elettromagnetica", "Motore, centralina e accessori"],
   tipo === "tapparella"

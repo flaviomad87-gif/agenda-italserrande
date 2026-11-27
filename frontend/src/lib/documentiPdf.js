@@ -176,9 +176,9 @@ const CE_AVVERTENZE = [
   "Modifiche successive sono coperte solo se autorizzate e controfirmate da Italserrande S.r.l.",
   "Modifiche, riparazioni e manutenzioni devono essere eseguite da personale tecnico qualificato.",
   "Le sostituzioni devono utilizzare ricambi originali o equivalenti per caratteristiche e sicurezza.",
-  "Manutenzione programmata: almeno ogni 12 mesi per uso privato, ogni 6 mesi per uso condominiale, commerciale o intensivo.",
+  "Manutenzione almeno ogni 12 mesi (uso privato) o 6 mesi (condominiale, commerciale, intensivo).",
   "Manutenzioni e interventi vanno annotati nel Registro di manutenzione consegnato con l'impianto.",
-  "Per le porte UNI EN 13241 la prestazione è dichiarata anche ai sensi del Reg. (UE) 305/2011 (CPR) con la DoP, ove applicabile.",
+  "Porte UNI EN 13241: prestazione dichiarata anche con DoP (Reg. UE 305/2011 - CPR), ove applicabile.",
 ];
 
 export async function drawCe(doc, d) {
