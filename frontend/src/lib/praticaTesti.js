@@ -228,12 +228,16 @@ export const DM37_TIPI = { nuovo: "nuovo impianto", trasformazione: "trasformazi
 export const DM37_USI = { civile: "civile", industriale: "industriale", commercio: "commercio", altri: "altri usi" };
 
 export const DOCUMENTI_PRATICA = [
+  ["fascicolo", "Indice del fascicolo tecnico"],
   ["ce", "Dichiarazione CE (UE dal 2027) / Prestazione"],
   ["collaudo", "Verbale di collaudo e consegna"],
   ["rischi", "Analisi dei rischi"],
+  ["componenti", "Elenco componenti e zone di pericolo"],
   ["manuale", "Manuale d'uso e manutenzione"],
+  ["informativa", "Informativa obblighi e manutenzione"],
   ["dm37", "Dichiarazione DM 37/08"],
-  ["registro", "Registro di manutenzione"],
+  ["registro", "Registro di manutenzione (primo intervento)"],
+  ["registro_righe", "Registro manutenzioni a righe (per il cliente)"],
   ["targhetta", "Targhetta CE da stampare"],
 ];
 

@@ -5,6 +5,7 @@ import JobPhotos from "./JobPhotos";
 import MicButton, { appendText } from "./MicButton";
 import { NORME, normaLabel, isNuovoReg } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
+import { SITI } from "../lib/praticaExtra";
 
 function Choice({ options, value, onChange, testId, multi = false, cols = 2 }) {
   const isOn = (k) => (multi ? (value || []).includes(k) : value === k);
@@ -101,6 +102,9 @@ export function ImpiantoSection({ form, setField, setTipo }) {
       <Choice options={Object.entries(T.COMANDI)} value={f.comando_tipo} onChange={(v) => setField("comando_tipo", v)} testId="pratica-comando" cols={1} />
       <Lbl>Utilizzo</Lbl>
       <Choice options={Object.entries(T.USI_IMPIANTO)} value={f.uso} onChange={(v) => setField("uso", v)} testId="pratica-uso" cols={1} />
+      <Lbl>Tipo di sito</Lbl>
+      <Choice options={Object.entries(SITI)} value={f.sito} onChange={(v) => setField("sito", v)} testId="pratica-sito" />
+      <Field id="responsabile" label="Responsabile impianto (proprietario / amministratore)" value={f.responsabile} onChange={(v) => setField("responsabile", v)} />
     </Section>
   );
 }

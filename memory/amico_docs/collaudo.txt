@@ -1,0 +1,52 @@
+1
+DATI PRODOTTO
+DATI DOMICILIO CLIENTE
+DATI LOCAZIONE PRODOTTO (se diversi da domicilio cliente)
+IL PRODOTTO DESCRITTO E’ STATO SOTTOPOSTO CON ESITO POSITIVO AL COLLAUDO
+Descrizione: Matricola:
+VERIFICHE PRELIMINARI
+Completezza ed integrità prodotto
+Integrità sicurezze intrinseche
+Assenza difetti visibili
+VERIFICHE MONTAGGIO
+Corretto assemblaggio componenti
+Apposizione marcatura (targa cancello)
+Protezioni meccaniche
+Segnalazioni Pericoli Elettrici
+Segnalazioni Pericoli Meccanici
+Segnalazioni Rischi residui
+VERIFICHE FUNZIONALI
+Movimenti a vuoto, d’apertura e chiusura
+Dispositivi d’avviamento e di arresto
+Dispositivi d’emergenza
+Dispositivi di sicurezza
+Regolazioni e settaggi
+PROVE PRESTAZIONALI
+Corrispondenza prestazioni
+Rumorosità funzionale limitata ed accettabile
+Assenza di emissioni pericolose
+Assenza di danni e deformazioni a seguito delle prove
+VERBALE DI COLLAUDO / ACCETTAZIONE
+(ver. 2.0 - 10/10)
+Indirizzo: Località: Prov.: CAP:
+Partita IVA: Cod. Fiscale: Tel.:
+Descrizione locazione: Località:
+Provincia:
+C.A.P.:
+Nominativo Riferimento: Tel.:
+NOTE:
+CONSEGNA
+• L’esecuzione con esito positivo delle prove di collaudo sopra descritte, costituisce l’idoneità all’impiego del prodotto, nonché l’atto formale di consegna definitiva 
+dello stesso prodotto, nel suo luogo d’installazione e d’utilizzo.
+• Il Committente, sottoscrivendo il presente verbale:
+1. Conferma l’adeguatezza e la funzionalità del prodotto alle sue specifiche richieste, nonché la sua accettazione;
+2. Dichiara di ricevere in consegna le istruzioni per l’uso e manutenzione del presente prodotto, di prenderne visione e di metterle a disposizione di tutti coloro saranno 
+abilitati all’impiego. Dichiara inoltre di aver ricevuto le informazioni normative sull’impianto in oggetto;
+3. S’impegna a far rispettare l’uso corretto del prodotto e a mantenere il corretto livello di buon funzionamento e stato di conservazione, secondo quanto previsto 
+dalle istruzioni d’uso e manutenzione;
+4. Conferma di ricevere la Dichiarazione CE di conformità (conforme all’allegato IIA della Direttiva 98/37/CE).
+Luogo: Data:
+Firma Produttore: Firma Committente:
+Modello indicativo di Verbale di collaudo
+(Dati installatore)
+N. Doc.:

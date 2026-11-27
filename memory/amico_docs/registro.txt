@@ -1,0 +1,70 @@
+
+(dati Installatore)
+N. Doc.:
+25002442-1
+ver. 1.0 – 09/02
+DATI PRODOTTO
+Descrizione:
+Luogo impianto:
+Matricola:
+25002442-1
+Cliente:
+Persona di Riferimento:
+Via / Civico / Interno:
+C.A.P.:
+00168
+Località:
+ROMA
+Provincia:
+ROMA
+N°:
+Ditta operante:
+Sede legale:
+Telefono:
+Nome operatore:
+250
+NOVA TECH SRL
+Data
+Descrizione:
+Sostituzioni:
+O/S/P
+Firma Tecnico
+Firma Committente
+N°:
+Ditta operante:
+Sede legale:
+Telefono:
+Nome operatore:
+Data
+Descrizione:
+Sostituzioni:
+O/S/P
+Firma Tecnico
+Firma Committente
+N°:
+Ditta operante:
+Sede legale:
+Telefono:
+Nome operatore:
+Data
+Descrizione:
+Sostituzioni:
+O/S/P
+Firma Tecnico
+Firma Committente
+N°:
+Ditta operante:
+Sede legale:
+Telefono:
+Nome operatore:
+Data
+Descrizione:
+Sostituzioni:
+O/S/P
+Firma Tecnico
+Firma Committente
+O/S/P = ORDINARIO / STRAORDINARIO / PREVENTIVO
+I dati relativi alla ditta operante, sono da indicare solo se diversi dal Costruttore.
+Il Costruttore dell’impianto si esime da ogni responsabilità, sulla sicurezza e buon funzionamento, derivanti da interventi di manutenzione operati da ditte terze, non dal medesimo incaricate e/o prive della comprovata competenza tecnica, sul prodotto descritto.
+Tutti i dati sono stati redatti e controllati con la massima cura. Non ci assumiamo comunque nessuna responsabilità per errori od omissioni.
+ Copyright by CAME CANCELLI AUTOMATICI S.p.A.

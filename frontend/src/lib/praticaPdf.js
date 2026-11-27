@@ -1,5 +1,6 @@
 import { newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione, isNuovoReg } from "./documentiPdf";
 import * as T from "./praticaTesti";
+import * as X from "./praticaExtra";
 
 const L = 51;
 const R = 544.2;
@@ -216,6 +217,11 @@ const dimensioni = (f) => (f.larghezza || f.altezza ? `L ${f.larghezza || "-"} x
 const sicurezzeOn = (f) => T.SICUREZZE.filter(([k]) => (f.sicurezze || []).includes(k));
 const ESITI = { C: "Conforme", NC: "Non conforme", NA: "Non applicabile" };
 
+const sitoRows = (f) => [
+  ["Tipo di sito", X.SITI[f.sito] || ""],
+  ["Responsabile impianto", f.responsabile || ""],
+];
+
 function datiImpianto(fl, d, extra = []) {
   const f = d.fields;
   fl.kv2([
@@ -237,7 +243,7 @@ export const toCe = (d) => {
     indirizzo: d.indirizzo,
     data: d.data,
     fields: {
-      tipologia: [tipoLabel(f), f.modello].filter(Boolean).join(" - "),
+      tipologia: [tipoLabel(f), f.modello, X.SITI[f.sito]].filter(Boolean).join(" - "),
       comune: f.comune,
       matricola: matricola(d),
       anno_installazione: f.anno_installazione,
@@ -273,7 +279,7 @@ export const toRegistro = (d) => {
 function collaudo(fl, d) {
   const f = d.fields;
   fl.start("VERBALE DI COLLAUDO E PRESA IN CONSEGNA", tipoLabel(f));
-  datiImpianto(fl, d, [["Data collaudo", fmtDate(d.data)]]);
+  datiImpianto(fl, d, [["Data collaudo", fmtDate(d.data)], ...sitoRows(f)]);
   fl.h2("Verifiche eseguite");
   const items = T.checklistFor(f.tipo_chiusura, isNuovoReg(d.data)).map((c) => [c.label, ESITI[(f.collaudo || {})[c.id]] || ""]);
   const half = Math.ceil(items.length / 2);
@@ -285,10 +291,13 @@ function collaudo(fl, d) {
   fl.h2("Esito del collaudo");
   fl.checks([["Positivo", f.esito !== "negativo"], ["Negativo", f.esito === "negativo"], [`Radiocomandi consegnati: ${f.n_radiocomandi || "-"}`, null]], 3);
   if (f.note_collaudo) fl.para(`Note: ${f.note_collaudo}`);
-  fl.para(
-    "Il cliente dichiara di aver ricevuto l'impianto funzionante, la documentazione sopra indicata e le istruzioni su uso, " +
-      "sblocco di emergenza, manutenzione e rischi residui.",
-  );
+  const pos = f.esito !== "negativo";
+  X.COLLAUDO_GRUPPI.forEach(([g, items]) => {
+    fl.h2(g, "left", 40);
+    fl.checks(items.map((t) => [t, pos]), 2);
+  });
+  fl.h2("Consegna", "left", 60);
+  fl.para(X.CONSEGNA, { size: 8.6 });
   fl.signatures(["Il tecnico collaudatore", "Il cliente per presa in consegna"]);
 }
 
@@ -565,7 +574,70 @@ async function targhetta(fl, d) {
   drawQr(fl.y + 200);
 }
 
+function fascicolo(fl, d) {
+  const f = d.fields;
+  fl.start("FASCICOLO TECNICO DELL'IMPIANTO", `${tipoLabel(f)} - matricola ${matricola(d) || "-"}`);
+  datiImpianto(fl, d, [["Data messa in servizio", fmtDate(d.data)], ...sitoRows(f)]);
+  fl.h2("Contenuto del fascicolo");
+  fl.para(X.FASCICOLO_INTRO, { size: 8.8 });
+  const incl = f.includi || {};
+  const rows = T.DOCUMENTI_PRATICA.filter(([k]) => k !== "fascicolo" && incl[k] !== false).map(([, l], i) => [String(i + 1), l, "Sì"]);
+  rows.push([String(rows.length + 1), "Libretti e dichiarazioni dei fabbricanti dei componenti", "Sì"]);
+  fl.table([["N°", 30], ["Documento", W - 130], ["Consegnato", 100]], rows, { blueCols: [2] });
+  fl.signatures(["Italserrande S.r.l. (timbro e firma)", "Il cliente per ricevuta"]);
+}
+
+function componenti(fl, d) {
+  const f = d.fields;
+  const c = f.componenti || {};
+  fl.start("ELENCO COMPONENTI E ZONE DI PERICOLO", `${tipoLabel(f)} - matricola ${matricola(d) || "-"}`);
+  fl.h2("Componenti dell'automazione");
+  const def = { motoriduttore: { marca: f.motore }, quadro: { marca: f.centralina }, trasmettitore: { qta: f.n_radiocomandi } };
+  const rows = X.COMPONENTI.map(([k, l]) => {
+    const v = { ...def[k], ...Object.fromEntries(Object.entries(c[k] || {}).filter(([, x]) => x)) };
+    return [l, v.marca || "", v.modello || "", v.serie || "", v.qta || ""];
+  });
+  fl.table([["Componente", 120], ["Marca", 95], ["Modello / codice", 120], ["N. serie", W - 375], ["Q.tà", 40]], rows, { blueCols: [1, 2, 3, 4] });
+  fl.h2("Zone di pericolo e misure adottate");
+  fl.para("I rischi individuati sono stati eliminati o ridotti con le misure indicate; i rischi residui sono segnalati sull'impianto e nel manuale.", { size: 8.6 });
+  const zone = X.ZONE_PERICOLO[f.tipo_chiusura] || X.ZONE_PERICOLO.avvolgibile;
+  fl.table([["Zona di pericolo", 150], ["Misura adottata", W - 150]], zone);
+  fl.signatures(["Il tecnico installatore"]);
+}
+
+function informativa(fl, d) {
+  const f = d.fields;
+  fl.start("INFORMATIVA AL COMMITTENTE: OBBLIGHI E MANUTENZIONE", `${tipoLabel(f)} - ${[d.indirizzo, f.comune].filter(Boolean).join(" - ")}`);
+  X.INFORMATIVA.forEach(([t, p]) => {
+    fl.h2(t, "left", 50);
+    fl.para(p, { size: 8.8 });
+  });
+  fl.para("Per la manutenzione periodica Italserrande S.r.l. offre contratti con promemoria automatico ogni 6 mesi.", { size: 8.8, style: "bold" });
+  fl.signatures(["Il cliente per ricevuta"]);
+}
+
+function registroRighe(fl, d) {
+  const f = d.fields;
+  fl.start("REGISTRO DI MANUTENZIONE", "Da conservare a cura del responsabile dell'impianto e da far compilare a ogni intervento");
+  fl.kv2([
+    ["Impianto", tipoLabel(f)],
+    ["Matricola", matricola(d)],
+    ["Cliente", d.cliente],
+    ["Luogo impianto", [d.indirizzo, f.comune].filter(Boolean).join(" - ")],
+    ["Responsabile", f.responsabile || ""],
+    ["Installatore", "Italserrande S.r.l."],
+  ]);
+  fl.para("Tipo di intervento: O = ordinario, S = straordinario, P = programmato (contratto). Indicare i componenti sostituiti.", { size: 8.2, color: GREY });
+  const blank = " \n \n ";
+  const rows = Array.from({ length: 10 }, (_, i) => [String(i + 1), "", "", blank, "", "", ""]);
+  fl.table([["N°", 24], ["Data", 52], ["Ditta / tecnico", 88], ["Descrizione e sostituzioni", W - 304], ["Tipo", 30], ["Firma tecnico", 55], ["Firma cliente", 55]], rows);
+}
+
 const BUILDERS = {
+  fascicolo,
+  componenti,
+  informativa,
+  registro_righe: registroRighe,
   ce: async (fl, d) => {
     fl.fresh();
     await drawCe(fl.doc, toCe(d));

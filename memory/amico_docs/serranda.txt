@@ -1,0 +1,294 @@
+N. Doc.: 
+ 
+ 
+ 
+(2) 
+(1) 
+ 
+ 
+ 
+ 
+versione 1.0 – 09/02 
+Sez. 3 
+Allegato - H 
+Valutazione redatta in conformità alla vigente Direttiva Macchine 89/392/CEE modificata dalla 98/37/CE 
+ Copyright by CAME CANCELLI AUTOMATICI S.p.A. 
+ 
+1 / 4
+AUTOMAZIONE per SERRANDA AVVOLGIBILE – ELENCO COMPONENTI 
+Componenti Marca Modello/Codice N. Serie Q.tà 
+1.     MOTORIDUTTORE     
+2.     QUADRO COMANDO     
+3.     LAMPEGGIATORE     
+4.     FOTOCELLULE     
+5.     SELETTORE     
+6.     RICEVITORE     
+7.     ANTENNA     
+8.     TRASMETTITORE     
+9.     COSTOLA SENSIBILE     
+10.   ELETTROSERRATURA     
+11.      
+12.      
+     
+Tavola - N  
+Elenco delle zone di pericolo: 
+Rischi evidenziati vengono eliminati o segnalati. 
+1. Bordo inferiore di chiusura; 
+Misura della forza dinamica d'impatto:  
+vedi Tavola O;  
+Limitare la possibilità d'impatto con l'inserimento di 
+dispositivi di verifica (tipo D); 
+La porta non deve essere in grado di sollevare un 
+peso di 20 Kg (40 Kg in aree private): Tavola O; 
+2. Bordo superiore di chiusura; 
+Per vani con altezza < 2500 mm installare dispositivi 
+di protezione per impedire convogliamento, 
+schiacciamento e taglio; 
+3. Conformazione superficie ante; 
+Eliminare o proteggere parti sporgenti; 
+La superficie dell’anta deve essere liscia e priva di 
+punti di uncinamento o taglio; 
+4.     Guide laterali di scorrimento; 
+Verificare l’assenza di bordi affilati o fessure; 
+ 
+Porte di autorimessa domestica monofamiliare: 
+se azionate da unità di motorizzazione che soddisfano 
+tutti i requisiti del prEN 60335-2-95:1999, le misure di 
+sicurezza elencate precedentemente non sono 
+necessarie;  
+Quando la porta è azionata in modalità “ uomo 
+presente”, l’attuatore deve essere solo di tipo B 
+(selettore a chiave personalizzata). 
+1
+2
+3
+4
+ 
+ 
+Altri punti di pericolo (evidenziare sullo schema): 
+…………………………………………………………………………… 
+…………………………………………………………………………… 
+…………………………………………………………………………… 
+…………………………………………………………………………… 
+…………………………………………………………………………… 
+…………………………………………………………………………… 
+…………………………………………………………………………… 
+ 
+N. Doc.: 
+ 
+ 
+ 
+(2) 
+(1) 
+ 
+ 
+ 
+ 
+versione 1.0 – 09/02 
+Sez. 3 
+Allegato - H 
+Valutazione redatta in conformità alla vigente Direttiva Macchine 89/392/CEE modificata dalla 98/37/CE 
+ Copyright by CAME CANCELLI AUTOMATICI S.p.A. 
+ 
+2 / 4
+ 
+ APPLICATA  NON APPLICABILE 
+Tavola – O               Rep. N.:…………………………... 
+Impatto e schiacciamento sul bordo principale di 
+chiusura.  
+Misura delle forze  tramite strumento descritto dalla 
+EN 12445;  
+Verifica limiti Tav. 1 a pag. 2. 
+I punti di misura sono quelli indicati a disegno: 
+a 50, 300, e 2500 o 300 mm sotto l’apertura massima 
+della porta;  
+L= 200 dai bordi laterali ed a metà;  
+Tutte le misure sono espresse in millimetri; 
+La misura va ripetuta 3 volte in ogni punto. 
+  conformazione dell’anta tale da non presentare il 
+pericolo di sollevamento; 
+ verificata la capacità dell’anta di non sollevare 20 
+kg (40 kg) posizionati nel punto più sfavorevole. 
+posizione strumento
+di misura
+ 
+ APPLICATA  NON APPLICABILE 
+Tavola - Q 
+Inserito dispositivi di protezione conformi alla 
+norma EN 12978 (tipo PSPE o ESPE). 
+Indicare i punti di locazione sul disegno. 
+Descrizione:…………………………………………….….. 
+……………………………………………………………… 
+……………………………………………………………… 
+……………………………………………………………… 
+……………………………………………………………… 
+……………………………………………………………… 
+……………………………………………………………… 
+……………………………………………………………… 
+……………………………………………………………… 
+……………………………………………………………... 
+………………………………………………………………  
+ 
+N. Doc.: 
+ 
+ 
+ 
+(2) 
+(1) 
+ 
+ 
+ 
+ 
+versione 1.0 – 09/02 
+Sez. 3 
+Allegato - H 
+Valutazione redatta in conformità alla vigente Direttiva Macchine 89/392/CEE modificata dalla 98/37/CE 
+ Copyright by CAME CANCELLI AUTOMATICI S.p.A. 
+ 
+3 / 4
+ 
+ APPLICATA  NON APPLICABILE 
+Tavola - R 
+Verifica funzionalità fotocellule (dispositivi tipo D) 
+per limitare la possibilità d'impatto nelle aree di 
+transito delle ante. 
+Utilizzo dell'elemento di test A come descritto nella 
+Tavola 8.  
+Posizioni di verifica a disegno.  
+Fare scorrere il corpo di prova, su tutto il fronte di 
+copertura delle fotocellule. 
+ 
+Posizionare il calibro a ridosso dell’ingombro dell’anta 
+in movimento; 
+ 
+Si consiglia: 
+1 coppia a 300 mm (nel fronte di maggior pericolo); 
+700
+200
+300
+corpo A
+fotocellule
+ 
+ APPLICATA  NON APPLICABILE 
+Tavola - S 
+Verifica funzionalità del rilevatore di presenza 
+INSTALLATO sull’anta di porta  (dispositivi tipo E) 
+per limitare la possibilità d'impatto nelle aree di 
+transito delle ante. 
+Dispositivo di rilevazione senza contatto. 
+Utilizzo degli elementi di test A e B come descritti 
+nella Tavola 8; 
+Il Corpo di Prova A va collocato nel piano verticale di 
+transito della porta, con verifiche in fase di chiusura; 
+Il Corpo di Prova B  va collocato nella posizione di 
+verifica a disegno, per ogni punto in cui sarebbe 
+prevista la misura delle Forze d’Impatto (Tav. O). 
+corpo B
+90°
+corpo A
+ 
+ APPLICATA  NON APPLICABILE 
+Tavola - T 
+Verifica funzionalità del rilevatore di presenza 
+NON INSTALLATO sull’anta di porta  (dispositivi 
+tipo E) per limitare la possibilità d'impatto nelle 
+aree di transito delle ante. 
+Dispositivo di rilevazione senza contatto. 
+Utilizzo degli elementi di test A e B come descritto 
+nella Tavola 8.  
+Il Corpo di Prova A  va rilevato in ogni posizione nel 
+piano verticale di movimento dell’anta da H = 300 mm 
+fino a H = 2500 mm rispetto il pavimento; 
+Il Corpo di Prova B  va rilevato in ogni posizione nel 
+piano verticale di movimento dell’anta fino a 300 mm 
+dal pavimento; 
+ 
+corpo B
+90°
+corpo A
+200
+300 m
+ax
+H
+ 
+ 
+N. Doc.: 
+ 
+ 
+ 
+(2) 
+(1) 
+ 
+ 
+ 
+ 
+versione 1.0 – 09/02 
+Sez. 3 
+Allegato - H 
+Valutazione redatta in conformità alla vigente Direttiva Macchine 89/392/CEE modificata dalla 98/37/CE 
+ Copyright by CAME CANCELLI AUTOMATICI S.p.A. 
+ 
+4 / 4
+ 
+ APPLICATA  NON APPLICABILE  
+Tavola – U 
+Segnalazione rischi non eliminabili. 
+Rischi non completamente eliminabili vengono segnalati adeguatamente mediante segnaletica predisposta: 
+ 
+Indicare la posizione della segnaletica nello schema mediante il relativo numero identificativo. 
+SEGNALETICA UTILIZZATA PER INDICARE PERICOLI E  DIVIETI 
+   1.  ELEMENTO PERICOLOSO. Attenzione, elemento di pericolo generico. 
+ 
+2. PERICOLO GENERICO. 
+Attenzione, pericolo generico (completato da dida-
+scalia che ne indica il tipo). 
+ 
+8. PERICOLO DI IMPIGLIAMENTO E DI 
+TRASCINAMENTO. 
+Attenzione, pericolo di impigliamento e  trascinamen-
+to per organi in moto (catene, ingranaggi,…). 
+ 
+3. PERICOLO DI FOLGORAZIONE. 
+Segnalazione di presenza di tensione: si trova affisso 
+su equipaggiamenti elettrici, pulsanti, motori elettrici e 
+su qualsiasi struttura al cui interno sia presente 
+tensione elettrica.  
+9. DIVIETO GENERICO. 
+Segnala il divieto generico (completato da didascalia 
+che ne indica il tipo). 
+ 
+4. PERICOLO DI TAGLIO-CESOIAMENTO. 
+Attenzione, pericolo di taglio o cesoiamento per pre-
+senza di parti con bave e spigoli vivi. 
+ 
+10. VIETATO MANOVRARE. 
+E’ vietato effettuare manovre durante le fasi di 
+manutenzione degli organi mobili. 
+ 
+5. PERICOLO DI SCHIACCIAMENTO MANI. 
+Attenzione, pericolo di schiacciamento delle mani a 
+causa di piani od organi meccanici in movimento. 
+ 
+11. DIVIETO DI MANOMISSIONE. 
+E’ vietato manomettere, disattivare, starare, modifi-
+care le regolazioni, dei dispositivi e/o dei componenti 
+previsti dal costruttore. 
+ 
+6. PERICOLO DI SCHIACCIAMENTO PIEDI. 
+Attenzione, pericolo di schiacciamento dei piedi a 
+causa di piani od organi meccanici in  movimento. 
+ 
+12. VIETATO RIMUOVERE LE PROTEZIONI. 
+E’ vietato rimuovere le protezioni di sicurezza a 
+macchina in moto. 
+ 
+7. PERICOLO DI INCIAMPO E CADUTA. 
+Attenzione, pericolo di inciampo e caduta per 
+presenza di parti o componenti sporgenti o non situati 
+sullo stesso piano di calpestio.  
+13. VIETATO INTERVENIRE CON ORGANI IN  
+MOTO. 
+E’ vietato compiere interventi tecnici di riparazione, 
+manutenzione e registrazione con organi, parti e 
+componenti in movimento. 
+ 
