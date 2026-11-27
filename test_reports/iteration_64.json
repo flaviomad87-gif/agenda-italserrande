@@ -1,0 +1,34 @@
+{
+  "summary": "Retest of the iteration_63 fixes. All 11 requested items are verified on the live preview URL. I used the kept Firebase account testuser+yr1777994990 at 390, 768, 1024 and 1920px. Backend: 17/17 pytest pass (the new client name validation test plus the iter63 single-user smoke). Frontend: every requested fix is confirmed. The only extra finding is a cosmetic double toast in dev mode.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Documenti load error", "issue": "When GET /documenti returns 500, the error toast appears TWICE. Cause: React.StrictMode in index.js runs the useEffect twice in dev mode. It should appear once in a production build. To make it deterministic, pass a toast id: toast.error(msg, {id: 'documenti-load-error'}).", "selector": "[data-sonner-toast]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Rilievo / Documento dialogs", "issues": ["The Data field still uses the browser's native input type=date rather than a shadcn calendar. This is pre-existing and not a regression."]}
+    ]
+  },
+  "verified": [
+    "ProssimiLavori at 768: the actions row wraps (Nuovo lavoro moves to a second line). The 'Vista settimana' button is at x 360-518 while the sidebar ends at 240. elementFromPoint returns the button itself.",
+    "Agenda at 390 with 4 TEST cards: the add-client-fab spans y 692-748 and the last content (Acconti card) ends at about 636, so nothing is covered. On desktop the FAB is display:none. The empty state shows 'Premi Aggiungi...' (inline) on desktop and the 'Tocca +' span is hidden.",
+    "Profilo at 768: the Check icon does not overlap the theme label text (measured with a Range rect).",
+    "Blu theme: --primary is 215 100% 34%. credito-aggiungi, chat-send and a bg-primary probe all render rgb(0,72,173). chat-confirm, assistente-copy-url and proposta-approva were not on the page (they need data), but they use the same default Button and bg-primary token.",
+    "AreaTabs at 768, 1024 and 1920: the tabs wrap onto 2 rows, scrollWidth == clientWidth, and 'Profilo' is fully visible.",
+    "Standalone Registro di manutenzione PDF, generated from the UI: 'Pagina 1 di 1' sits at y 810-820 and 'Firma del tecnico' at y 784-796, so they no longer overlap. iter63_pdf_check also passes.",
+    "Texts: Documenti subtitle is correct. The nav item says 'Documenti'. Nuovo -> new-lavoro opens a dialog titled 'Nuovo lavoro'. The rilievo labels read 'N° pezzi' and 'N° oblò'. At 390 the placeholders fit: 'Cerca cliente…' (93/168px) and 'Cerca nome, indirizzo, telefono…' (203/220px). The quote-new-button 'Nuovo' is 36px tall and on the same row as the toggle.",
+    "manifest.json returns 200 with 4 icon entries, purpose 'any' and 'maskable' separate. Both icons return 200 image/png.",
+    "POST /api/clients returns 422 'Il nome del cliente è obbligatorio' when name is missing, null, '', spaces or a tab. A valid name returns 200. PUT and the idempotent offline-id POST still work.",
+    "Regression: 18 pages x 2 viewports (390, 1920) give 0 console errors, 0 page errors and no horizontal overflow."
+  ],
+  "test_report_links": ["/app/backend/tests/test_iter64_client_name.py", "/app/backend/tests/test_iter63_single_user_smoke.py", "/app/test_reports/pytest/iter64.xml"],
+  "action_items": ["Optional: dedupe the Documenti load-error toast with a toast id.", "Optional (carried over from iter63): documentiPdf.js:139 still hardcodes 'Pagina X di 2' for CE. That is fine while CE is always 2 pages."],
+  "critical_code_review_comments": ["routes/documenti.py DELETE is a soft delete (is_deleted=True). Records stay in Mongo. This is by design, but test cleanup must hard-delete by id.", "PUT /api/clients does a full replace with ClientCreate. Omitted fields such as pending reset to their defaults, so clients must always send the full object."],
+  "updated_files": ["/app/backend/tests/test_iter64_client_name.py"],
+  "success_rate": {"backend": "100%", "frontend": "100% of requested fixes (1 low cosmetic issue)"},
+  "seed_data_creation": "Created 4 TEST_I64 clients, 2 API test clients, 1 TEST_I64 registro and 2 TEST_I63 pratiche from the smoke test. All were deleted by id; the soft-deleted documenti were hard-removed by id, along with the manutenzione counter I created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Use the kept account in /tmp/iter63_ui.json with iter63_ui_setup.py token|count. Run the API tests with: set -a; . /app/frontend/.env; ITER63_EMAIL=testuser+yr1777994990@italserrande.test pytest test_iter64_client_name.py test_iter63_single_user_smoke.py -p no:xdist. Documenti DELETE is soft. The full 285-test multi-user suite still needs a run once Firebase signUp works."
+}

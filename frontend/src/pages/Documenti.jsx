@@ -43,7 +43,7 @@ export default function Documenti() {
       .then((r) => setItems(r.data || []))
       .catch(() => {
         setItems([]);
-        toast.error("Impossibile caricare i documenti. Controlla la connessione.");
+        toast.error("Impossibile caricare i documenti. Controlla la connessione.", { id: "documenti-load-error" });
       })
       .finally(() => setLoading(false));
   }, []);

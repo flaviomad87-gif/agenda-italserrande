@@ -518,3 +518,7 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Config serranda (molle+elettrofreno / tubolare): voce molle solo se molle, voce freno per avvolgibile e tapparella.
 - 27/11 rifinitura (iteration 62): Flow.yesNo (caselle Sì/No grafiche allineate) in A.1, B.3, C.2; caselle grafiche sezione 4 vuoto e B.1;
   verifiche CEI 64-8 con colonne Esito/Valore misurato/Limite; CE "DoP solo dove prevista".
+
+## 27/11/2026 — Audit completo (iteration 63-64)
+- Backend pytest 285 passed (serve export REACT_APP_FIREBASE_API_KEY e REACT_APP_BACKEND_URL); POST /clients rifiuta nome vuoto (422).
+- Frontend: fix layout 768px, FAB Agenda, tema blu su pulsanti shadcn (--primary), AreaTabs a capo su desktop, testi/etichette, toast errore Documenti, manifest icone any/maskable separate, footer registro standalone.
