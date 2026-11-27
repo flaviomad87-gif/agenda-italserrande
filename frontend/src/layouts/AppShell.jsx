@@ -41,12 +41,13 @@ const SideItem = ({ to, label, icon: Icon, testId, badge }) => (
 
 // Credito Anthropic rimasto (stima), sul pulsante dell'assistente
 const CreditoPill = ({ c }) =>
-  c?.impostato ? (
+  c ? (
     <span
       data-testid="credito-pill"
-      className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none", c.avviso ? "bg-amber-400 text-amber-950" : "bg-white/20 text-white")}
+      title={c.impostato ? "Credito stimato rimasto" : "Imposta il credito caricato nell'Assistente"}
+      className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none", c.avviso || !c.impostato ? "bg-amber-400 text-amber-950" : "bg-white/20 text-white")}
     >
-      $ {Math.max(0, c.residuo).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      {c.impostato ? `$ ${Math.max(0, c.residuo).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$ ?"}
     </span>
   ) : null;
 
