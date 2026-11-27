@@ -71,12 +71,12 @@ export default function PreventiviAppSection({ onCreateJob, refreshKey }) {
       <div className="flex items-center justify-between gap-2">
         <button type="button" onClick={toggle} className="flex min-w-0 items-center gap-2 text-left" data-testid="prev-toggle">
           <ChevronDown className={`h-5 w-5 shrink-0 text-blue-700 transition-transform ${expanded ? "rotate-180" : ""}`} />
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+          <div className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
             Preventivi{!loading ? ` · ${openCount} da gestire` : ""}
           </div>
         </button>
-        <button type="button" onClick={newQuote} className="inline-flex h-9 items-center gap-1 rounded-full bg-[#0047AB] px-3 text-xs font-semibold text-white hover:bg-[#003A8C]" data-testid="quote-new-button">
-          <Plus className="h-3.5 w-3.5" /> Nuovo preventivo
+        <button type="button" onClick={newQuote} className="inline-flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-[#0047AB] px-3 text-xs font-semibold text-white hover:bg-[#003A8C]" data-testid="quote-new-button">
+          <Plus className="h-3.5 w-3.5" /> Nuovo
         </button>
       </div>
       {expanded && (

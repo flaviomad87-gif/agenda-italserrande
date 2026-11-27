@@ -115,7 +115,7 @@ export default function Profilo() {
                   ))}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 text-sm font-semibold text-stone-800">
+                  <div className="flex items-center gap-1.5 pr-6 text-sm font-semibold text-stone-800">
                     {t.label}
                     {t.isDark && (
                       <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-white">

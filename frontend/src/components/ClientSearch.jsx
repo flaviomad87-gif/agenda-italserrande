@@ -61,7 +61,7 @@ export default function ClientSearch({ onPick }) {
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
-            placeholder="Cerca cliente per nome, indirizzo, telefono…"
+            placeholder="Cerca nome, indirizzo, telefono…"
             data-testid="client-search-input"
             className="h-12 w-full rounded-2xl border border-stone-200/70 bg-white pl-10 pr-10 text-sm shadow-sm outline-none transition focus:border-[#4A5D23]/40 focus:ring-2 focus:ring-[#4A5D23]/10"
           />

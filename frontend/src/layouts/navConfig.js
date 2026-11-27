@@ -68,7 +68,7 @@ export const AREAS = [
     items: [
       { to: "/clienti", label: "Clienti", icon: Users, testId: "nav-clienti" },
       { to: "/rilievi", label: "Rilievi", icon: Ruler, testId: "nav-rilievi" },
-      { to: "/documenti", label: "Documenti CE", icon: ShieldCheck, testId: "nav-documenti" },
+      { to: "/documenti", label: "Documenti", icon: ShieldCheck, testId: "nav-documenti" },
       { to: "/contratti", label: "Contratti", icon: FileSignature, testId: "nav-contratti", badgeKey: "contratti" },
       { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino" },
       { to: "/ore-lavoro", label: "Ore lavoro", icon: BriefcaseBusiness, testId: "nav-ore-lavoro" },

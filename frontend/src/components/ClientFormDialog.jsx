@@ -223,7 +223,7 @@ export default function ClientFormDialog({ open, onOpenChange, date, initial, on
       >
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
-            {editing ? "Modifica cliente" : "Nuovo cliente"}
+            {editing ? "Modifica lavoro" : "Nuovo lavoro"}
           </DialogTitle>
         </DialogHeader>
         <form

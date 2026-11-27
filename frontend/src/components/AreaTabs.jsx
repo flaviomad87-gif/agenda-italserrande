@@ -5,7 +5,7 @@ import { cn } from "../lib/utils";
 export default function AreaTabs({ area, badgeFor }) {
   if (!area || area.items.length < 2) return null;
   return (
-    <div className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 no-print sm:mx-0 sm:px-0" data-testid={`area-tabs-${area.key}`}>
+    <div className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 no-print sm:mx-0 sm:px-0 md:flex-wrap md:overflow-visible" data-testid={`area-tabs-${area.key}`}>
       {area.items.map((it) => {
         const badge = badgeFor(it.badgeKey);
         return (

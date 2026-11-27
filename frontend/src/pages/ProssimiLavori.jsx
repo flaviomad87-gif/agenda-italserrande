@@ -175,7 +175,7 @@ export default function ProssimiLavori() {
         </div>
       </div>
 
-      <div className="flex flex-nowrap items-center justify-end gap-2 no-print">
+      <div className="flex flex-wrap items-center justify-end gap-2 no-print">
         <button
           onClick={() => setOpenWeek(true)}
           data-testid="open-week-view-button"

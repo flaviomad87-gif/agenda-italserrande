@@ -105,7 +105,7 @@ export default function Clienti() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cerca per nome o telefono…"
+              placeholder="Cerca cliente…"
               data-testid="clienti-search-input"
               className="h-11 w-full rounded-xl border border-stone-300 bg-white pl-9 pr-3 text-sm text-stone-700 placeholder:text-stone-400"
             />

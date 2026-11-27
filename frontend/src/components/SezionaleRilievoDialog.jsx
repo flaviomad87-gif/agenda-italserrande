@@ -163,7 +163,7 @@ export default function SezionaleRilievoDialog({ open, onOpenChange, rilievo, de
               <Field label="Mazzetta laterale SX" numeric {...f("mazzetta_sx")} />
               <Field label="Mazzetta laterale DX" numeric {...f("mazzetta_dx")} />
             </Row>
-            <Field label="Pezzi No" numeric {...f("pezzi")} />
+            <Field label="N° pezzi" numeric {...f("pezzi")} />
           </Section>
 
           <Section title="Tipo">
@@ -177,7 +177,7 @@ export default function SezionaleRilievoDialog({ open, onOpenChange, rilievo, de
             </Row>
             <PanelPicker value={form.modello} onChange={(v) => update("modello", v)} />
             <Row3>
-              <Field label="Oblò No" numeric {...f("oblo")} />
+              <Field label="N° oblò" numeric {...f("oblo")} />
               <Field label="Oblò H" numeric {...f("oblo_h")} />
               <Field label="Oblò W" numeric {...f("oblo_w")} />
             </Row3>

@@ -272,7 +272,7 @@ html[data-theme="vintage"] [class*="text-[#4A5D23]"],
 html[data-theme="vintage"] [class*="text-[#2E5A47]"] { color: #7c4a2e !important; }
 
 /* BLU ITALSERRANDE — stesso blu dell'app preventivi */
-html[data-theme="blu-italserrande"] { --bg-app: #f7f9fc; --ring: 215 100% 34%; }
+html[data-theme="blu-italserrande"] { --bg-app: #f7f9fc; --ring: 215 100% 34%; --primary: 215 100% 34%; }
 html[data-theme="blu-italserrande"] body { background: #f7f9fc; }
 html[data-theme="blu-italserrande"] [class~="bg-[#4A5D23]"] { background-color: #0047ab !important; }
 html[data-theme="blu-italserrande"] [class~="bg-[#4A5D23]/10"],

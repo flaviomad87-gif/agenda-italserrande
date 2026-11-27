@@ -16,6 +16,8 @@ MONTH_RE = r"^\d{4}-\d{2}$"
 
 @router.post("/clients", response_model=Client)
 async def create_client(payload: ClientCreate, user=Depends(get_current_user)):
+    if not (payload.name or "").strip():
+        raise HTTPException(status_code=422, detail="Il nome del cliente è obbligatorio")
     data = payload.model_dump()
     provided_id = data.pop("id", None)
     # Idempotency: se il client ha già fornito l'id (offline queue) e l'oggetto esiste, ritorna quello.

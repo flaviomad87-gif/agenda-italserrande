@@ -343,7 +343,7 @@ export async function drawManutenzione(doc, d) {
   p.line(130, 800, 240, 800);
   p.text("Firma del cliente", 350, 773.7, 9, { color: [0, 0, 0] });
   p.line(440, 780, 545.3, 780);
-  if (!embedded) p.text("Pagina 1 di 1", 545.3, 790.9, 7, { align: "right", color: [0, 0, 0] });
+  if (!embedded) p.text("Pagina 1 di 1", 545.3, 818, 7, { align: "right", color: [0, 0, 0] });
 }
 
 export function documentoFileName(d) {

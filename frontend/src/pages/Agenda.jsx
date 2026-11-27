@@ -119,7 +119,7 @@ export default function Agenda() {
   };
 
   return (
-    <div className="space-y-6 fade-in">
+    <div className="space-y-6 pb-24 fade-in md:pb-0">
       <header>
         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
           Agenda giornaliera
@@ -223,7 +223,8 @@ export default function Agenda() {
             />
             <p className="font-display text-lg font-semibold">Nessun cliente in agenda</p>
             <p className="mt-1 text-sm text-stone-500">
-              Tocca <span className="font-semibold text-[#4A5D23]">+</span> per aggiungere il primo lavoro o preventivo della giornata.
+              <span className="md:hidden">Tocca <span className="font-semibold text-[#4A5D23]">+</span> per aggiungere il primo lavoro o preventivo della giornata.</span>
+              <span className="hidden md:inline">Premi <span className="font-semibold text-[#4A5D23]">Aggiungi</span> per inserire il primo lavoro o preventivo della giornata.</span>
             </p>
           </div>
         ) : (

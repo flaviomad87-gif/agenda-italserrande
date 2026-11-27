@@ -209,7 +209,7 @@ function QuoteForm({ q, set, setItem, setQ }) {
             <div className="flex items-center gap-2">
               <Input inputMode="decimal" value={li.amount} onChange={(e) => setItem(i, "amount", e.target.value)} className="h-11 flex-1 rounded-xl tabular-nums" placeholder="Importo €" data-testid={`quote-item-amount-${i}`} />
               <select value={li.vatRate} onChange={(e) => setItem(i, "vatRate", Number(e.target.value))} className="h-11 rounded-xl border border-stone-200 bg-white px-2 text-sm" data-testid={`quote-item-vat-${i}`}>
-                {VAT_RATES.map((v) => <option key={v} value={v}>{v}%</option>)}
+                {VAT_RATES.map((v) => <option key={v} value={v}>{`${v}%`}</option>)}
               </select>
               {q.lineItems.length > 1 && (
                 <button type="button" onClick={() => setQ((p) => ({ ...p, lineItems: p.lineItems.filter((_, j) => j !== i) }))} className="h-11 rounded-xl px-2 text-red-500 hover:bg-red-50" aria-label="Rimuovi riga" data-testid={`quote-item-remove-${i}`}>

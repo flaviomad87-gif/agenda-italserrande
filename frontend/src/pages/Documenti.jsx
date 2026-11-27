@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
@@ -7,16 +8,17 @@ import PraticaDialog from "../components/PraticaDialog";
 import VerificaDialog from "../components/VerificaDialog";
 import { TIPI_CHIUSURA } from "../lib/praticaTesti";
 
+import StampaVuoto from "../components/StampaVuoto";
+import { fmtDate } from "../lib/documentiPdf";
+
 const TABS = [
   ["pratica", "Pratiche", FolderCheck],
   ["verifica", "Verifiche", ClipboardCheck],
   ["ce", "Solo CE", KINDS.ce.icon],
   ["manutenzione", "Registri", KINDS.manutenzione.icon],
 ];
-import StampaVuoto from "../components/StampaVuoto";
-import { fmtDate } from "../lib/documentiPdf";
 
-// Pagina Documenti: Dichiarazioni CE e Registri di Manutenzione. Route: /documenti
+// Pagina Documenti: pratiche, verifiche, CE e registri. Route: /documenti
 export default function Documenti() {
   const [kind, setKind] = useState("pratica");
   const [items, setItems] = useState([]);
@@ -39,7 +41,10 @@ export default function Documenti() {
     api
       .get("/documenti")
       .then((r) => setItems(r.data || []))
-      .catch(() => setItems([]))
+      .catch(() => {
+        setItems([]);
+        toast.error("Impossibile caricare i documenti. Controlla la connessione.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -63,7 +68,7 @@ export default function Documenti() {
       <header>
         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Conformità · fascicolo tecnico</div>
         <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Documenti</h1>
-        <p className="mt-1 text-sm text-stone-500">Dichiarazioni CE e registri di manutenzione, pronti in PDF.</p>
+        <p className="mt-1 text-sm text-stone-500">Pratiche impianto, verifiche, dichiarazioni e registri, pronti in PDF.</p>
       </header>
 
       <div className="grid grid-cols-4 gap-1 rounded-xl bg-stone-100 p-1" data-testid="documenti-tabs">
