@@ -201,6 +201,16 @@ export class Flow {
     });
     this.y += boxH + 14;
   }
+  page(label) {
+    this.doc.addPage();
+    this.cur.pages.push(this.doc.getNumberOfPages());
+    this.font(8, "italic", GREY);
+    this.doc.text(this.cur.title, L, 40);
+    this.y = 66;
+    this.font(12, "bold");
+    this.doc.text(label, L, this.y);
+    this.y += 14;
+  }
   finish() {
     this.sections.forEach(({ pages }) =>
       pages.forEach((pg, i) => {
@@ -249,7 +259,7 @@ export const toCe = (d) => {
       matricola: matricola(d),
       anno_installazione: f.anno_installazione,
       comando: f.motore,
-      norma_riferimento: "UNI EN 13241",
+      norma_riferimento: f.tipo_chiusura === "tapparella" ? "UNI EN 13659" : "UNI EN 13241",
       collaudo: d.numero ? `${d.numero}/${d.anno}` : "",
       targhetta_ce: d.vuoto ? "" : "Applicata",
       uni_en_13241: d.vuoto ? "" : "Conforme",
@@ -580,17 +590,122 @@ async function targhetta(fl, d) {
   drawQr(fl.y + 200);
 }
 
+const box = (on) => (on ? "[X]" : "[  ]");
+const sn = (v) => `${box(v === "si")} Sì   ${box(v === "no")} No`;
+
 function fascicolo(fl, d) {
   const f = d.fields;
-  fl.start("FASCICOLO TECNICO DELL'IMPIANTO", `${tipoLabel(f)} - matricola ${matricola(d) || "-"}`);
-  datiImpianto(fl, d, [["Data messa in servizio", fmtDate(d.data)], ...sitoRows(f)]);
-  fl.h2("Contenuto del fascicolo");
-  fl.para(X.FASCICOLO_INTRO, { size: 8.8 });
+  const nuovo = isNuovoReg(d.data);
+  const ch = f.chiusura || {};
+  const au = f.automazione || {};
+  const mat = matricola(d);
+  fl.start(`FASCICOLO TECNICO DI INSTALLAZIONE N. ${mat || "________"}`, `${tipoLabel(f)} - ${nuovo ? "Regolamento (UE) 2023/1230" : "Direttiva Macchine 2006/42/CE"}`);
+  fl.para(X.FASCICOLO_INTRO, { size: 8.6 });
+  fl.h2("1. Installatore");
+  fl.kv2([
+    ["Ragione sociale", "Italserrande S.r.l."],
+    ["P.IVA / C.F.", "09270881007"],
+    ["Sede legale e operativa", "Via Castino 29 - 00166 Roma (RM)"],
+    ["C.C.I.A.A.", "1152580"],
+    ["Recapiti", "Tel. 06-6240259 / Cell. 337 743730"],
+    ["Email", "italserrande@libero.it"],
+  ]);
+  fl.h2("2. Committente e luogo di installazione");
+  fl.kv2([
+    ["Committente", d.cliente],
+    ["Telefono", f.cliente_tel || ""],
+    ["P.IVA / C.F.", f.cliente_cf || ""],
+    ["Responsabile impianto", f.responsabile || ""],
+    ["Indirizzo", d.indirizzo],
+    ["Comune", f.comune || (d.vuoto ? "" : "Roma")],
+    ["Utilizzo", T.USI_IMPIANTO[f.uso] || ""],
+    ["Data messa in servizio", fmtDate(d.data)],
+  ]);
+  fl.h2("3. Identificazione dell'impianto");
+  fl.checks(Object.entries(T.TIPI_CHIUSURA).map(([k, l]) => [l.replace(/ motorizzat[ao]$/, ""), !d.vuoto && f.tipo_chiusura === k]), 3);
+  fl.kv2([
+    ["Matricola / commessa", mat],
+    ["Anno installazione", f.anno_installazione || ""],
+    ["Denominazione / modello", f.modello || ""],
+    ["Dimensioni", dimensioni(f)],
+  ]);
+  fl.h2("4. Contenuto del fascicolo");
   const incl = f.includi || {};
-  const rows = T.DOCUMENTI_PRATICA.filter(([k]) => k !== "fascicolo" && incl[k] !== false).map(([, l], i) => [String(i + 1), l, d.vuoto ? "[ ] Sì  [ ] No" : "Sì"]);
-  rows.push([String(rows.length + 1), "Libretti e dichiarazioni dei fabbricanti dei componenti", d.vuoto ? "[ ] Sì  [ ] No" : "Sì"]);
-  fl.table([["N°", 30], ["Documento", W - 130], ["Consegnato", 100]], rows, { blueCols: [2] });
-  fl.signatures(["Italserrande S.r.l. (timbro e firma)", "Il cliente per ricevuta"]);
+  const rows = T.DOCUMENTI_PRATICA.filter(([k]) => k !== "fascicolo" && incl[k] !== false).map(([, l], i) => [String(i + 1), l, d.vuoto ? "[  ] Sì  [  ] No" : "Sì"]);
+  rows.push([String(rows.length + 1), "Manuali e dichiarazioni dei fabbricanti dei componenti (Allegato C)", d.vuoto ? "[  ] Sì  [  ] No" : "Sì"]);
+  fl.table([["N.", 30], ["Documento", W - 130], ["Presente", 100]], rows, { blueCols: [2] });
+  fl.h2("5. Riferimenti normativi");
+  fl.table([["Norma / Direttiva", W * 0.6], ["Applicazione", W * 0.4]], X.NORME_FASCICOLO(nuovo, f.tipo_chiusura));
+  fl.para("Dal 20 gennaio 2027 il Regolamento (UE) 2023/1230 sostituisce la Direttiva 2006/42/CE: per le installazioni da quella data la dichiarazione è redatta come Dichiarazione UE di conformità.", { size: 8, color: GREY });
+
+  fl.page("ALLEGATO A - Chiusura, automazione e componenti");
+  fl.h2("A.1 Produttore / fornitore della chiusura");
+  fl.kv2([
+    ["Produttore", ch.produttore || ""],
+    ["Modello", ch.modello || f.modello || ""],
+    ["Anno di fabbricazione", ch.anno || ""],
+    ["Matricola chiusura", ch.matricola || ""],
+    ["N. ante / sezioni", ch.ante || ""],
+    ["Peso totale (kg)", ch.peso || ""],
+  ]);
+  fl.checks([["Dichiarazione CE / DoP del fabbricante della chiusura:", null], [sn(ch.ce), null]], 2);
+  fl.h2("A.2 Produttore dell'automatismo");
+  fl.kv2([
+    ["Produttore", au.produttore || ""],
+    ["Modello", au.modello || f.motore || ""],
+    ["Matricola", au.matricola || ""],
+    ["Centralina", f.centralina || ""],
+  ]);
+  fl.checks([["Alimentazione:", null], ...X.ALIMENTAZIONI.map((a) => [a, au.alimentazione === a])], 4);
+  fl.h2("A.3 Componenti installati");
+  const c = f.componenti || {};
+  const def = { motoriduttore: { marca: au.produttore || f.motore, modello: au.modello }, quadro: { marca: f.centralina }, trasmettitore: { qta: f.n_radiocomandi } };
+  const comp = X.COMPONENTI.map(([k, l]) => {
+    const v = { ...def[k], ...Object.fromEntries(Object.entries(c[k] || {}).filter(([, x]) => x)) };
+    return [l, v.marca || "", v.modello || "", v.serie || "", v.qta || ""];
+  });
+  fl.table([["Componente", 130], ["Produttore", 90], ["Codice / modello", 115], ["N. serie", W - 375], ["Q.tà", 40]], comp, { blueCols: [1, 2, 3, 4] });
+  fl.para("Le certificazioni e le dichiarazioni di conformità dei componenti sono allegate dove richiesto; caratteristiche e istruzioni di installazione sono nei rispettivi manuali (elenco in Allegato C).", { size: 8, color: GREY });
+
+  fl.page("ALLEGATO B - Analisi dei rischi e livello di protezione");
+  fl.h2("B.1 Livello minimo di protezione del bordo principale (UNI EN 12453)");
+  const gr = X.USO_GRUPPO[f.uso];
+  const modo = { uomo_presente: "uomo", automatico: "auto", impulsivo: f.in_vista === "no" ? "nonvista" : f.in_vista === "si" ? "vista" : "" }[f.comando_tipo];
+  fl.table(
+    [["Tipo di comando", 150], ...X.GRUPPI.map(([k, g, t]) => [`${g} - ${t}`, (W - 150) / 3])],
+    X.PROTEZIONE.map(([k, l, v]) => [`${!d.vuoto && modo === k ? "[X]" : "[  ]"} ${l}`, ...v]),
+  );
+  fl.checks([["Gruppo di utenza:", null], ...X.GRUPPI.map(([k, g]) => [g, !d.vuoto && gr === k])], 4);
+  X.LEGENDA_PROTEZIONE.forEach((t) => fl.para(t, { size: 8 }));
+  fl.para(`Protezioni adottate: ${d.vuoto ? "" : sicurezzeOn(f).map(([, l]) => l).join("; ") || "-"}`, { size: 8.8 });
+  fl.h2("B.2 Tipologie di pericolo considerate");
+  fl.para(X.PERICOLI.join(" · "), { size: 8.6 });
+  fl.para("Pericoli, zone e misure adottate sono riportati nell'Analisi dei rischi e nell'Elenco componenti e zone di pericolo di questa pratica.", { size: 8, color: GREY });
+  fl.h2("B.3 Tipo di intervento e verifica di modifica sostanziale", "left", 120);
+  fl.checks([["Nuova installazione", !d.vuoto && f.intervento !== "esistente"], ["Intervento su impianto esistente", f.intervento === "esistente"]], 2);
+  const mods = f.modifiche || [];
+  fl.checks(X.MODIFICHE.map(([k, l]) => [l, mods.includes(k)]), 1);
+  fl.checks([["Esito: modifica sostanziale", null], [sn(f.modifica_sostanziale), null]], 2);
+  fl.para("In caso di modifica sostanziale l'impianto è trattato come nuova macchina: nuova analisi dei rischi, collaudo, dichiarazione di conformità e marcatura a cura di Italserrande S.r.l.", { size: 8, color: GREY });
+
+  fl.page("ALLEGATO C - Collaudo, consegna e manuali");
+  fl.h2("C.1 Collaudo finale");
+  fl.kv2([
+    ["Verbale di collaudo", mat ? `allegato, rif. ${mat}` : ""],
+    ["Data collaudo", fmtDate(d.data)],
+    ["Esito", f.esito === "positivo" ? "Positivo" : f.esito === "negativo" ? "Negativo" : ""],
+    ["Misura forze EN 12445", "Non eseguita (verifica arresto/inversione)"],
+  ]);
+  fl.h2("C.2 Consegna dell'impianto al cliente");
+  const cs = f.consegna || {};
+  fl.table([["Verifica", W - 110], ["Esito", 110]], X.CONSEGNA_DOMANDE.map(([k, l]) => [l, sn(cs[k])]));
+  fl.h2("C.3 Manuali e documenti da archiviare");
+  const man = comp.filter((r) => r[1] || r[2]).map((r) => [`Manuale ${r[0].toLowerCase()}`, [r[1], r[2]].filter(Boolean).join(" "), ""]);
+  while (man.length < 6) man.push(["", "", ""]);
+  fl.table([["N.", 26], ["Titolo del manuale", W - 226], ["Produttore / codice", 140], ["Rev.", 60]], man.map((r, i) => [String(i + 1), ...r]));
+  fl.h2("C.4 Responsabilità dell'installatore", "left", 110);
+  X.RESPONSABILITA.forEach((t, i) => fl.para(`${i + 1}. ${t}`, { size: 8.4 }));
+  fl.signatures(["Italserrande S.r.l. (timbro e firma)", "Il committente", "L'utilizzatore"]);
 }
 
 function componenti(fl, d) {

@@ -11,7 +11,15 @@ export const COMPONENTI = [
   ["trasmettitore", "Trasmettitori"],
   ["costola", "Costola sensibile"],
   ["elettroserratura", "Elettroserratura / elettrofreno"],
+  ["encoder", "Encoder / finecorsa"],
+  ["pulsante", "Pulsante di comando"],
+  ["spia", "Spia chiusura aperta"],
+  ["cremagliera", "Cremagliera / accessori meccanici"],
+  ["batterie", "Kit batterie tampone"],
 ];
+
+export const MARCHE = ["ACM", "FAAC", "DEA", "NICE", "Elsamec", "Benincà", "CAME", "BFT", "Somfy"];
+export const ALIMENTAZIONI = ["230 Vac", "24 Vdc", "400 Vac trifase"];
 
 const BORDO_INF = [
   "Bordo inferiore di chiusura",
@@ -45,6 +53,11 @@ export const ZONE_PERICOLO = {
     ["Zona tra cancello e colonna / recinzione", "Distanza di sicurezza o rete di protezione contro cesoiamento durante l'apertura."],
     ["Ruote e guida a pavimento", "Proteggere le ruote e i punti di contatto con la guida contro lo schiacciamento dei piedi."],
     ["Fine corsa e rischio di uscita dalla guida", "Fermi meccanici di fine corsa e guida superiore anti-ribaltamento."],
+  ],
+  tapparella: [
+    BORDO_INF,
+    ["Zona di avvolgimento (rullo e cassonetto)", "Cassonetto chiuso e ispezionabile solo con attrezzo; rullo non accessibile durante l'uso."],
+    GUIDE,
   ],
   battente: [
     ["Bordo di chiusura tra le ante", BORDO_INF[1]],
@@ -92,4 +105,73 @@ export const INFORMATIVA = [
   ["Norme di riferimento",
     "Direttiva Macchine 2006/42/CE (dal 20/01/2027 Regolamento UE 2023/1230); Direttive 2014/30/UE (compatibilità elettromagnetica) e 2014/35/UE " +
     "(bassa tensione); UNI EN 13241 (norma di prodotto); UNI EN 12453 (sicurezza in uso delle porte motorizzate); D.M. 37/2008 per l'impianto elettrico."],
+];
+
+export const NORME_FASCICOLO = (nuovo, tipo) => [
+  [nuovo ? "Regolamento (UE) 2023/1230 — Macchine (dal 20/01/2027)" : "Direttiva Macchine 2006/42/CE (fino al 19/01/2027)", "Requisiti essenziali di sicurezza"],
+  ["Direttiva 2014/35/UE — Bassa tensione", "Parte elettrica dell'automazione"],
+  ["Direttiva 2014/30/UE — Compatibilità elettromagnetica", "Motore, centralina e accessori"],
+  tipo === "tapparella"
+    ? ["UNI EN 13659 — Chiusure oscuranti esterne", "Norma di prodotto"]
+    : ["UNI EN 13241 — Porte e cancelli industriali, commerciali e da garage", "Norma di prodotto"],
+  ["UNI EN 12453 — Sicurezza in uso delle porte motorizzate", "Requisiti e livelli di protezione"],
+  ["UNI EN 12604 — Aspetti meccanici", "Ove applicabile (resistenza, guide, sospensione)"],
+  ["UNI EN 12445 — Metodi di prova", "Misura strumentale delle forze: non eseguita"],
+  ["D.M. 37/2008 — Impianti negli edifici", "Impianto elettrico di alimentazione e comando"],
+];
+
+export const GRUPPI = [
+  ["g1", "Gruppo 1", "Persone informate, area privata"],
+  ["g2", "Gruppo 2", "Persone informate, area pubblica"],
+  ["g3", "Gruppo 3", "Persone non informate, uso illimitato"],
+];
+export const USO_GRUPPO = { privato: "g1", condominiale: "g2", commerciale: "g2", industriale: "g2", pubblico: "g3" };
+
+export const PROTEZIONE = [
+  ["uomo", "A uomo presente", ["A", "B", "Non ammesso"]],
+  ["vista", "A impulsi, chiusura in vista", ["C oppure E", "C oppure E", "C e D, oppure E"]],
+  ["nonvista", "A impulsi, chiusura non in vista", ["C oppure E", "C e D, oppure E", "C e D, oppure E"]],
+  ["auto", "Automatico", ["C e D, oppure E", "C e D, oppure E", "C e D, oppure E"]],
+];
+
+export const LEGENDA_PROTEZIONE = [
+  "A: comando a uomo presente con pulsante.",
+  "B: comando a uomo presente con selettore a chiave o dispositivo personale.",
+  "C: limitazione delle forze del bordo principale (centralina / limitatore di coppia).",
+  "D: dispositivi che rilevano la presenza di persone senza contatto (es. fotocellule).",
+  "E: dispositivi sensibili che impediscono il contatto o l'impatto (es. coste sensibili).",
+];
+
+export const PERICOLI = [
+  "Schiacciamento", "Cesoiamento", "Convogliamento e trascinamento", "Urto / impatto", "Sollevamento di persone",
+  "Guasti dei dispositivi di sicurezza", "Movimentazione manuale dell'anta", "Intrappolamento", "Superamento dei finecorsa", "Contatti elettrici",
+];
+
+export const MODIFICHE = [
+  ["motorizzazione", "Motorizzazione di una chiusura nata manuale"],
+  ["motore", "Sostituzione del motore con prestazioni o logica diverse"],
+  ["sicurezze", "Rimozione o modifica della logica dei dispositivi di sicurezza"],
+  ["struttura", "Modifica di dimensioni, peso o struttura del manto"],
+  ["equivalenti", "Sostituzione di componenti con ricambi equivalenti"],
+];
+
+export const CONSEGNA_DOMANDE = [
+  ["integra", "Installazione completa e in buono stato, senza difetti visibili"],
+  ["funziona", "L'installazione funziona normalmente in tutte le manovre"],
+  ["sicura", "Le sicurezze intervengono senza rischi per l'utilizzatore"],
+  ["istr_uso", "Istruzioni per l'uso e per lo sblocco manuale spiegate al cliente"],
+  ["istr_sic", "Uso dei dispositivi di emergenza e di sicurezza spiegato"],
+  ["istr_man", "Spiegato che le sicurezze vanno controllate almeno due volte l'anno"],
+  ["doc_tec", "Consegnati i documenti tecnici e le dichiarazioni di conformità"],
+  ["contratto", "Proposto al cliente un contratto di manutenzione"],
+  ["contratto_ok", "Il cliente accetta il contratto di manutenzione"],
+];
+
+export const RESPONSABILITA = [
+  "Analisi completa dei rischi della chiusura installata e adozione delle misure previste dalla UNI EN 12453.",
+  "Installazione secondo le istruzioni dei fabbricanti, usando componenti con marcatura CE.",
+  "Collaudo funzionale dell'automazione e dei singoli dispositivi di protezione, con esiti documentati.",
+  "Redazione e conservazione del fascicolo tecnico per almeno 10 anni, a disposizione delle autorità.",
+  "Applicazione della marcatura sulla chiusura motorizzata e consegna della dichiarazione di conformità.",
+  "Consegna al cliente di istruzioni d'uso e registro di manutenzione e proposta di un contratto di manutenzione.",
 ];

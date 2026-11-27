@@ -7,7 +7,7 @@ import { NORME, normaLabel, isNuovoReg } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
 import { COLLAUDO_GRUPPI } from "../lib/praticaExtra";
 
-function Choice({ options, value, onChange, testId, multi = false, cols = 2 }) {
+export function Choice({ options, value, onChange, testId, multi = false, cols = 2 }) {
   const isOn = (k) => (multi ? (value || []).includes(k) : value === k);
   const tap = (k) => onChange(multi ? (isOn(k) ? value.filter((v) => v !== k) : [...(value || []), k]) : k);
   return (
@@ -52,7 +52,7 @@ export function RegimeNote({ iso }) {
   );
 }
 
-const Lbl = ({ children }) => <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{children}</div>;
+export const Lbl = ({ children }) => <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{children}</div>;
 
 export function ClienteSection({ form, set, setField }) {
   const f = form.fields;

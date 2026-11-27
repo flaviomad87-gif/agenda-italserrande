@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Share2, Save, Loader2, Trash2, FolderCheck, FileDown } from "lucide-react";
 import { focusScrollFix } from "./DocumentoDialog";
 import ComponentiSection from "./PraticaComponenti";
+import FascicoloSection from "./PraticaFascicolo";
 import { ClienteSection, ImpiantoSection, SicurezzeSection, CollaudoSection, NormeSection, RischiSection, Dm37Section, SchemaSection } from "./PraticaForm";
 import { NORME, sharePdf } from "../lib/documentiPdf";
 import * as T from "../lib/praticaTesti";
@@ -166,6 +167,7 @@ export default function PraticaDialog({ open, onOpenChange, documento, onSaved, 
           <ImpiantoSection {...props} />
           <SicurezzeSection {...props} />
           <ComponentiSection {...props} />
+          <FascicoloSection {...props} />
           <CollaudoSection {...props} />
           <NormeSection {...props} />
           <RischiSection {...props} />

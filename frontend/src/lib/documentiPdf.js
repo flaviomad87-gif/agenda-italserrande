@@ -9,12 +9,12 @@ export const GREY = [100, 116, 139];
 export const BLUE = [20, 50, 140];
 
 export const COMPANY = [
-  "Via Castino 29 - 00166 - Roma (RM)",
-  "P.iva 09270881007 - C.F. 09270881007",
-  "Reg. imprese C.C.I.A.A. 1152580",
-  "Cap. Soc. 10.000,00€",
-  "tel: 337743730 / ufficio: 06-6240259",
-  "e-mail: italserrande@libero.it",
+  "Sede legale e operativa: Via Castino 29 - 00166 Roma (RM)",
+  "P.IVA / C.F. 09270881007",
+  "C.C.I.A.A. 1152580 - Cap. Soc. 10.000,00 €",
+  "Tel. 06-6240259 / Cell. 337 743730",
+  "Email: italserrande@libero.it",
+  "Interventi esclusivamente nel Comune di Roma",
 ];
 
 export const NORME = [

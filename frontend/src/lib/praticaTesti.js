@@ -2,6 +2,7 @@
 
 export const TIPI_CHIUSURA = {
   avvolgibile: "Serranda avvolgibile motorizzata",
+  tapparella: "Tapparella motorizzata",
   sezionale: "Porta sezionale motorizzata",
   basculante: "Porta basculante motorizzata",
   scorrevole: "Cancello scorrevole motorizzato",
@@ -25,6 +26,7 @@ export const SICUREZZE = [
 const BASE = ["finecorsa", "sblocco", "fotocellule", "lampeggiante", "differenziale", "cartelli"];
 export const SICUREZZE_DEFAULT = {
   avvolgibile: [...BASE, "paracadute"],
+  tapparella: ["finecorsa", "sblocco", "differenziale"],
   sezionale: [...BASE, "paracadute", "coste", "rilevamento"],
   basculante: [...BASE, "paracadute", "rilevamento"],
   scorrevole: [...BASE, "coste", "rilevamento", "battute"],
@@ -107,6 +109,7 @@ export function notaForze(f) {
 
 const ZONA_CONVOGLIAMENTO = {
   avvolgibile: "Rullo di avvolgimento, cassonetto e guide",
+  tapparella: "Rullo, cassonetto e guide laterali",
   sezionale: "Giunti tra i pannelli, molle, funi e carrucole",
   basculante: "Bracci, contrappesi e molle laterali",
   scorrevole: "Ruote, binario e cremagliera / pignone",
@@ -114,6 +117,7 @@ const ZONA_CONVOGLIAMENTO = {
 };
 const ZONA_CADUTA = {
   avvolgibile: "Telo avvolgibile (rottura molle o albero)",
+  tapparella: "Telo (sgancio dal rullo o rottura delle cinghie di aggancio)",
   sezionale: "Manto (rottura molle o funi)",
   basculante: "Anta (rottura molle o bracci)",
   scorrevole: "Anta (fuoriuscita dal binario / ribaltamento)",
@@ -144,6 +148,11 @@ const USO = {
     "Attendere che il telo sia completamente aperto prima di transitare; non passare mai sotto la serranda in movimento.",
     "Non forzare il telo a mano quando il motore è inserito e non appoggiare oggetti nelle guide.",
   ],
+  tapparella: [
+    "Azionare la tapparella solo con il pulsante o il comando previsto, con la finestra libera e la tapparella in vista.",
+    "Non sporgersi dalla finestra e non inserire mani od oggetti nelle guide durante il movimento.",
+    "In caso di ghiaccio o ostacoli non insistere con il comando: il motore potrebbe danneggiare il telo.",
+  ],
   sezionale: [
     "Azionare la porta solo con i comandi previsti, con il vano libero e la porta in vista.",
     "Attendere l'apertura completa prima di transitare; non sostare sotto il manto in movimento.",
@@ -168,6 +177,7 @@ const USO = {
 
 const SBLOCCO = {
   avvolgibile: "Ruotare la manovella o azionare lo sblocco del motore (cordino o chiave), quindi sollevare o abbassare il telo a mano senza strattoni. Al ritorno della corrente ripristinare il blocco prima di usare il motore.",
+  tapparella: "In mancanza di corrente la tapparella resta ferma: se il motore è dotato di manovra di soccorso usare l'asta in dotazione, altrimenti attendere il ritorno della corrente o chiamare l'assistenza.",
   sezionale: "Tirare la maniglia di sblocco del carrello (cordino rosso) e muovere il manto a mano dalla maniglia. Per riagganciare, rilasciare lo sblocco e muovere la porta finché il carrello si innesta.",
   basculante: "Inserire la chiave di sblocco nella serratura o nell'attuatore e ruotarla; muovere l'anta a mano accompagnandola fino a fine corsa. Ripristinare il blocco prima di riattivare il motore.",
   scorrevole: "Aprire lo sportellino del motore con la chiave personalizzata e ruotare la leva di sblocco; spingere il cancello a mano lentamente. Richiudere la leva per ripristinare il funzionamento automatico.",
@@ -228,7 +238,7 @@ export const DM37_TIPI = { nuovo: "nuovo impianto", trasformazione: "trasformazi
 export const DM37_USI = { civile: "civile", industriale: "industriale", commercio: "commercio", altri: "altri usi" };
 
 export const DOCUMENTI_PRATICA = [
-  ["fascicolo", "Indice del fascicolo tecnico"],
+  ["fascicolo", "Fascicolo tecnico (Allegati A, B, C)"],
   ["ce", "Dichiarazione CE (UE dal 2027) / Prestazione"],
   ["collaudo", "Verbale di collaudo e consegna"],
   ["rischi", "Analisi dei rischi"],

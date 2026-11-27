@@ -1,5 +1,6 @@
 import { Section, Row, Field } from "./DocumentoDialog";
 import { COMPONENTI } from "../lib/praticaExtra";
+import { BrandInput } from "./PraticaFascicolo";
 
 export default function ComponentiSection({ form, setField }) {
   const c = form.fields.componenti || {};
@@ -16,7 +17,7 @@ export default function ComponentiSection({ form, setField }) {
         <div key={k} className="space-y-1 border-b border-border pb-2" data-testid={`componente-${k}`}>
           <div className="text-sm font-semibold">{l}</div>
           <Row>
-            <Field id={`comp-${k}-marca`} label="Marca" value={c[k]?.marca} onChange={(v) => set(k, "marca", v)} />
+            <BrandInput id={`comp-${k}-marca`} label="Marca" value={c[k]?.marca} onChange={(v) => set(k, "marca", v)} />
             <Field id={`comp-${k}-modello`} label="Modello" value={c[k]?.modello} onChange={(v) => set(k, "modello", v)} />
           </Row>
           <Row>
