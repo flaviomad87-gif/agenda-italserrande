@@ -1,0 +1,32 @@
+{
+  "summary": "Frontend-only retest of the StampaVuoto blank forms after iteration_54, on mobile (390px) with a temporary Firebase user. The new select stampa-vuoto-regime is present with 2 options (2026-01-01 Direttiva 2006/42/CE, 2027-01-20 Reg. UE 2023/1230); the default is the pre-2027 regime today. I downloaded 32 PDFs: 5 tipi x 2 regimi 'Tutta la documentazione', plus all 11 single documents x 2 regimi for avvolgibile. All 32 downloaded (3 needed one retry, a known harness flake). There were 0 console errors and 0 pageerrors. I checked them with PyMuPDF. The regime is cited correctly: CE, rischi and targhetta say 2006/42/CE or 2023/1230 as chosen, the 2027 collaudo checklist adds 'Comandi a distanza ... password', and the 2027 manuale has the new sections. Registro primo intervento: 0 crosses and an empty description. DM37: tipo and uso have no boxes ticked (only the 4 fixed declaration lines are crossed). Rischi: Utilizzo is empty, misure are only r.fisso, Esito reads '[ ] Ridotto [ ] Da valutare', and the signature has 'data ____/____/________'. Collaudo: empty boxes for the 3 comandi and the 11 protezioni, no nota forze, and 'Radiocomandi consegnati: ______'. CE: Targhetta CE and UNI EN 13241 are empty. No orphan pages; each full PDF is 15 pages. There are no dd/mm/yyyy dates apart from the normative ones (7/12/1995, 8/8/1985, 20/01/2027). 'esito positivo' only appears in fixed legal text (collaudo Consegna paragraph, DM37 statutory line). ONE REMAINING DATE LEAK: the blank Targhetta CE prints 'Anno: 2026' or 'Anno: 2027'. Regression on a filled avvolgibile pratica (data 2026-11-10, esito positivo) is OK: dates printed, Positivo crossed, nota forze present, Targhetta CE 'Applicata', UNI EN 13241 'Conforme', registro pre-filled with Installazione/Avviamento/Regolazioni crossed and its description, DM37 nuovo/civile, Utilizzo 'Privato / residenziale', Esito 'Ridotto'. Test data was deleted.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "praticaPdf.js targhetta() line ~561", "issue": "The blank targhetta prints 'Anno: 2026' or 'Anno: 2027', because of f.anno_installazione || (d.data || '').slice(0, 4) and d.data being the regime date. It goes into the PDF without passing through fmtDate/setBlankDates. This contradicts 'NON stampa nessuna data'. Fix: use d.vuoto ? '' : (d.data||'').slice(0,4) (and check for other slices of d.data).", "selector": "stampa-vuoto-scarica (documento=targhetta or all)", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Blank Analisi dei rischi", "issues": ["The Esito column (72pt) wraps '[ ] Ridotto  [ ]' on line 1 and 'Da valutare' on line 2, so the second box is separated from its label. Put each option on its own line ('[ ] Ridotto\\n[ ] Da valutare') or widen the column."]},
+      {"screen": "Blank CE / Fascicolo (low priority)", "issues": ["CE norme table: 'Applicazione / Note' is pre-filled with 'Sì' for all 8 norme (blankPratica norme applica:true). Fascicolo 'Consegnato' is 'Sì' for all 11 documents. These may be acceptable company statements, but on a hand-filled form they could be left empty."]},
+      {"screen": "StampaVuoto panel (mobile)", "issues": ["The regime option text is truncated in the closed select at 390px ('Installazioni fino al 19/01/2027 (Direttiva 2006/4...'). A shorter label would help, e.g. 'Fino al 19/01/2027 – Dir. 2006/42/CE'."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter55_blank_pdf_check.py", "/app/backend/tests/iter55_ui_setup.py", "/app/backend/tests/iter55_create_filled.py"],
+  "action_items": [
+    "Targhetta builder: do not derive 'Anno' from d.data when d.vuoto (it currently prints 2026/2027 on the blank targhetta and inside 'Tutta la documentazione').",
+    "Optional: rischi blank Esito cell: put each tick option on its own line.",
+    "Optional: blank CE norme 'Sì' and Fascicolo 'Consegnato Sì' could be left empty; shorten the regime option labels for mobile."
+  ],
+  "critical_code_review_comments": [
+    "setBlankDates is a module-level global flag. It works because builds are sequential, but two concurrent buildPraticaPdf calls (blank + real) could leak blank dates into a real PDF. Passing the blank flag through d (already d.vuoto) to fmtDate callers would be safer.",
+    "The regime is passed as a fake d.data to drive isNuovoReg. Any builder that uses d.data directly (not via fmtDate) leaks it, as the targhetta 'Anno' does. A separate d.regime field would avoid this class of bug.",
+    "praticaPdf.js is about 730 lines, still over the 700-line limit."
+  ],
+  "updated_files": ["/app/backend/tests/iter55_blank_pdf_check.py", "/app/backend/tests/iter55_ui_setup.py", "/app/backend/tests/iter55_create_filled.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "95% (all requested points pass except the targhetta year leak)"},
+  "seed_data_creation": "A temporary Firebase user and 1 TEST_ pratica were created, then deleted (documento id 92582362-..., Firebase user deleted).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Setup: python /app/backend/tests/iter55_ui_setup.py setup|cleanup (state in /tmp/iter55_ui.json). Blank flow: login → /documenti → documenti-tab-pratica → stampa-vuoto-toggle → select stampa-vuoto-regime/tipo/documento → expect_download on stampa-vuoto-scarica (retry once). Save as /tmp/iter55_blank_<2026|2027>_<tipo>_<doc|all>.pdf and run iter55_blank_pdf_check.py. Filled regression: iter55_create_filled.py, then open documento-row-<id> → pratica-share-all with navigator.share undefined → download."
+}

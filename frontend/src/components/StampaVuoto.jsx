@@ -13,7 +13,7 @@ const blankPratica = (tipo, data) => ({
   fields: {
     tipo_chiusura: tipo,
     sicurezze: [],
-    norme: NORME.map(() => ({ applica: true, nota: "" })),
+    norme: NORME.map(() => ({ applica: null, nota: "" })),
     collaudo: {},
     esito: "",
     rischi_residui: T.RISCHI_RESIDUI_DEFAULT,

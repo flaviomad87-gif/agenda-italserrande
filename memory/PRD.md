@@ -498,3 +498,8 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - CE: "chiusura motorizzata" (non più solo serranda), responsabile impianto, 6 avvertenze di validità; direttive aggiornate (2014/30/UE, 2014/35/UE, Reg. UE 2023/1230).
 - Modulo: campo Responsabile impianto, sezione 3b Componenti (comprimibile). File: lib/praticaExtra.js, components/PraticaComponenti.jsx.
 - Pagine orfane PDF corrette.
+
+## 26/11/2026 — Moduli vuoti stampabili (iteration 54-55)
+- Documenti → Pratiche → "Stampa moduli vuoti da compilare a mano" (components/StampaVuoto.jsx): scelta tipo chiusura, regime normativo
+  (fino al 19/01/2027 Direttiva 2006/42/CE / dal 20/01/2027 Reg. UE 2023/1230), tutta la documentazione o un singolo documento.
+- Flag d.vuoto in praticaPdf.js: nessuna data (setBlankDates in documentiPdf), nessun esito/casella precompilati, caselle [ ] da barrare.

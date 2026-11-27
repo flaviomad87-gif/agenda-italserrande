@@ -323,7 +323,7 @@ function rischi(fl, d) {
   const rows = T.RISCHI.filter((r) => !r.nuovo || nuovo).map((r) => {
     const present = r.sic.filter((k) => on.includes(k)).map((k) => lab[k]);
     const misure = [...present, r.fisso].filter(Boolean).join("; ");
-    if (d.vuoto) return [r.pericolo, r.zona(f.tipo_chiusura), r.fisso || "", "[ ] Ridotto  [ ] Da valutare"];
+    if (d.vuoto) return [r.pericolo, r.zona(f.tipo_chiusura), r.fisso || "", "[ ] Ridotto\n[ ] Da valutare"];
     return [r.pericolo, r.zona(f.tipo_chiusura), misure || "-", present.length || r.fisso ? "Ridotto" : "Da valutare"];
   });
   fl.table([["Pericolo", 108], ["Zona", 128], ["Misure adottate", W - 108 - 128 - 72], ["Esito", 72]], rows, { blueCols: [3] });
@@ -558,7 +558,7 @@ async function targhetta(fl, d) {
       ["Tipo", tipoLabel(f)],
       ["Modello", f.modello],
       ["Matricola", matricola(d)],
-      ["Anno", f.anno_installazione || (d.data || "").slice(0, 4)],
+      ["Anno", f.anno_installazione || (d.vuoto ? "" : (d.data || "").slice(0, 4))],
       ["Dimensioni", dimensioni(f)],
       ["Alimentazione", f.alimentazione],
       ["Norma", `UNI EN 13241 - ${isNuovoReg(d.data) ? "Reg. (UE) 2023/1230" : "Dir. 2006/42/CE"}`],
@@ -587,8 +587,8 @@ function fascicolo(fl, d) {
   fl.h2("Contenuto del fascicolo");
   fl.para(X.FASCICOLO_INTRO, { size: 8.8 });
   const incl = f.includi || {};
-  const rows = T.DOCUMENTI_PRATICA.filter(([k]) => k !== "fascicolo" && incl[k] !== false).map(([, l], i) => [String(i + 1), l, "Sì"]);
-  rows.push([String(rows.length + 1), "Libretti e dichiarazioni dei fabbricanti dei componenti", "Sì"]);
+  const rows = T.DOCUMENTI_PRATICA.filter(([k]) => k !== "fascicolo" && incl[k] !== false).map(([, l], i) => [String(i + 1), l, d.vuoto ? "[ ] Sì  [ ] No" : "Sì"]);
+  rows.push([String(rows.length + 1), "Libretti e dichiarazioni dei fabbricanti dei componenti", d.vuoto ? "[ ] Sì  [ ] No" : "Sì"]);
   fl.table([["N°", 30], ["Documento", W - 130], ["Consegnato", 100]], rows, { blueCols: [2] });
   fl.signatures(["Italserrande S.r.l. (timbro e firma)", "Il cliente per ricevuta"]);
 }
