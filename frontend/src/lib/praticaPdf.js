@@ -253,6 +253,7 @@ export const toCe = (d) => {
       targhetta_ce: "Applicata",
       uni_en_13241: "Conforme",
       norme: f.norme,
+      responsabile: f.responsabile,
     },
   };
 };
@@ -290,7 +291,7 @@ function collaudo(fl, d) {
   fl.para(nf.testo, { size: 8.8, style: nf.ok ? "normal" : "bold", color: nf.ok ? INK : RED });
   const vc = f.verifiche_consegna || {};
   X.COLLAUDO_GRUPPI.forEach(([g, items]) => {
-    fl.h2(g, "left", 40);
+    fl.h2(g, "left", 40 + Math.ceil(items.length / 2) * 16);
     fl.checks(items.map((t) => [t, !!vc[t]]), 2);
   });
   fl.h2("Esito del collaudo");

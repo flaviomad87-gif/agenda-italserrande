@@ -1,0 +1,29 @@
+{
+  "summary": "Retest of the Pratica impianto fixes made after iteration_49. Frontend only, using a temporary Firebase user, on mobile (390) and desktop (1920). Every requested point passes. (1) Section 2: there are no pratica-sito-* buttons and no 'Tipo di sito' label. Utilizzo=Condominiale and Responsabile impianto are saved and are still there after reopening. In the Fascicolo PDF, the Collaudo PDF and all 5 complete PDFs, the 'Tipo di sito' row shows 'Condominiale', which is the Utilizzo value. (2) Section 3b: componenti-details is closed by default and when the pratica is reopened, and the fields are hidden. Tapping componenti-toggle opens it. Marca/N. serie of the motoriduttore (CameX50/SN50) are saved to the database and show up in the full PDF. (3) Section 4: there are 16 delivery-check boxes (pratica-consegna-<group>-<i>) and none is ticked by default. Each one can be ticked and unticked individually. Ticking 4 of them saved exactly those 4 (checked in the database and after reopening). 'Segna tutte eseguite' ticks all 16. In the collaudo PDF, checked with PyMuPDF drawings plus a visual render, only the 4 ticked items have a filled box, and after 'tutte' all 16 do. (4) The verbale order is: checks table → note on forces → Preliminari/Montaggio/Funzionali/Prestazionali → Esito del collaudo → Consegna → signatures. This is confirmed by text positions and by the render. (5) Row-based register: 'Firma tecnico' reads in full (x 421-476 inside its column), and the 'Tipo di intervento' note sits about 5pt below the data table, so it is visually separate. (6) The complete PDF builds for all 5 closure types without any console error or pageerror: avvolgibile 15 pages, sezionale 17, basculante 15, scorrevole 17, battente 17. All sections are present. Test data and user deleted.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "PDF Verbale di collaudo", "issues": ["With the 9-row checklist and the delivery groups the verbale now runs to 2 pages, and the 'Verifiche funzionali' group is split across the two pages (2 items on page 1, 3 on page 2). It would read better to keep each group together, for example with ensure(height of the group) before h2. LOW."]},
+      {"screen": "PraticaComponenti", "issues": ["The summary text stays 'Apri elenco componenti' even when the section is open. It could switch to 'Chiudi elenco' or use a chevron. Cosmetic."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter50_ui_setup.py", "/app/backend/tests/iter50_pdf_check.py"],
+  "action_items": [
+    "(LOW, optional) Keep each COLLAUDO_GRUPPI group on one page in the PDF verbale",
+    "(Cosmetic, optional) Change the componenti-toggle label when the section is open"
+  ],
+  "critical_code_review_comments": [
+    "Existing pratiche (without verifiche_consegna) now print all 16 delivery boxes empty, even with a positive outcome. Until iteration_49 they were filled automatically. This is consistent with the new rule, but anyone regenerating an old verbale has to open the pratica and tick them (or press 'Segna tutte eseguite').",
+    "verifiche_consegna is keyed by the full label text: if a label in COLLAUDO_GRUPPI changes, the saved ticks are lost silently. A stable id would be more robust.",
+    "Old pratiche that only have fields.sito (from iteration_49) and no uso: the 'Tipo di sito' row now reads the uso default only if it is set; it is not a problem because blankPratica always sets uso='privato'.",
+    "praticaPdf.js is still 719 lines (>700): consider moving fascicolo/componenti/informativa/registroRighe into a separate module."
+  ],
+  "updated_files": ["/app/backend/tests/iter50_ui_setup.py", "/app/backend/tests/iter50_pdf_check.py"],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100% (6/6 requirements)"},
+  "seed_data_creation": "Temporary Firebase user testuser+iter50ui032e737a@italserrande.test with 1 pratica TEST_Iter50 Condominio created from the UI. Everything was deleted (pratica via API 200, user deleted) with iter50_ui_setup.py cleanup.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "iter50_ui_setup.py setup|dump|cleanup (state in /tmp/iter50_ui.json). In Playwright, add_init_script with navigator.canShare/share=undefined so the PDF is downloaded, then intercept it with expect_download. Pratica flow: /documenti → documenti-tab-pratica → documenti-add or documento-row-<id>. Single PDFs: pratica-pdf-<k>; full PDF: pratica-share-all. Delivery checkboxes: pratica-consegna-{verifiche-preliminari|verifiche-montaggio|verifiche-funzionali|prove-prestazionali}-<i>. iter50_pdf_check.py checks ticks (cross drawn as lines inside the 9x9 box), section order, the Tipo di sito row and the registro."
+}

@@ -159,6 +159,15 @@ export async function buildManutenzionePdf(d) {
   return doc.output("blob");
 }
 
+const CE_AVVERTENZE = [
+  "La dichiarazione vale per l'impianto indicato, così come installato e collaudato da Italserrande S.r.l.",
+  "Modifiche successive sono coperte solo se autorizzate e controfirmate da Italserrande S.r.l.",
+  "Modifiche, riparazioni e manutenzioni devono essere eseguite da personale tecnico qualificato.",
+  "Le sostituzioni devono utilizzare ricambi originali o equivalenti per caratteristiche e sicurezza.",
+  "L'impianto va mantenuto secondo le istruzioni e le norme vigenti, con almeno un controllo ogni 6 mesi.",
+  "Manutenzioni e interventi vanno annotati nel Registro di manutenzione consegnato con l'impianto.",
+];
+
 export async function drawCe(doc, d) {
   const f = d.fields || {};
   const p = pen(doc);
@@ -172,10 +181,10 @@ export async function drawCe(doc, d) {
   const sigla = nuovo ? "UE" : "CE";
   p.text(`DICHIARAZIONE ${sigla} DI CONFORMITÀ / DICHIARAZIONE DI PRESTAZIONE`, 51, 212.6, 13.5, { bold: true });
   if (nuovo) {
-    p.rich([["La conformità della serranda motorizzata è attestata secondo la norma ", false], ["EN 13241", true], [" e il ", false], ["Regolamento", true]], 51, 237, 11);
+    p.rich([["La conformità della chiusura motorizzata è attestata secondo la norma ", false], ["EN 13241", true], [" e il ", false], ["Regolamento", true]], 51, 237, 11);
     p.rich([["(UE) 2023/1230", true], [" relativo alle macchine, con riferimento ai requisiti applicabili all'impianto installato.", false]], 51, 253.4, 11);
   } else {
-    p.rich([["La conformità della serranda motorizzata è attestata secondo la norma ", false], ["EN 13241", true], [" e la ", false], ["Direttiva", true]], 51, 237, 11);
+    p.rich([["La conformità della chiusura motorizzata è attestata secondo la norma ", false], ["EN 13241", true], [" e la ", false], ["Direttiva", true]], 51, 237, 11);
     p.rich([["Macchine 2006/42/CE", true], [", con riferimento ai requisiti applicabili all'impianto installato.", false]], 51, 253.4, 11);
   }
 
@@ -252,6 +261,9 @@ export async function drawCe(doc, d) {
   }
   p.text("L'impianto deve essere utilizzato correttamente e sottoposto a controlli e manutenzioni periodiche; la dichiarazione", 51, 180.8, 9.5);
   p.text("decade in caso di modifiche non autorizzate o manomissioni.", 51, 194.3, 9.5);
+  if (f.responsabile) p.rich([["Responsabile dell'impianto: ", true], [f.responsabile, false]], 51, 213, 9.5);
+  p.text("Avvertenze", 51, 236, 10, { bold: true });
+  CE_AVVERTENZE.forEach((t, i) => p.text(`${i + 1}. ${t}`, 51, 251 + i * 13.5, 8.8));
 
   // Riquadri firma ben distinti
   const sigBox = (x, y, w, h, label) => {
@@ -260,11 +272,11 @@ export async function drawCe(doc, d) {
     doc.setLineWidth(0.8);
     doc.roundedRect(x, y, w, h, 4, 4);
   };
-  sigBox(51, 232, 236, 80, "Firma e timbro per accettazione:");
-  sigBox(308.2, 232, 236, 80, "Firma Italserrande S.r.l. (timbro e firma):");
-  sigBox(51, 350, 110, 44, "Data:");
-  p.value(fmtDate(d.data), 106, 377, 100, 11, "center");
-  sigBox(180, 350, 364.2, 44, "Firma cliente:");
+  sigBox(51, 352, 236, 80, "Firma e timbro per accettazione:");
+  sigBox(308.2, 352, 236, 80, "Firma Italserrande S.r.l. (timbro e firma):");
+  sigBox(51, 470, 110, 44, "Data:");
+  p.value(fmtDate(d.data), 106, 497, 100, 11, "center");
+  sigBox(180, 470, 364.2, 44, "Firma cliente:");
   ceFooter(p, 2);
 }
 
