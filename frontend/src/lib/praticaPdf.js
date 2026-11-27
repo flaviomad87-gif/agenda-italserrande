@@ -1,4 +1,4 @@
-import { newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione, isNuovoReg } from "./documentiPdf";
+import { setBlankDates, newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione, isNuovoReg } from "./documentiPdf";
 import * as T from "./praticaTesti";
 import * as X from "./praticaExtra";
 
@@ -251,8 +251,8 @@ export const toCe = (d) => {
       comando: f.motore,
       norma_riferimento: "UNI EN 13241",
       collaudo: d.numero ? `${d.numero}/${d.anno}` : "",
-      targhetta_ce: "Applicata",
-      uni_en_13241: "Conforme",
+      targhetta_ce: d.vuoto ? "" : "Applicata",
+      uni_en_13241: d.vuoto ? "" : "Conforme",
       norme: f.norme,
       responsabile: f.responsabile,
     },
@@ -268,8 +268,8 @@ export const toRegistro = (d) => {
     indirizzo: [d.indirizzo, f.comune].filter(Boolean).join(" - "),
     data: d.data,
     fields: {
-      tipi: ["installazione", "avviamento", "regolazioni"],
-      descrizione:
+      tipi: d.vuoto ? [] : ["installazione", "avviamento", "regolazioni"],
+      descrizione: d.vuoto ? "" :
         `Installazione e messa in servizio in data [Data]: ${tipoLabel(f)}${f.modello ? ` ${f.modello}` : ""}, ` +
         `matricola ${String(f.matricola || "").trim() || "[Matricola]"}. ` +
         `Collaudo con esito ${f.esito === "negativo" ? "negativo" : "positivo"}. Dispositivi di sicurezza verificati: ${sic || "-"}. ` +
@@ -288,15 +288,21 @@ function collaudo(fl, d) {
   const rows = items.slice(0, half).map((a, i) => [...a, ...(items[half + i] || ["", ""])]);
   fl.table([["Verifica", W / 2 - 62], ["Esito", 62], ["Verifica", W / 2 - 62], ["Esito", 62]], rows, { blueCols: [1, 3] });
   fl.h2("Modalità di funzionamento e protezione contro schiacciamento e impatto");
-  const nf = T.notaForze(f);
-  fl.para(nf.testo, { size: 8.8, style: nf.ok ? "normal" : "bold", color: nf.ok ? INK : RED });
+  if (d.vuoto) {
+    fl.checks(Object.values(T.COMANDI).map((l) => [l, false]), 1);
+    fl.para("Protezioni installate:", { size: 8.8, style: "bold" });
+    fl.checks(T.SICUREZZE.map(([, l]) => [l, false]), 2);
+  } else {
+    const nf = T.notaForze(f);
+    fl.para(nf.testo, { size: 8.8, style: nf.ok ? "normal" : "bold", color: nf.ok ? INK : RED });
+  }
   const vc = f.verifiche_consegna || {};
   X.COLLAUDO_GRUPPI.forEach(([g, items]) => {
     fl.h2(g, "left", 40 + Math.ceil(items.length / 2) * 16);
     fl.checks(items.map((t) => [t, !!vc[t]]), 2);
   });
   fl.h2("Esito del collaudo");
-  fl.checks([["Positivo", f.esito === "positivo"], ["Negativo", f.esito === "negativo"], [`Radiocomandi consegnati: ${f.n_radiocomandi || "-"}`, null]], 3);
+  fl.checks([["Positivo", f.esito === "positivo"], ["Negativo", f.esito === "negativo"], [`Radiocomandi consegnati: ${f.n_radiocomandi || (d.vuoto ? "______" : "-")}`, null]], 3);
   if (f.note_collaudo) fl.para(`Note: ${f.note_collaudo}`);
   fl.h2("Consegna", "left", 60);
   fl.para(X.CONSEGNA, { size: 8.6 });
@@ -311,18 +317,19 @@ function rischi(fl, d) {
     "ANALISI DEI RISCHI",
     `Valutazione dei pericoli secondo ${nuovo ? "Regolamento (UE) 2023/1230 (Allegato III)" : "Direttiva Macchine 2006/42/CE (Allegato I)"} e UNI EN 12453`,
   );
-  datiImpianto(fl, d, [["Utilizzo", T.USI_IMPIANTO[f.uso] || T.USI_IMPIANTO.privato]]);
+  datiImpianto(fl, d, [["Utilizzo", T.USI_IMPIANTO[f.uso] || (d.vuoto ? "" : T.USI_IMPIANTO.privato)]]);
   fl.h2("Pericoli individuati e misure adottate");
   const lab = Object.fromEntries(T.SICUREZZE);
   const rows = T.RISCHI.filter((r) => !r.nuovo || nuovo).map((r) => {
     const present = r.sic.filter((k) => on.includes(k)).map((k) => lab[k]);
     const misure = [...present, r.fisso].filter(Boolean).join("; ");
+    if (d.vuoto) return [r.pericolo, r.zona(f.tipo_chiusura), r.fisso || "", "[ ] Ridotto  [ ] Da valutare"];
     return [r.pericolo, r.zona(f.tipo_chiusura), misure || "-", present.length || r.fisso ? "Ridotto" : "Da valutare"];
   });
   fl.table([["Pericolo", 108], ["Zona", 128], ["Misure adottate", W - 108 - 128 - 72], ["Esito", 72]], rows, { blueCols: [3] });
   fl.h2("Rischi residui", "left", 40);
   fl.para(f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT, { size: 8.5 });
-  fl.signatures([`Il tecnico (Italserrande S.r.l.) — data ${fmtDate(d.data)}`], 28);
+  fl.signatures([`Il tecnico (Italserrande S.r.l.) — data ${fmtDate(d.data) || "____/____/________"}`], 28);
 }
 
 function manuale(fl, d) {
@@ -359,14 +366,14 @@ function dm37(fl, d) {
   fl.checkLine(false, "iscritta all'Albo Provinciale delle imprese artigiane (L. 8/8/1985 n. 443)");
   fl.para(`esecutrice dell'impianto (descrizione schematica): ${m.descrizione || T.DM37_DESCRIZIONE(f.tipo_chiusura)}`);
   fl.para("inteso come:");
-  fl.checks(Object.entries(T.DM37_TIPI).map(([k, l]) => [l, (m.tipo || "nuovo") === k]), 4);
+  fl.checks(Object.entries(T.DM37_TIPI).map(([k, l]) => [l, (m.tipo || (d.vuoto ? "" : "nuovo")) === k]), 4);
   const b = (v) => (String(v || "").trim() ? String(v).trim() : "____________________");
   fl.para(
     `commissionato da: ${b(d.cliente)}, installato nei locali siti nel comune di ${b(f.comune)}, in ${b(d.indirizzo)}` +
       `, scala ${f.scala || "____"}, piano ${f.piano || "____"}, interno ${f.interno || "____"}, ` +
       `di proprietà di ${b(f.proprietario || d.cliente)}, in edificio adibito ad uso:`,
   );
-  fl.checks(Object.entries(T.DM37_USI).map(([k, l]) => [l, (f.uso_edificio || "civile") === k]), 4);
+  fl.checks(Object.entries(T.DM37_USI).map(([k, l]) => [l, (f.uso_edificio || (d.vuoto ? "" : "civile")) === k]), 4);
   fl.h2("DICHIARA", "center");
   fl.para(
     "sotto la propria personale responsabilità, che l'impianto è stato realizzato in modo conforme alla regola dell'arte, secondo " +
@@ -663,7 +670,12 @@ export async function buildPraticaPdf(d, only) {
   const fl = new Flow(doc, await loadLogo());
   const incl = d.fields.includi || {};
   const keys = only ? [only] : T.DOCUMENTI_PRATICA.map(([k]) => k).filter((k) => incl[k] !== false);
-  for (const k of keys) await BUILDERS[k](fl, d);
+  setBlankDates(!!d.vuoto);
+  try {
+    for (const k of keys) await BUILDERS[k](fl, d);
+  } finally {
+    setBlankDates(false);
+  }
   fl.finish();
   return doc.output("blob");
 }

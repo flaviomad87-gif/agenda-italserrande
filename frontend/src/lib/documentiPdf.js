@@ -46,7 +46,13 @@ export const isNuovoReg = (iso) => (iso || new Date().toISOString().slice(0, 10)
 export const regMacchine = (iso) => (isNuovoReg(iso) ? "Regolamento Macchine (UE) 2023/1230" : "Direttiva Macchine 2006/42/CE");
 export const normaLabel = (i, iso) => (i === 2 ? regMacchine(iso) : NORME[i]);
 
+let blankDates = false;
+export const setBlankDates = (v) => {
+  blankDates = v;
+};
+
 export function fmtDate(iso) {
+  if (blankDates) return "";
   if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return s(iso);
   const [y, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${y}`;
