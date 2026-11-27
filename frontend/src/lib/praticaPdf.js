@@ -187,8 +187,8 @@ export class Flow {
     for (let i = 0; i < r.length; i += 2) pairs.push([r[i][0], r[i][1], r[i + 1]?.[0] || "", r[i + 1]?.[1] || ""]);
     this.table([["Dato", 95], ["Valore", W / 2 - 95], ["Dato", 95], ["Valore", W / 2 - 95]], pairs, { blueCols: [1, 3] });
   }
-  signatures(labels) {
-    this.ensure(64);
+  signatures(labels, boxH = 38) {
+    this.ensure(boxH + 18);
     this.y += 10;
     const cw = W / labels.length;
     labels.forEach((l, i) => {
@@ -197,9 +197,9 @@ export class Flow {
       this.doc.text(l, x, this.y);
       this.doc.setDrawColor(...BORDER);
       this.doc.setLineWidth(0.6);
-      this.doc.roundedRect(x, this.y + 5, cw - 16, 38, 3, 3);
+      this.doc.roundedRect(x, this.y + 5, cw - 16, boxH, 3, 3);
     });
-    this.y += 52;
+    this.y += boxH + 14;
   }
   finish() {
     this.sections.forEach(({ pages }) =>
@@ -321,10 +321,10 @@ function rischi(fl, d) {
   });
   fl.table([["Pericolo", 108], ["Zona", 128], ["Misure adottate", W - 108 - 128 - 72], ["Esito", 72]], rows, { blueCols: [3] });
   fl.h2("Dispositivi di sicurezza installati");
-  fl.para(sicurezzeOn(f).map(([, l]) => l).join("; ") + ".");
-  fl.h2("Rischi residui");
-  fl.para(f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT);
-  fl.signatures([`Il tecnico (Italserrande S.r.l.) — data ${fmtDate(d.data)}`]);
+  fl.para(sicurezzeOn(f).map(([, l]) => l).join("; ") + ".", { size: 8.5 });
+  fl.h2("Rischi residui", "left", 40);
+  fl.para(f.rischi_residui || T.RISCHI_RESIDUI_DEFAULT, { size: 8.5 });
+  fl.signatures([`Il tecnico (Italserrande S.r.l.) — data ${fmtDate(d.data)}`], 28);
 }
 
 function manuale(fl, d) {

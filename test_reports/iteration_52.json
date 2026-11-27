@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only retest of the orphan pages in the full pratica PDF, run on mobile (390) with a temporary Firebase user. The pratica used realistic data: cliente, indirizzo, comune, scala/piano/interno, proprietario, modello, 4200x3100, matricola, anno, motore, centralina, alimentazione, 4 radiocomandi, a long responsabile, Collaudo 'tutto OK' and 'Consegna tutte'. For each of the 5 types I downloaded the full PDF and the 11 single documents (60 PDFs) and checked them with PyMuPDF. RESULTS: (1) DM 37/08 orphan: FIXED. No '(segue)' page holds a single line any more; the DM37 single PDF is 2 pages in all types. Page counts are now avvolgibile 15, sezionale 16, basculante 15, scorrevole 16, battente 16 (iteration_51 had 17 for sez/scorr/batt). (2) Analisi dei rischi orphan: NOT FIXED in sezionale, scorrevole and battente. Full-PDF page 7 'ANALISI DEI RISCHI (segue)' (and page 2 of the single rischi PDF) holds only the signature box 'Il tecnico (Italserrande S.r.l.) — data 27/11/2026'. (3) The signature wording is correct, 'Il tecnico (Italserrande S.r.l.) — data gg/mm/aaaa', and there is no separate 'Data:' line, in all 5 types. (4) Nothing overlaps the footer: the highest content baseline is y=780.3, and the footer text starts at about y=795. The 'Registro di manutenzione' has its own fixed layout (signature line at y=800, 'Pagina 1 di 1' on the right) and nothing overlaps there either (checked visually). (5) Regression: all 55 single PDFs and 5 full PDFs downloaded, with 0 console errors or pageerrors. Test pratica deleted (API 200) and the user removed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Full pratica PDF + single 'rischi' PDF (sezionale, scorrevole, battente)", "issues": [
+        "Orphan page still there: 'ANALISI DEI RISCHI (segue)' holds only the signature box 'Il tecnico (Italserrande S.r.l.) — data dd/mm/yyyy'. Page 7 of the full PDF, page 2 of the single PDF."
+      ]}
+    ]
+  },
+  "rca of the issue": "The handoff note says the signatures ensure() was changed from 64 to 56, but frontend/src/lib/praticaPdf.js line 191 still reads `signatures(labels) { this.ensure(64); ...`. Only the para() last-line change and the date-in-signature change were applied (git diff HEAD~1 confirms). For sezionale, scorrevole and battente, the 'Rischi residui' paragraph ends at baseline about 713, so after +12.4 and +4 the cursor is at about 729.5. 729.5 + 64 = 793.5 > BOTTOM 786, which forces a new page. With ensure(56) it would be 785.5 <= 786 and fit: the box would end at about 782.5, still above the footer at 795. Fix: in Flow.signatures set this.ensure(56), or give rischi a custom ensure.",
+  "test_report_links": ["/app/backend/tests/iter52_pdf_orphans.py", "/app/backend/tests/iter52_ui_setup.py"],
+  "action_items": [
+    "Apply the change that was announced but is missing: Flow.signatures this.ensure(64) -> this.ensure(56) in frontend/src/lib/praticaPdf.js:191. Then rischi in sezionale/scorrevole/battente will fit on 1 page."
+  ],
+  "critical_code_review_comments": [
+    "Flow.signatures uses a fixed ensure(64) while the box itself needs only 10+5+38 = 53pt. Compute it from the actual height (e.g. ensure(53)) so the margin logic and the drawing cannot drift apart.",
+    "para() last-line allowance (ensure(size*1.4-8)) is fine for the 8.6-9pt sizes. For sizes below about 6pt it goes to <=0, which is harmless but implicit; consider Math.max(…, size)."
+  ],
+  "updated_files": ["/app/backend/tests/iter52_pdf_orphans.py", "/app/backend/tests/iter52_ui_setup.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "75% of requested points (3/4: DM37 orphan, signature wording, footer overlap and regression pass; rischi orphan still present)"},
+  "seed_data_creation": "Temporary Firebase user testuser+iter52ui46175af3@italserrande.test with 1 pratica (TEST_Condominio Via Appia Nuova 1234). Deleted by API (200) plus a user_id-scoped Mongo sweep (removed 1 leftover documenti record, likely the API-deleted doc being soft-deleted). Firebase user deleted.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Setup: iter52_ui_setup.py setup|cleanup (state in /tmp/iter52_ui.json). In Playwright, add_init_script sets navigator.canShare/share to undefined so PDFs download. Flow: login → /documenti → documenti-tab-pratica → documenti-add → fill documento-input-<id> → for each tipo click pratica-tipo-<tipo>, pratica-collaudo-tutto-ok and pratica-consegna-tutte, then pratica-share-all and pratica-pdf-<k> (share auto-saves, so one pratica is reused). Save the files as /tmp/iter52_<tipo>_<all|k>.pdf and run iter52_pdf_orphans.py. Its footer-overlap warnings on the registro page are a false positive: the registro has its own fixed layout."
+}
