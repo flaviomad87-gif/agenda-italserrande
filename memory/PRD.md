@@ -503,3 +503,10 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Documenti → Pratiche → "Stampa moduli vuoti da compilare a mano" (components/StampaVuoto.jsx): scelta tipo chiusura, regime normativo
   (fino al 19/01/2027 Direttiva 2006/42/CE / dal 20/01/2027 Reg. UE 2023/1230), tutta la documentazione o un singolo documento.
 - Flag d.vuoto in praticaPdf.js: nessuna data (setBlankDates in documentiPdf), nessun esito/casella precompilati, caselle [ ] da barrare.
+
+## 27/11/2026 — Fascicolo tecnico Allegati A/B/C (iteration 56-59)
+- Fascicolo rifatto (praticaPdf.js fascicolo, Flow.page): pag.1 sezioni 1-5 (installatore, committente/luogo, identificazione con matricola/commessa,
+  contenuto, riferimenti normativi 2006/42/CE→Reg. UE 2023/1230, 2014/35, 2014/30, EN 13241/13659, EN 12453, EN 12604, EN 12445 non eseguita, DM 37/08);
+  Allegato A chiusura/automatismo/componenti; B livello protezione EN 12453 (gruppi, A-E), pericoli, modifica sostanziale; C collaudo, consegna Sì/No, manuali, responsabilità, firme.
+- Nuova sezione modulo 3c (components/PraticaFascicolo.jsx), marche suggerite (ACM, FAAC, DEA, NICE, Elsamec, Benincà, CAME, BFT, Somfy), tipo "tapparella" (UNI EN 13659).
+- Intestazione aziendale aggiornata (COMPANY in documentiPdf.js) con ambito "solo Comune di Roma".
