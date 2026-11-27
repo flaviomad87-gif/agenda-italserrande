@@ -1,0 +1,45 @@
+{
+  "summary": "Frontend-only retest of iteration_57 on mobile 390px. Setup: an ephemeral Firebase user with 8 TEST_Iter58 pratiche (6 tipi, tapparella 2026 and 2027, battente 2027, plus a minimal pratica with only tipo) and 2 TEST verifiche (tapparella, sezionale), all deleted afterwards. I downloaded 42 PDFs from the UI with 0 console errors and 0 pageerrors: fascicolo plus full documentation for each pratica, CE/targhetta/informativa/manuale for both tapparelle, 2 verifica PDFs, and 16 blank PDFs (2 regimi x 6 tipi fascicolo, plus 'tutta la documentazione' for tapparella and sezionale). PASS: (1) Section 5 'Riferimenti normativi' is never split. It is always entirely on page 2, and ALLEGATO A starts inline below it on page 2 (y=260). ALLEGATO B (page 4) and C (page 5) start at the top of a new page. 'Pagina X di Y' is consistent everywhere (fascicolo 1-5 di 5, full PDF 19 pages). (2) Section 1 is only 'Ragione sociale: Italserrande S.r.l.' plus 'P.IVA / C.F.: 09270881007'. The top header shows all the company data (address, P.IVA, CCIAA, phones, email, note). (3) Tapparella: the targhetta shows 'Norma: UNI EN 13659 - Dir. 2006/42/CE' (2026) and '... - Reg. (UE) 2023/1230' (2027). The verifica tapparella says 'conforme alle norme UNI EN 13659 e UNI EN 12453', and sezionale keeps 13241. The informativa says 'UNI EN 13241 (porte e cancelli) o UNI EN 13659 (tapparelle)'. The fascicolo norme row shows 'UNI EN 13659 — Chiusure oscuranti esterne'. CE row 1 reads 'Chiusura — UNI EN 13241 (UNI EN 13659 per tapparelle)'. (4) Blank modules have no [X] ticks and no errors. FAIL: (A) NEW near-empty page in the fascicolo. Moving section 5 and Allegato A onto page 2 makes the A.3 'Componenti installati' table fill page 2 to y=781. Its 2-line grey note 'Le certificazioni e le dichiarazioni di conformità dei componenti...' then overflows alone onto page 3 (fill about 10%: only the '(segue)' header plus 2 lines). This happens in all 42 cases: every tipo, both regimi, compilato, minimo and blank, both single and inside the full documentation. The fascicolo is still 5 pages with page fills of 81/99/10/66/78%. (B) NEW overlap in the CE PDF, both the pratica CE and the 'Solo CE' document: the longer row 1 label '1. Chiusura — UNI EN 13241 (UNI EN 13659 per tapparelle)' runs to x=313. That is past the 'Applicazione / Note' column (x=304), so 'tapparelle)' overprints the 'Sì' value. This affects every tipo and both regimi.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "praticaPdf.js fascicolo(): A.3 note after the componenti table",
+        "issue": "Page 2 now holds section 5, A.1, A.2 and the A.3 table, which ends at y≈781 against BOTTOM=786. The fl.para note after the table ('Le certificazioni e le dichiarazioni...', 8pt, 2 lines) triggers ensure() and goes alone onto page 3, which is 'FASCICOLO ... (segue)' plus 2 lines (about 10% filled). It is reproduced in 100% of fascicoli: 6 tipi x regime 2026/2027 x compilato/vuoto/minimo, single and full. About 30pt is needed. Possible fixes: drop the note or move it into C.3; put it before the A.3 table; reduce the A.3 table row height or merge rows (for example 'Encoder / finecorsa' with 'Pulsante di comando', or drop 'Spia chiusura aperta' from X.COMPONENTI); or tighten A.1/A.2 spacing (fl.y += 6 twice). Alternatively start A.3 on page 3 together with the note (keep-together).",
+        "selector": "pratica-pdf-fascicolo / pratica-share-all / stampa-vuoto-scarica",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "documentiPdf.js NORME[0] row in drawCe (line ~139)",
+        "issue": "The new label '1. Chiusura — UNI EN 13241 (UNI EN 13659 per tapparelle)' at 9.5pt spans x=57.8 to 313. The 'Applicazione / Note' column starts at x≈304, so 'tapparelle)' overlaps the 'Sì' value in row 1. This affects the CE PDF for every tipo, both regimi and blank, and the standalone 'Solo CE' document too. Shorten the label (for example 'Chiusura — UNI EN 13241 / 13659'), make it depend on tipo (normaLabel(i, iso, tipo) → 'Chiusura — UNI EN 13659' for tapparella, otherwise 'Chiusura — UNI EN 13241'), or wrap or shrink the font.",
+        "selector": "pratica-pdf-ce",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Fascicolo page 1", "issues": ["Because section 5 moves as a block to page 2, page 1 ends at about 81% (about 145pt of white space below section 4). This is acceptable by the stated requirement, just noting it."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/iter58_create.py",
+    "/app/backend/tests/iter58_fascicolo_layout_check.py",
+    "/app/backend/tests/iter55_ui_setup.py"
+  ],
+  "action_items": [
+    "Fascicolo: stop the A.3 note from overflowing alone onto page 3, which is now the near-empty page. Needs about 30pt on page 2, or move or remove the note.",
+    "CE PDF row 1: shorten or make tipo-dependent the label 'Chiusura — UNI EN 13241 (UNI EN 13659 per tapparelle)', which overlaps the 'Sì' value in the Applicazione column."
+  ],
+  "critical_code_review_comments": [
+    "Flow.page(label, inline) uses a fixed 260pt threshold. It cannot know that the following Allegato A (about 700pt) will overflow by a few points. A keep-with-next or measure-first approach for short trailing paragraphs would prevent orphan pages.",
+    "NORME labels are used both in drawCe's fixed-width column and in the UI. The longer labels need a width check (splitTextToSize) in drawCe.",
+    "praticaPdf.js is still more than 850 lines (over 700)."
+  ],
+  "updated_files": ["/app/backend/tests/iter58_create.py", "/app/backend/tests/iter58_fascicolo_layout_check.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "~70% (sec.5 integrity, Allegato A inline, B/C new page, numbering, section 1, header, tapparella norms and regression all pass; the 'no near-empty page' requirement still fails and there is a new CE row 1 overlap)"},
+  "seed_data_creation": "Temporary Firebase user testuser+iter55uid9cc59d6@italserrande.test with 8 TEST_Iter58 pratiche and 2 verifiche. All were deleted via the API (200), then a user_id-scoped mongo cleanup, and the Firebase account was deleted.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Setup: python /app/backend/tests/iter55_ui_setup.py setup, then python iter58_create.py (ids in /tmp/iter58_ids.json). Log in at /login with login-email-input/login-password-input/login-submit-button, then go to /documenti and open documenti-tab-pratica → documento-row-<id>. Download with pratica-pdf-<k> and pratica-share-all (add an init script that sets navigator.share/canShare to undefined). For verifiche use documenti-tab-verifica → verifica-share. For blanks use stampa-vuoto-toggle/regime/tipo/documento/scarica. Save the PDFs to /tmp/iter58 and run iter58_fascicolo_layout_check.py, which prints fill% per fascicolo page, section 5 and Allegato A/B/C pages, section 1 text, header and norms. Clean up with iter55_ui_setup.py cleanup. Retest: page 3 fill is no longer about 10%, and the CE row 1 text no longer overlaps (x_end < 300).",
+  "rca of the issue": "Iteration_57's fix (keep section 5 together, plus inline Allegato A) moved about 220pt of content onto page 2. Allegato A (A.1 + A.2 + the 15-row A.3 table) then fills page 2 exactly to the bottom margin, and the trailing 2-line note in fascicolo() is pushed to page 3 by Flow.ensure(). The CE overlap comes from NORME[0] being lengthened without adjusting drawCe's column width of about 246pt."
+}

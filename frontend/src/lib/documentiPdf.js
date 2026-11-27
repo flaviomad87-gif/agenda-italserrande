@@ -18,7 +18,7 @@ export const COMPANY = [
 ];
 
 export const NORME = [
-  "Chiusura — UNI EN 13241 (UNI EN 13659 per tapparelle)",
+  "Chiusura — UNI EN 13241 / 13659",
   "Serranda motorizzata / Automazione",
   "Direttiva Macchine 2006/42/CE",
   "Direttiva Bassa Tensione 2014/35/UE",

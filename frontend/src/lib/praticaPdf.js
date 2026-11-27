@@ -670,7 +670,6 @@ function fascicolo(fl, d) {
     return [l, v.marca || "", v.modello || "", v.serie || "", v.qta || ""];
   });
   fl.table([["Componente", 130], ["Produttore", 90], ["Codice / modello", 115], ["N. serie", W - 375], ["Q.tà", 40]], comp, { blueCols: [1, 2, 3, 4] });
-  fl.para("Le certificazioni e le dichiarazioni di conformità dei componenti sono allegate dove richiesto; caratteristiche e istruzioni di installazione sono nei rispettivi manuali (elenco in Allegato C).", { size: 8, color: GREY });
 
   fl.page("ALLEGATO B - Analisi dei rischi e livello di protezione");
   fl.h2("B.1 Livello minimo di protezione del bordo principale (UNI EN 12453)");
@@ -710,6 +709,7 @@ function fascicolo(fl, d) {
   fl.h2("C.3 Manuali e documenti da archiviare");
   const man = comp.filter((r) => r[1] || r[2]).map((r) => [`Manuale ${r[0].toLowerCase()}`, [r[1], r[2]].filter(Boolean).join(" "), ""]);
   while (man.length < 6) man.push(["", "", ""]);
+  fl.para("Le certificazioni e le dichiarazioni di conformità dei componenti sono allegate dove richiesto; caratteristiche e istruzioni di installazione sono nei rispettivi manuali.", { size: 8, color: GREY });
   fl.table([["N.", 26], ["Titolo del manuale", W - 226], ["Produttore / codice", 140], ["Rev.", 60]], man.map((r, i) => [String(i + 1), ...r]));
   fl.h2("C.4 Responsabilità dell'installatore", "left", 110);
   X.RESPONSABILITA.forEach((t, i) => fl.para(`${i + 1}. ${t}`, { size: 8.4 }));
