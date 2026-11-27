@@ -115,7 +115,7 @@ export const NORME_FASCICOLO = (nuovo, tipo) => [
     ? ["UNI EN 13659 — Chiusure oscuranti esterne", "Norma di prodotto"]
     : ["UNI EN 13241 — Porte e cancelli industriali, commerciali e da garage", "Norma di prodotto"],
   ["UNI EN 12453 — Sicurezza in uso delle porte motorizzate", "Requisiti e livelli di protezione"],
-  ["Reg. (UE) 305/2011 (CPR) — Dichiarazione di Prestazione (DoP)", "Porte UNI EN 13241, ove applicabile"],
+  ["Reg. (UE) 305/2011 (CPR) — Dichiarazione di Prestazione (DoP)", "Solo dove prevista per il prodotto"],
   ["UNI EN 12604 — Aspetti meccanici", "Ove applicabile (resistenza, guide, sospensione)"],
   ["UNI EN 12445 — Metodi di prova", "Misura strumentale delle forze: non eseguita"],
   ["D.M. 37/2008 — Impianti negli edifici", "Impianto elettrico di alimentazione e comando"],

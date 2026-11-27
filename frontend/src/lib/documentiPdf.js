@@ -178,7 +178,7 @@ const CE_AVVERTENZE = [
   "Le sostituzioni devono utilizzare ricambi originali o equivalenti per caratteristiche e sicurezza.",
   "Manutenzione almeno ogni 12 mesi (uso privato) o 6 mesi (condominiale, commerciale, intensivo).",
   "Manutenzioni e interventi vanno annotati nel Registro di manutenzione consegnato con l'impianto.",
-  "Porte UNI EN 13241: prestazione dichiarata anche con DoP (Reg. UE 305/2011 - CPR), ove applicabile.",
+  "DoP (Reg. UE 305/2011 - CPR) rilasciata solo dove prevista per il prodotto (porte UNI EN 13241).",
 ];
 
 export async function drawCe(doc, d) {
@@ -193,7 +193,7 @@ export async function drawCe(doc, d) {
   const nuovo = isNuovoReg(d.data);
   const sigla = nuovo ? "UE" : "CE";
   const prodNorm = /13659/.test(f.norma_riferimento || "") ? "UNI EN 13659" : "UNI EN 13241";
-  p.text(`DICHIARAZIONE ${sigla} DI CONFORMITÀ / DICHIARAZIONE DI PRESTAZIONE`, 51, 212.6, 13.5, { bold: true });
+  p.text(`DICHIARAZIONE ${sigla} DI CONFORMITÀ (DoP solo dove prevista)`, 51, 212.6, 13.5, { bold: true });
   if (nuovo) {
     p.rich([["La conformità della chiusura motorizzata è attestata secondo la norma ", false], [prodNorm.replace("UNI ", ""), true], [" e il ", false], ["Regolamento", true]], 51, 237, 11);
     p.rich([["(UE) 2023/1230", true], [" relativo alle macchine, con riferimento ai requisiti applicabili all'impianto installato.", false]], 51, 253.4, 11);

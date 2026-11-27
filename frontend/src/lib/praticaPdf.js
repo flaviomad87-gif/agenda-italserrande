@@ -101,6 +101,22 @@ export class Flow {
     doc.rect(x, y - 8, 9, 9);
     if (on) this.p.cross(x, y - 8, 9);
   }
+  yesNo(label, v) {
+    this.ensure(18);
+    this.font(9);
+    const lines = this.doc.splitTextToSize(label, W - 130);
+    lines.forEach((l, i) => this.doc.text(l, L, this.y + i * 11));
+    [["Sì", "si", R - 110], ["No", "no", R - 50]].forEach(([t, k, x]) => {
+      this.box(x, this.y, v === k);
+      this.font(9);
+      this.doc.text(t, x + 14, this.y);
+    });
+    this.y += lines.length * 11 + 3;
+    this.doc.setDrawColor(...BORDER);
+    this.doc.setLineWidth(0.4);
+    this.doc.line(L, this.y - 6, R, this.y - 6);
+    this.y += 4;
+  }
   checkLine(on, t) {
     this.font(9);
     const lines = this.doc.splitTextToSize(t, W - 18);
@@ -516,15 +532,17 @@ function schemaImpianto(fl, d, continua = false) {
     ...(continua ? [["Relazione materiali utilizzati", fixCavo(f.dm37?.materiali || T.DM37_MATERIALI)]] : []),
   ]);
   fl.h2("Verifiche strumentali eseguite (CEI 64-8 parte 6)", "left", 120);
+  const esC = (v) => (d.vuoto || !v ? "C  /  NC" : v === "NC" ? "Non conforme" : "Conforme");
+  const val = (v, u) => (v ? `${v} ${u}` : `\n${" ".repeat(18)}${u}`);
   fl.table(
-    [["Verifica", W - 150], ["Esito / valore", 150]],
+    [["Verifica", W - 290], ["Esito", 80], ["Valore misurato", 110], ["Limite", 100]],
     [
-      ["Continuità dei conduttori di protezione (PE)", `${d.vuoto ? "[  ] C  [  ] NC" : sc.continuita === "NC" ? "Non conforme" : "Conforme"} - ${sc.continuita_ohm ? `${sc.continuita_ohm} Ohm` : "______ Ohm"}`],
-      ["Resistenza di isolamento (valore minimo 1 MOhm)", sc.isolamento ? `${sc.isolamento} MOhm` : "______ MOhm"],
-      ["Prova interruttore differenziale: tempo di intervento a Idn (max 300 ms)", sc.tempo_diff ? `${sc.tempo_diff} ms` : "______ ms"],
-      ["Prova funzionale del tasto di test del differenziale", d.vuoto ? "[  ] C  [  ] NC" : "Conforme"],
+      ["Continuità dei conduttori di protezione (PE)", esC(sc.continuita || "C"), val(sc.continuita_ohm, "Ohm"), "continuità garantita"],
+      ["Resistenza di isolamento", esC(sc.isolamento ? "C" : ""), val(sc.isolamento, "MOhm"), "min 1 MOhm"],
+      ["Interruttore differenziale: tempo di intervento a Idn", esC(sc.tempo_diff ? "C" : ""), val(sc.tempo_diff, "ms"), "max 300 ms"],
+      ["Tasto di prova del differenziale", esC("C"), "-", "intervento immediato"],
     ],
-    { blueCols: [1] },
+    { blueCols: [1, 2] },
   );
   if ((d._photos || []).length) fl.para("Gli schemi di collegamento del fabbricante sono allegati in fotografia nelle pagine seguenti.", { size: 8.5, style: "italic", color: GREY });
   fl.signatures(["Il responsabile tecnico (timbro e firma)"]);
@@ -605,8 +623,6 @@ async function targhetta(fl, d) {
   drawQr(fl.y + 200);
 }
 
-const box = (on) => (on ? "[X]" : "[  ]");
-const sn = (v) => `${box(v === "si")} Sì   ${box(v === "no")} No`;
 
 function fascicolo(fl, d) {
   const f = d.fields;
@@ -644,9 +660,15 @@ function fascicolo(fl, d) {
   const incl = f.includi || {};
   const docs = T.DOCUMENTI_PRATICA.filter(([k]) => k !== "fascicolo" && incl[k] !== false).map(([, l]) => l);
   docs.push("Manuali dei componenti (Allegato C)");
-  const mark = (i) => `${d.vuoto ? "[  ] " : ""}${i + 1}. ${docs[i]}`;
   const half = Math.ceil(docs.length / 2);
-  fl.table([["Documento", W / 2], ["Documento", W / 2]], Array.from({ length: half }, (_, i) => [mark(i), docs[half + i] ? mark(half + i) : ""]));
+  if (d.vuoto) {
+    fl.para("Barrare i documenti presenti nel fascicolo:", { size: 8.5, color: GREY });
+    fl.y += 4;
+    fl.checks(Array.from({ length: half }, (_, i) => [[`${i + 1}. ${docs[i]}`, false], docs[half + i] ? [`${half + i + 1}. ${docs[half + i]}`, false] : ["", null]]).flat(), 2);
+  } else {
+    const mark = (i) => `${i + 1}. ${docs[i]}`;
+    fl.table([["Documento", W / 2], ["Documento", W / 2]], Array.from({ length: half }, (_, i) => [mark(i), docs[half + i] ? mark(half + i) : ""]));
+  }
   fl.h2("5. Riferimenti normativi", "left", 215);
   fl.table([["Norma / Direttiva", W * 0.6], ["Applicazione", W * 0.4]], X.NORME_FASCICOLO(nuovo, f.tipo_chiusura));
 
@@ -660,7 +682,8 @@ function fascicolo(fl, d) {
     ["N. ante / sezioni", ch.ante || ""],
     ["Peso totale (kg)", ch.peso || ""],
   ]);
-  fl.checks([["Dichiarazione CE / DoP del fabbricante della chiusura:", null], [sn(ch.ce), null]], 2);
+  fl.y += 6;
+  fl.yesNo("Dichiarazione CE / DoP del fabbricante della chiusura", ch.ce);
   fl.h2("A.2 Produttore dell'automatismo");
   fl.kv2([
     ["Produttore", au.produttore || ""],
@@ -685,8 +708,12 @@ function fascicolo(fl, d) {
   const modo = { uomo_presente: "uomo", automatico: "auto", impulsivo: f.in_vista === "si" ? "vista" : "nonvista" }[f.comando_tipo];
   fl.table(
     [["Tipo di comando", 150], ...X.GRUPPI.map(([, g]) => [g, (W - 150) / 3])],
-    X.PROTEZIONE.map(([k, l, v]) => [`${!d.vuoto && modo === k ? "[X]" : "[  ]"} ${l}`, ...v]),
+    X.PROTEZIONE.map(([, l, v]) => [l, ...v]),
   );
+  fl.y += 4;
+  fl.para("Tipo di comando adottato:", { size: 8.5, style: "bold" });
+  fl.y += 4;
+  fl.checks(X.PROTEZIONE.map(([k, l]) => [l, !d.vuoto && modo === k]), 2);
   fl.y += 6;
   fl.para(X.GRUPPI.map(([, g, t]) => `${g}: ${t}`).join(" · "), { size: 8 });
   fl.checks([["Gruppo di utenza:", null], ...X.GRUPPI.map(([k, g]) => [g, !d.vuoto && gr === k])], 4);
@@ -700,7 +727,7 @@ function fascicolo(fl, d) {
   const esist = f.intervento === "esistente";
   const mods = esist ? f.modifiche || [] : [];
   fl.checks(X.MODIFICHE.map(([k, l]) => [l, mods.includes(k)]), 1);
-  fl.checks([["Esito: modifica sostanziale", null], [sn(esist ? f.modifica_sostanziale : ""), null]], 2);
+  fl.yesNo("Esito: si tratta di modifica sostanziale", esist ? f.modifica_sostanziale : "");
   fl.para("In caso di modifica sostanziale l'impianto è trattato come nuova macchina: nuova analisi dei rischi, collaudo, dichiarazione di conformità e marcatura a cura di Italserrande S.r.l.", { size: 8, color: GREY });
 
   fl.page("ALLEGATO C - Collaudo, consegna e manuali");
@@ -713,7 +740,8 @@ function fascicolo(fl, d) {
   ]);
   fl.h2("C.2 Consegna dell'impianto al cliente");
   const cs = f.consegna || {};
-  fl.table([["Verifica", W - 110], ["Esito", 110]], X.CONSEGNA_DOMANDE.map(([k, l]) => [l, sn(cs[k])]));
+  fl.y += 4;
+  X.CONSEGNA_DOMANDE.forEach(([k, l]) => fl.yesNo(l, cs[k]));
   fl.h2("C.3 Manuali e documenti da archiviare");
   const man = comp.filter((r) => r[1] || r[2]).map((r) => [`Manuale ${r[0].toLowerCase()}`, [r[1], r[2]].filter(Boolean).join(" "), ""]);
   while (man.length < 6) man.push(["", "", ""]);
