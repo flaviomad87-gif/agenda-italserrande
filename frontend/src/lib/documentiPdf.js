@@ -185,12 +185,13 @@ export async function drawCe(doc, d) {
 
   const nuovo = isNuovoReg(d.data);
   const sigla = nuovo ? "UE" : "CE";
+  const prodNorm = /13659/.test(f.norma_riferimento || "") ? "UNI EN 13659" : "UNI EN 13241";
   p.text(`DICHIARAZIONE ${sigla} DI CONFORMITÀ / DICHIARAZIONE DI PRESTAZIONE`, 51, 212.6, 13.5, { bold: true });
   if (nuovo) {
-    p.rich([["La conformità della chiusura motorizzata è attestata secondo la norma ", false], ["EN 13241", true], [" e il ", false], ["Regolamento", true]], 51, 237, 11);
+    p.rich([["La conformità della chiusura motorizzata è attestata secondo la norma ", false], [prodNorm.replace("UNI ", ""), true], [" e il ", false], ["Regolamento", true]], 51, 237, 11);
     p.rich([["(UE) 2023/1230", true], [" relativo alle macchine, con riferimento ai requisiti applicabili all'impianto installato.", false]], 51, 253.4, 11);
   } else {
-    p.rich([["La conformità della chiusura motorizzata è attestata secondo la norma ", false], ["EN 13241", true], [" e la ", false], ["Direttiva", true]], 51, 237, 11);
+    p.rich([["La conformità della chiusura motorizzata è attestata secondo la norma ", false], [prodNorm.replace("UNI ", ""), true], [" e la ", false], ["Direttiva", true]], 51, 237, 11);
     p.rich([["Macchine 2006/42/CE", true], [", con riferimento ai requisiti applicabili all'impianto installato.", false]], 51, 253.4, 11);
   }
 
@@ -234,7 +235,7 @@ export async function drawCe(doc, d) {
   p.text("Targhetta CE:", 304, 524, 9.5, { bold: true });
   p.hline(368.2, 435.8, 528.4);
   p.value(f.targhetta_ce, 369, 526, 170, 9.5);
-  p.text("UNI EN 13241", 304, 538.4, 9.5, { bold: true });
+  p.text(prodNorm, 304, 538.4, 9.5, { bold: true });
   p.hline(367.5, 420, 542.6);
   p.value(f.uni_en_13241, 368.5, 540.3, 170, 9.5);
   p.text("Verificati i dispositivi di sicurezza e la manovra di", 304, 552.6, 9);
@@ -260,10 +261,10 @@ export async function drawCe(doc, d) {
 
   if (nuovo) {
     p.rich([["La presente ", false], ["Dichiarazione UE di Conformità", true], [" è rilasciata ai sensi del ", false], ["Regolamento (UE) 2023/1230", true], [" e della norma", false]], 51, 148.6, 9.5);
-    p.rich([["UNI EN 13241", true], [" sotto la responsabilità esclusiva del fabbricante ", false], ["Italserrande S.r.l.", true]], 51, 162.1, 9.5);
+    p.rich([[prodNorm, true], [" sotto la responsabilità esclusiva del fabbricante ", false], ["Italserrande S.r.l.", true]], 51, 162.1, 9.5);
   } else {
     p.rich([["La presente ", false], ["Dichiarazione CE di Conformità", true], [" è rilasciata ai sensi della ", false], ["Direttiva Macchine 2006/42/CE", true], [" e della", false]], 51, 148.6, 9.5);
-    p.rich([["norma ", false], ["UNI EN 13241", true], [" sotto la responsabilità di ", false], ["Italserrande S.r.l.", true]], 51, 162.1, 9.5);
+    p.rich([["norma ", false], [prodNorm, true], [" sotto la responsabilità di ", false], ["Italserrande S.r.l.", true]], 51, 162.1, 9.5);
   }
   p.text("L'impianto deve essere utilizzato correttamente e sottoposto a controlli e manutenzioni periodiche; la dichiarazione", 51, 180.8, 9.5);
   p.text("decade in caso di modifiche non autorizzate o manomissioni.", 51, 194.3, 9.5);

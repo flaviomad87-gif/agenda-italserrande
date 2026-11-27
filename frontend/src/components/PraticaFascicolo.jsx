@@ -1,6 +1,7 @@
 import { Section, Row, Field } from "./DocumentoDialog";
 import { Choice, Lbl } from "./PraticaForm";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { MARCHE, ALIMENTAZIONI, MODIFICHE, CONSEGNA_DOMANDE } from "../lib/praticaExtra";
 
 const SN = [["si", "Sì"], ["no", "No"]];
@@ -8,7 +9,7 @@ const SN = [["si", "Sì"], ["no", "No"]];
 export function BrandInput({ id, label, value, onChange }) {
   return (
     <div className="space-y-1">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{label}</div>
+      <Label className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">{label}</Label>
       <Input list="marche-automazioni" value={value || ""} onChange={(e) => onChange(e.target.value)} data-testid={`documento-input-${id}`} />
       <datalist id="marche-automazioni">
         {MARCHE.map((m) => (
@@ -48,6 +49,7 @@ function ChiusuraAutomazione({ f, setField }) {
         <Field id="au-modello" label="Modello" value={au.modello} onChange={(v) => setAu("modello", v)} />
       </Row>
       <Field id="au-matricola" label="Matricola automatismo" value={au.matricola} onChange={(v) => setAu("matricola", v)} />
+      <Lbl>Alimentazione</Lbl>
       <Choice options={ALIMENTAZIONI.map((a) => [a, a])} value={au.alimentazione} onChange={(v) => setAu("alimentazione", v)} testId="pratica-au-alim" cols={3} />
       {f.comando_tipo === "impulsivo" && (
         <>
