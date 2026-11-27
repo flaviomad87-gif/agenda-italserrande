@@ -39,6 +39,17 @@ const SideItem = ({ to, label, icon: Icon, testId, badge }) => (
   </NavLink>
 );
 
+// Credito Anthropic rimasto (stima), sul pulsante dell'assistente
+const CreditoPill = ({ c }) =>
+  c?.impostato ? (
+    <span
+      data-testid="credito-pill"
+      className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none", c.avviso ? "bg-amber-400 text-amber-950" : "bg-white/20 text-white")}
+    >
+      $ {Math.max(0, c.residuo).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </span>
+  ) : null;
+
 const BarButton = ({ area, active, badge, onClick }) => (
   <button
     type="button"
@@ -178,6 +189,11 @@ export default function AppShell() {
 
   const current = areaOf(location.pathname);
   const [sheet, setSheet] = useState(null);
+  const [credito, setCredito] = useState(null);
+  useEffect(() => {
+    if (sheet) return;
+    api.get("/assistente/credito").then((r) => setCredito(r.data)).catch(() => {});
+  }, [sheet, location.pathname]);
   const go = (to, state) => {
     setSheet(null);
     navigate(to, state ? { state } : undefined);
@@ -217,6 +233,7 @@ export default function AppShell() {
           data-testid="side-ai-button"
         >
           <Bot className="h-4 w-4" /> Assistente IA
+          <CreditoPill c={credito} />
         </button>
         <nav className="flex flex-col gap-4">
           {AREAS.map((a) => (
@@ -246,6 +263,7 @@ export default function AppShell() {
               className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#1C1C1A] px-3 py-1.5 text-xs font-semibold text-white shadow-sm active:scale-95"
             >
               <Bot className="h-4 w-4" /> Assistente
+              <CreditoPill c={credito} />
             </button>
           </div>
           <AreaTabs area={current} badgeFor={badgeFor} />
