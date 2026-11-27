@@ -516,3 +516,5 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Intestazioni tabelle a capo; targhetta su etichette poliestere/resina a trasferimento termico; DM37: C.C.I.A.A., caselle 2 colonne, continuità PE in Ohm.
 - Periodicità uniforme 12 mesi privato / 6 mesi condominiale-commerciale-intensivo; DoP/CPR in CE e fascicolo.
 - Config serranda (molle+elettrofreno / tubolare): voce molle solo se molle, voce freno per avvolgibile e tapparella.
+- 27/11 rifinitura (iteration 62): Flow.yesNo (caselle Sì/No grafiche allineate) in A.1, B.3, C.2; caselle grafiche sezione 4 vuoto e B.1;
+  verifiche CEI 64-8 con colonne Esito/Valore misurato/Limite; CE "DoP solo dove prevista".

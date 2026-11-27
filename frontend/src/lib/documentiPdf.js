@@ -92,7 +92,7 @@ export function pen(doc) {
       parts.forEach(([t, b]) => {
         font(size, b);
         doc.text(t, cx, y);
-        cx += doc.getTextWidth(t);
+        cx += doc.getTextWidth(t) + (t.endsWith(" ") ? 1 : 0);
       });
     },
     value(t, x, y, maxW, size = 10, align = "left") {

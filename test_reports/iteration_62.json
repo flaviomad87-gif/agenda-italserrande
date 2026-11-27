@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only test of the final polish of the avvolgibile documentation, run at desktop 1920x1080. Created an ephemeral Firebase user with 7 TEST_Iter60 documenti (avvolgibile molle with measured CEI 64-8 values, avvolgibile tubolare, sezionale, tapparella, scorrevole, Solo CE, Registro). Downloaded 37 PDFs via the UI to /tmp/iter62: for each of the 5 pratiche the full PDF, fascicolo, ce and dm37; Solo CE; and StampaVuoto blank full PDF and fascicolo for avvolgibile, sezionale, tapparella and scorrevole under both regimes. Checked them with PyMuPDF (iter62_pdf_check.py: 636 PASS, 0 FAIL; iter60_pdf_check.py for footers, overlaps and margins) and visually. RESULTS: (1) No Cyrillic characters, no '$' and no 'II sottoscritto' in any of the 37 PDFs. 'Il sottoscritto' and 'straordinario' are present. 'Direttiva ... 2014/30/UE' is never split across lines. (2) The fascicolo is 4 pages in all 13 variants. No '[ ]', '[X]' or '[x]' text anywhere in the fascicolo. A.1 'Dichiarazione CE / DoP del fabbricante della chiusura' has graphic Sì/No boxes at x=434/494 and sits at least 5pt below the table. B.1: the table has no [X], and under 'Tipo di comando adottato:' there are 4 boxes; exactly 1 is crossed in each compiled pratica ('A impulsi, chiusura non in vista') and 0 in the blank. B.3 'Esito' has Sì/No boxes aligned at 434/494. C.2 has 9 rows, each with Sì/No boxes aligned in a column, plus 9 or more separator lines, and the labels end before the boxes. Blank section 4 has 11 items with 11 boxes in 2 columns. (3) The Dato|Valore headers are paired on every kv2 table, including A.2. (4) DM37 'Verifiche strumentali' has the columns Verifica|Esito|Valore misurato|Limite. In the blank, the Valore cells are 26pt tall (2 lines) with Ohm/MOhm/ms on the second line, and Esito shows 'C / NC' x4. In the compiled avv_molle pratica it shows '0.15 Ohm', '250 MOhm' and '22 ms'. (5) The CE title and avvertenza 7 ('DoP ... rilasciata solo dove prevista per il prodotto') are within the margin (x≤544) and end above the signature labels. (6) The company header (Sede legale e operativa..., Interventi esclusivamente nel Comune di Roma) and the 12/6 month periodicity are unchanged. (7) The full PDF is 18 pages with 'Pagina X di 18' correct on every page. There are 0 console errors and 0 pageerrors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Blank fascicolo section 4 (2-column checklist)", "issues": ["Item 1 '1. Dichiarazione CE/UE di conformità (DoP dove prevista)' ends at x=295.6 and the right-column box starts at x=297.6. That is only a 2pt gap, so the ')' visually touches the item 7 checkbox. It does not technically overlap, but it looks cramped. Fix: wrap labels in checks() to cw-20, or shorten the label in the fascicolo list, e.g. 'Dichiarazione CE/UE (DoP dove prevista)'."]},
+      {"screen": "CE page 1 intro sentence", "issues": ["'la norma EN 13241' renders as 'normaEN' with only a 1pt gap at x=393.4→394.4, so the space before the bold run is barely visible. This happens in p.rich (documentiPdf.js:90), where the trailing space is apparently not measured or rendered at full width. It looks pre-existing. Fix: draw the space as part of the bold run, or add +getTextWidth(' ')."]},
+      {"screen": "CE title wording", "issues": ["The title is regime-dependent: 'DICHIARAZIONE CE DI CONFORMITÀ (DoP solo dove prevista)' for 2026 and 'DICHIARAZIONE UE DI CONFORMITÀ (DoP solo dove prevista)' for 2027. The briefing literally quotes 'DICHIARAZIONE CE (o UE dal 2027) DI CONFORMITÀ ...'. If that literal text was intended, for example for the blank form, it is not implemented. It fits the margin either way."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter62_pdf_check.py", "/app/backend/tests/iter60_pdf_check.py", "/app/backend/tests/iter60_create.py", "/app/backend/tests/iter55_ui_setup.py"],
+  "action_items": [
+    "Optional cosmetic: give blank section 4 item 1 more room (wrap or shorten the label) so it does not touch the right-column checkbox.",
+    "Optional cosmetic: fix the barely visible space in 'norma EN 13241' in the CE intro (p.rich).",
+    "Confirm whether the CE title should literally read 'CE (o UE dal 2027)' or stay regime-dependent (CE/UE)."
+  ],
+  "critical_code_review_comments": [
+    "praticaPdf.js checks() does not wrap labels to the column width (cw). Any longer document label in the 2-column list will overlap the next column.",
+    "yesNo() calls ensure(18) only. A multi-line label near the page bottom could split from its boxes. The current labels are 1 line, so this is fine for now.",
+    "The DM37 compiled pratica without measured values shows 'C / NC' for isolamento and tempo_diff but 'Conforme' for continuità (it defaults to 'C'). This is inconsistent but probably intentional.",
+    "drawCe still writes CE_AVVERTENZE at fixed y without wrapping. The current texts fit."
+  ],
+  "updated_files": ["/app/backend/tests/iter62_pdf_check.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% of requested checks pass (636/636 automated assertions); 2 optional cosmetic notes"},
+  "seed_data_creation": "Ephemeral Firebase user testuser+iter55uif42b9c24@italserrande.test with 7 TEST_Iter60 documenti. All were deleted (API 200 plus a Mongo filter by this user's uid) and the Firebase user was removed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Setup: python iter55_ui_setup.py setup, then python iter60_create.py. Download via UI to /tmp/iter62 using an init script that sets navigator.share/canShare to undefined: login → /documenti → documento-row-<id> → pratica-share-all / pratica-pdf-{fascicolo,ce,dm37}, Escape; stampa-vuoto-toggle/regime/tipo/documento/scarica; documenti-tab-ce → documento-share. Then run iter62_pdf_check.py and iter60_pdf_check.py '/tmp/iter62/*.pdf'. Finish with iter55_ui_setup.py cleanup. The '1/2026' right-margin hit on registro primo intervento p16 is the known Nr. box design."
+}

@@ -247,7 +247,7 @@ export const DM37_USI = { civile: "civile", industriale: "industriale", commerci
 
 export const DOCUMENTI_PRATICA = [
   ["fascicolo", "Fascicolo tecnico (Allegati A, B, C)"],
-  ["ce", "Dichiarazione CE/UE di conformità (DoP dove prevista)"],
+  ["ce", "Dichiarazione CE/UE (DoP dove prevista)"],
   ["collaudo", "Verbale di collaudo e consegna"],
   ["rischi", "Analisi dei rischi"],
   ["componenti", "Elenco componenti e zone di pericolo"],
