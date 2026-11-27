@@ -1,6 +1,6 @@
 # Iter48 robustness: saved chat history with empty assistant content / empty text block -> does next message fail with 400?
 import uuid, requests, pytest
-from test_iter48_ai_assistente import U, mdb
+from tests.test_iter48_ai_assistente import U, mdb
 
 
 @pytest.fixture(scope="module")
