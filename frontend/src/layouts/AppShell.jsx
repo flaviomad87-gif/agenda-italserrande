@@ -40,12 +40,22 @@ const SideItem = ({ to, label, icon: Icon, testId, badge }) => (
 );
 
 // Credito Anthropic rimasto (stima), sul pulsante dell'assistente
+const apriRicarica = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  window.open("https://console.anthropic.com/settings/billing", "_blank", "noopener");
+};
+
 const CreditoPill = ({ c }) =>
   c ? (
     <span
+      role="link"
+      tabIndex={0}
       data-testid="credito-pill"
-      title={c.impostato ? "Credito stimato rimasto" : "Imposta il credito caricato nell'Assistente"}
-      className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none", c.avviso || !c.impostato ? "bg-amber-400 text-amber-950" : "bg-white/20 text-white")}
+      onClick={apriRicarica}
+      onKeyDown={(e) => e.key === "Enter" && apriRicarica(e)}
+      title="Credito stimato - tocca per ricaricare su Anthropic"
+      className={cn("cursor-pointer rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none", c.avviso || !c.impostato ? "bg-amber-400 text-amber-950" : "bg-white/20 text-white")}
     >
       {c.impostato ? `$ ${Math.max(0, c.residuo).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$ ?"}
     </span>
