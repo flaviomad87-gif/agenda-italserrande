@@ -778,7 +778,7 @@ function segnaletica(fl, d) {
   fl.start("SEGNALETICA DI SICUREZZA", `${tipoLabel(f)} - cartelli applicati e loro significato`);
   fl.para(
     "Cartelli con forma e colori secondo UNI EN ISO 7010: triangolo giallo = pericolo, cerchio rosso barrato = divieto, " +
-      "cerchio blu = obbligo / istruzione. Il Committente li mantiene integri e leggibili e li fa sostituire se danneggiati o sbiaditi.",
+      "i cartelli sono applicati da Italserrande S.r.l. nei punti indicati. Il Committente li mantiene integri e leggibili e li fa sostituire se danneggiati o sbiaditi.",
     { size: 8.6 },
   );
   fl.y += 4;
@@ -803,29 +803,6 @@ function segnaletica(fl, d) {
     fl.y += 4;
   });
   fl.signatures(["Il cliente per ricevuta e presa visione"], 28);
-  const H = 330;
-  fl.page("CARTELLI DA STAMPARE E APPLICARE");
-  fl.para("Stampare su etichetta in poliestere o resina (stampante a trasferimento termico), ritagliare lungo la linea tratteggiata e applicare nei punti indicati.", { size: 8, color: GREY });
-  list.forEach((sg) => {
-    if (fl.y + H > BOTTOM) fl.page("CARTELLI DA STAMPARE E APPLICARE");
-    const y0 = fl.y;
-    doc.setLineDashPattern([4, 3], 0);
-    doc.setDrawColor(...GREY);
-    doc.setLineWidth(0.6);
-    doc.rect(L, y0, W, H - 14);
-    doc.setLineDashPattern([], 0);
-    drawSign(doc, sg, L + W / 2, y0 + 112, 170);
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(1.5);
-    doc.rect(L + 40, y0 + 218, W - 80, 72);
-    fl.font(15, "bold");
-    const t = doc.splitTextToSize(sg.titolo, W - 110);
-    const ty = y0 + 254 - ((t.length - 1) * 18) / 2;
-    t.forEach((l, k) => doc.text(l, L + W / 2, ty + k * 18, { align: "center" }));
-    fl.font(7, "normal", GREY);
-    doc.text("Italserrande S.r.l. - Tel. 06-6240259", R - 8, y0 + H - 22, { align: "right" });
-    fl.y = y0 + H;
-  });
 }
 
 function informativa(fl, d) {

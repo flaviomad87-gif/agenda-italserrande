@@ -2,34 +2,27 @@
 
 const ALL = ["avvolgibile", "sezionale", "basculante", "tapparella", "scorrevole", "battente"];
 
+const NO_TAPP = ALL.filter((t) => t !== "tapparella");
+
 export const SEGNALI = [
-  { id: "movimento", tipo: "pericolo", simbolo: "!", titolo: "ATTENZIONE - CHIUSURA AUTOMATICA", types: ALL,
-    significato: "La chiusura si muove da sola, anche comandata a distanza (radiocomando, pulsante, richiusura automatica).",
-    dove: "Su entrambi i lati della chiusura, ad altezza occhi, ben visibile da chi si avvicina." },
-  { id: "schiacciamento", tipo: "pericolo", simbolo: "crush", titolo: "PERICOLO DI SCHIACCIAMENTO", types: ALL,
-    significato: "Tra la parte in movimento e le parti fisse (pavimento, pilastri, telaio) si possono schiacciare mani, piedi o il corpo.",
+  { id: "inciampo", tipo: "pericolo", simbolo: "trip", titolo: "PERICOLO D'INCIAMPO", types: NO_TAPP,
+    significato: "A terra ci sono guide, soglie o battute sporgenti: fare attenzione a dove si mettono i piedi.",
+    dove: "Vicino alla guida a pavimento, alla soglia o alla battuta d'arresto." },
+  { id: "schiacciamento", tipo: "pericolo", simbolo: "crush", titolo: "PERICOLO DI SCHIACCIAMENTO MANI E PIEDI", types: NO_TAPP,
+    significato: "Tra la parte in movimento e le parti fisse (pavimento, pilastri, telaio) si possono schiacciare mani e piedi.",
     dove: "Vicino al bordo di chiusura e alle zone di chiusura laterali." },
-  { id: "mani", tipo: "pericolo", simbolo: "!", titolo: "NON INSERIRE LE MANI - PERICOLO DI CONVOGLIAMENTO", types: ["avvolgibile", "sezionale", "basculante", "tapparella", "scorrevole"],
-    significato: "Guide, rulli, molle, cinghie, cremagliera e bracci possono trascinare e ferire le dita.",
-    dove: "Sulle guide laterali e vicino a cassonetto, motore o cremagliera." },
-  { id: "urto", tipo: "pericolo", simbolo: "!", titolo: "PERICOLO DI URTO - ANTE IN ROTAZIONE", types: ["battente", "basculante"],
-    significato: "Le ante, girando, possono colpire persone o veicoli che sostano nella zona di apertura.",
-    dove: "Su ciascuna anta, dal lato della zona di rotazione." },
-  { id: "elettrico", tipo: "pericolo", simbolo: "bolt", titolo: "PERICOLO ELETTRICO - TENSIONE 230 V", types: ALL,
-    significato: "All'interno ci sono parti in tensione: può aprire solo un tecnico qualificato, dopo aver tolto la corrente.",
+  { id: "mani", tipo: "pericolo", simbolo: "hand", titolo: "PERICOLO - ATTENZIONE ALLE MANI", types: ALL,
+    significato: "Guide, rulli, cerniere, cremagliera e bracci possono schiacciare o trascinare le dita: non appoggiare le mani durante il movimento.",
+    dove: "Sulle guide laterali, sulle cerniere e vicino al motore o alla cremagliera." },
+  { id: "scivolamento", tipo: "pericolo", simbolo: "slip", titolo: "PERICOLO DI SCIVOLAMENTO E CADUTA", types: NO_TAPP,
+    significato: "Nella zona di passaggio il pavimento può essere scivoloso (pioggia, ghiaccio, rampe): procedere con cautela.",
+    dove: "All'ingresso della zona di passaggio o sulla rampa." },
+  { id: "elettrico", tipo: "pericolo", simbolo: "bolt", titolo: "PERICOLO ELETTRICO", types: ALL,
+    significato: "All'interno ci sono parti in tensione (230 V): può aprire solo un tecnico qualificato, dopo aver tolto la corrente.",
     dove: "Sul quadro di comando / centralina e sulle scatole di derivazione." },
-  { id: "lampeggiante", tipo: "pericolo", simbolo: "!", titolo: "LUCE LAMPEGGIANTE = CHIUSURA IN MOVIMENTO", types: ["avvolgibile", "sezionale", "basculante", "scorrevole", "battente"],
-    significato: "Quando la luce lampeggia la chiusura si sta muovendo o sta per muoversi: tenersi a distanza.",
-    dove: "Sotto o accanto al lampeggiante." },
-  { id: "transito", tipo: "divieto", simbolo: "person", titolo: "VIETATO TRANSITARE DURANTE IL MOVIMENTO", types: ["avvolgibile", "sezionale", "basculante", "scorrevole", "battente"],
-    significato: "Attraversare il passaggio solo quando la chiusura è completamente aperta e ferma.",
-    dove: "Su entrambi i lati del passaggio, pedonale e carrabile." },
-  { id: "bambini", tipo: "divieto", simbolo: "child", titolo: "VIETATO AI BAMBINI GIOCARE CON LA CHIUSURA E I COMANDI", types: ALL,
-    significato: "I bambini non devono usare radiocomandi e pulsanti né sostare nella zona di manovra.",
-    dove: "Vicino a pulsanti, selettori e zona di manovra." },
-  { id: "sblocco", tipo: "obbligo", simbolo: "i", titolo: "SBLOCCO DI EMERGENZA - LEGGERE LE ISTRUZIONI", types: ALL,
-    significato: "Senza corrente la chiusura si sblocca a mano solo seguendo il manuale d'uso; dopo lo sblocco accompagnare l'anta senza lasciarla libera.",
-    dove: "Vicino al dispositivo di sblocco (maniglia, chiave, cordino o asta di manovra)." },
+  { id: "salire", tipo: "divieto", simbolo: "step", titolo: "VIETATO SALIRE", types: NO_TAPP,
+    significato: "Non salire, arrampicarsi o farsi trasportare dalla chiusura: rischio di caduta e di schiacciamento.",
+    dove: "Sull'anta o sul telo, ad altezza occhi, su entrambi i lati." },
 ];
 
 export const segnaliFor = (tipo) => SEGNALI.filter((s) => s.types.includes(tipo));
@@ -39,17 +32,25 @@ const RED = [204, 0, 0];
 const BLUE = [0, 82, 156];
 const BLACK = [0, 0, 0];
 
-function person(doc, cx, cy, s, child = false) {
-  const k = child ? 0.7 : 0.9;
+function figure(doc, cx, cy, u, head, limbs) {
   doc.setFillColor(...BLACK);
-  doc.circle(cx, cy - s * 0.3 * k, s * 0.08 * k, "F");
+  doc.circle(cx + head[0] * u, cy + head[1] * u, 0.13 * u, "F");
   doc.setDrawColor(...BLACK);
-  doc.setLineWidth(s * 0.07 * k);
-  doc.line(cx, cy - s * 0.22 * k, cx, cy + s * 0.08 * k);
-  doc.line(cx, cy - s * 0.12 * k, cx - s * 0.14 * k, cy + s * 0.02 * k);
-  doc.line(cx, cy - s * 0.12 * k, cx + s * 0.14 * k, cy - s * 0.04 * k);
-  doc.line(cx, cy + s * 0.08 * k, cx - s * 0.12 * k, cy + s * 0.32 * k);
-  doc.line(cx, cy + s * 0.08 * k, cx + s * 0.12 * k, cy + s * 0.32 * k);
+  doc.setLineCap("round");
+  doc.setLineWidth(0.13 * u);
+  limbs.forEach((pts) => {
+    for (let i = 1; i < pts.length; i++) doc.line(cx + pts[i - 1][0] * u, cy + pts[i - 1][1] * u, cx + pts[i][0] * u, cy + pts[i][1] * u);
+  });
+  doc.setLineCap("butt");
+}
+
+// freccia con punta in (x, y)
+function arrow(doc, x, y, u, down) {
+  const d = down ? -1 : 1;
+  doc.triangle(x - 0.1 * u, y + d * 0.1 * u, x + 0.1 * u, y + d * 0.1 * u, x, y, "F");
+  const y1 = y + d * 0.09 * u;
+  const y2 = y + d * 0.22 * u;
+  doc.rect(x - 0.035 * u, Math.min(y1, y2), 0.07 * u, Math.abs(y2 - y1), "F");
 }
 
 // cx, cy = centro; s = lato del cartello
@@ -66,15 +67,33 @@ export function drawSign(doc, sg, cx, cy, s) {
     const sy = top + h * 0.62;
     doc.setFillColor(...BLACK);
     doc.setDrawColor(...BLACK);
+    const u = s * 0.5;
+    const c = top + h * 0.64;
     if (sg.simbolo === "bolt") {
-      const u = s * 0.16;
-      const pts = [[0.3, -1.45], [-0.6, 0.2], [0.02, 0.2], [-0.3, 1.35], [0.62, -0.3], [0.0, -0.3]].map(([x, y]) => [cx + x * u, sy + y * u]);
+      const v = s * 0.16;
+      const pts = [[0.3, -1.45], [-0.6, 0.2], [0.02, 0.2], [-0.3, 1.1], [0.62, -0.3], [0.0, -0.3]].map(([x, y]) => [cx + x * v, sy + y * v]);
       doc.lines(pts.slice(1).map(([x, y], i) => [x - pts[i][0], y - pts[i][1]]), pts[0][0], pts[0][1], [1, 1], "F", true);
+      doc.triangle(cx - 0.55 * v, sy + 0.95 * v, cx - 0.05 * v, sy + 1.05 * v, cx - 0.42 * v, sy + 1.5 * v, "F");
     } else if (sg.simbolo === "crush") {
-      const u = s * 0.1;
-      doc.rect(cx - u * 2, sy + u * 0.9, u * 4, u * 0.45, "F");
-      doc.triangle(cx - u * 0.7, sy - u * 1.3, cx + u * 0.7, sy - u * 1.3, cx, sy + u * 0.3, "F");
-      doc.rect(cx - u * 0.25, sy - u * 2.2, u * 0.5, u * 1, "F");
+      const k = top + h * 0.6;
+      doc.rect(cx - 0.02 * u, k - 0.15 * u, 0.48 * u, 0.1 * u, "F");
+      doc.rect(cx - 0.02 * u, k + 0.1 * u, 0.48 * u, 0.1 * u, "F");
+      arrow(doc, cx + 0.22 * u, k - 0.17 * u, u, true);
+      arrow(doc, cx + 0.22 * u, k + 0.22 * u, u, false);
+      doc.rect(cx - 0.48 * u, k - 0.1 * u, 0.32 * u, 0.17 * u, "F");
+      doc.rect(cx - 0.48 * u, k + 0.09 * u, 0.4 * u, 0.06 * u, "F");
+    } else if (sg.simbolo === "hand") {
+      doc.rect(cx - 0.42 * u, c - 0.2 * u, 0.4 * u, 0.06 * u, "F");
+      doc.rect(cx - 0.42 * u, c + 0.17 * u, 0.4 * u, 0.06 * u, "F");
+      arrow(doc, cx - 0.26 * u, c - 0.22 * u, u, true);
+      doc.roundedRect(cx - 0.06 * u, c - 0.12 * u, 0.36 * u, 0.26 * u, 0.06 * u, 0.06 * u, "F");
+      [-0.08, 0.0, 0.08].forEach((dy) => doc.roundedRect(cx - 0.34 * u, c + dy * u - 0.025 * u, 0.32 * u, 0.05 * u, 0.025 * u, 0.025 * u, "F"));
+    } else if (sg.simbolo === "trip") {
+      figure(doc, cx, c, u, [0.3, -0.28], [[[0.18, -0.2], [-0.12, -0.05], [-0.4, -0.02]], [[0.05, -0.15], [0.1, -0.35], [-0.1, -0.38]], [[-0.12, -0.05], [-0.05, 0.2], [-0.2, 0.32]], [[0.18, -0.2], [0.3, 0.05]]]);
+      doc.rect(cx - 0.02 * u, c + 0.22 * u, 0.3 * u, 0.12 * u, "F");
+    } else if (sg.simbolo === "slip") {
+      figure(doc, cx, c, u, [0.18, -0.38], [[[0.08, -0.28], [-0.08, -0.02], [-0.42, 0.12]], [[-0.08, -0.02], [-0.25, 0.26]], [[0.06, -0.24], [-0.06, -0.48]], [[0.06, -0.24], [0.35, -0.42]]]);
+      doc.rect(cx - 0.45 * u, c + 0.33 * u, 0.9 * u, 0.06 * u, "F");
     } else {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(s * 0.55);
@@ -87,7 +106,11 @@ export function drawSign(doc, sg, cx, cy, s) {
     doc.circle(cx, cy, r, "F");
     doc.setFillColor(255, 255, 255);
     doc.circle(cx, cy, r * 0.78, "F");
-    person(doc, cx, cy, s, sg.simbolo === "child");
+    const u = s * 0.5;
+    figure(doc, cx, cy, u, [0.02, -0.5], [[[0.0, -0.38], [-0.05, 0.05]], [[-0.05, 0.05], [-0.28, 0.05], [-0.3, 0.3]], [[-0.05, 0.05], [0.05, 0.45]], [[0.0, -0.3], [-0.3, -0.15]], [[0.0, -0.3], [0.25, -0.1]]]);
+    doc.setLineWidth(0.06 * u);
+    doc.line(cx - 0.5 * u, cy + 0.32 * u, cx - 0.22 * u, cy + 0.32 * u);
+    doc.line(cx - 0.22 * u, cy + 0.32 * u, cx - 0.22 * u, cy + 0.45 * u);
     doc.setDrawColor(...RED);
     doc.setLineWidth(r * 0.2);
     doc.line(cx - r * 0.55, cy - r * 0.55, cx + r * 0.55, cy + r * 0.55);
