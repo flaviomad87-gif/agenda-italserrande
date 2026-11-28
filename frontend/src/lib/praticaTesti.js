@@ -251,6 +251,7 @@ export const DOCUMENTI_PRATICA = [
   ["collaudo", "Verbale di collaudo e consegna"],
   ["rischi", "Analisi dei rischi"],
   ["componenti", "Elenco componenti e zone di pericolo"],
+  ["segnaletica", "Segnaletica di sicurezza (cartelli)"],
   ["dm37", "Dichiarazione DM 37/08"],
   ["manuale", "Manuale d'uso e manutenzione"],
   ["informativa", "Manutenzione: costi, obblighi e norme (informativa)"],

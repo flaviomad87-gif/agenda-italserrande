@@ -1,6 +1,7 @@
 import { setBlankDates, setEmbedded, newDoc, pen, loadLogo, COMPANY, INK, BORDER, FILL, RED, GREY, BLUE, fmtDate, drawCe, drawManutenzione, isNuovoReg } from "./documentiPdf";
 import * as T from "./praticaTesti";
 import * as X from "./praticaExtra";
+import { drawSign, segnaliFor } from "./segnaletica";
 
 const L = 51;
 const R = 544.2;
@@ -770,6 +771,59 @@ function componenti(fl, d) {
   fl.signatures(["Il tecnico installatore"]);
 }
 
+function segnaletica(fl, d) {
+  const f = d.fields;
+  const doc = fl.doc;
+  const list = segnaliFor(f.tipo_chiusura || "avvolgibile");
+  fl.start("SEGNALETICA DI SICUREZZA", `${tipoLabel(f)} - cartelli applicati e loro significato`);
+  fl.para(
+    "Cartelli con forma e colori secondo UNI EN ISO 7010: triangolo giallo = pericolo, cerchio rosso barrato = divieto, " +
+      "cerchio blu = obbligo / istruzione. Il Committente li mantiene integri e leggibili e li fa sostituire se danneggiati o sbiaditi.",
+    { size: 8.6 },
+  );
+  fl.y += 4;
+  list.forEach((sg, i) => {
+    fl.ensure(70);
+    const y0 = fl.y;
+    drawSign(doc, sg, L + 26, y0 + 22, 46);
+    fl.font(9.5, "bold");
+    const t = doc.splitTextToSize(`${i + 1}. ${sg.titolo}`, W - 64);
+    t.forEach((l, k) => doc.text(l, L + 64, y0 + 6 + k * 11));
+    fl.y = y0 + 8 + t.length * 11;
+    fl.para(`Significato: ${sg.significato}`, { size: 8.4, indent: 64 });
+    fl.para(`Dove applicarlo: ${sg.dove}`, { size: 8.4, indent: 64, color: GREY });
+    fl.y = Math.max(fl.y, y0 + 54) + 4;
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.4);
+    doc.line(L, fl.y - 6, R, fl.y - 6);
+    fl.y += 4;
+  });
+  fl.signatures(["Il cliente per ricevuta e presa visione"], 28);
+  const H = 330;
+  fl.page("CARTELLI DA STAMPARE E APPLICARE");
+  fl.para("Stampare su etichetta in poliestere o resina (stampante a trasferimento termico), ritagliare lungo la linea tratteggiata e applicare nei punti indicati.", { size: 8, color: GREY });
+  list.forEach((sg) => {
+    if (fl.y + H > BOTTOM) fl.page("CARTELLI DA STAMPARE E APPLICARE");
+    const y0 = fl.y;
+    doc.setLineDashPattern([4, 3], 0);
+    doc.setDrawColor(...GREY);
+    doc.setLineWidth(0.6);
+    doc.rect(L, y0, W, H - 14);
+    doc.setLineDashPattern([], 0);
+    drawSign(doc, sg, L + W / 2, y0 + 112, 170);
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(1.5);
+    doc.rect(L + 40, y0 + 218, W - 80, 72);
+    fl.font(15, "bold");
+    const t = doc.splitTextToSize(sg.titolo, W - 110);
+    const ty = y0 + 254 - ((t.length - 1) * 18) / 2;
+    t.forEach((l, k) => doc.text(l, L + W / 2, ty + k * 18, { align: "center" }));
+    fl.font(7, "normal", GREY);
+    doc.text("Italserrande S.r.l. - Tel. 06-6240259", R - 8, y0 + H - 22, { align: "right" });
+    fl.y = y0 + H;
+  });
+}
+
 function informativa(fl, d) {
   const f = d.fields;
   fl.start("MANUTENZIONE DELLE CHIUSURE AUTOMATICHE: COSTI, OBBLIGHI E NORME", `${tipoLabel(f)} - ${[d.indirizzo, f.comune].filter(Boolean).join(" - ")}`);
@@ -801,6 +855,7 @@ function registroRighe(fl, d) {
 
 const BUILDERS = {
   fascicolo,
+  segnaletica,
   componenti,
   informativa,
   registro_righe: registroRighe,
