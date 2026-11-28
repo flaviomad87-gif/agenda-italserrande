@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Wallet } from "lucide-react";
+import { AlertTriangle, Wallet, CreditCard, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Button } from "./ui/button";
@@ -42,7 +42,7 @@ export default function CreditoBox({ credito, onChange }) {
           )}
         </div>
         <button type="button" className="text-xs font-semibold text-[#0047ab]" onClick={() => setEdit((v) => !v)} data-testid="credito-edit">
-          {edit ? "Chiudi" : "Ricarica"}
+          {edit ? "Chiudi" : "Ho ricaricato"}
         </button>
       </div>
       {credito.impostato && (
@@ -55,6 +55,15 @@ export default function CreditoBox({ credito, onChange }) {
           {credito.esaurito ? "Credito finito: ricarica su console.anthropic.com" : `Sta per finire: sei sotto ${usd(credito.soglia)}. Ricarica su console.anthropic.com`}
         </p>
       )}
+      <a
+        href="https://console.anthropic.com/settings/billing"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0047ab] text-sm font-semibold text-white hover:bg-[#003a8c]"
+        data-testid="credito-paga"
+      >
+        <CreditCard className="h-4 w-4" /> Paga / ricarica su Anthropic <ExternalLink className="h-3.5 w-3.5" />
+      </a>
       <p className="mt-1 text-[11px] text-stone-500">Spesi questo mese: {usd(credito.speso_mese)}{credito.speso > 0 ? ` · dall'ultima ricarica: ${usd(credito.speso)}` : ""} · stima calcolata dall'agenda, il saldo esatto è su console.anthropic.com</p>
       {edit && (
         <div className="mt-3 grid grid-cols-2 gap-2">
