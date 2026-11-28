@@ -99,6 +99,21 @@ export const INFORMATIVA = [
   ["Cosa deve fare l'utilizzatore",
     "Non transitare durante il movimento; non lasciare i radiocomandi ai bambini; tenere libera la zona di manovra; sospendere l'uso e chiamarci " +
     "in caso di rumori anomali, movimenti a scatti o sicurezze che non intervengono; non manomettere o escludere le sicurezze."],
+  ["Quanto costa la manutenzione",
+    "Il costo dipende dal tipo di chiusura, dall'uso, dallo stato dell'impianto e dai componenti da sostituire: si va da un controllo programmato " +
+    "di poche decine o centinaia di euro fino a interventi straordinari più importanti. Con il contratto di manutenzione Italserrande S.r.l. il costo " +
+    "dei controlli periodici è fisso e concordato in anticipo; i ricambi e gli interventi straordinari sono preventivati prima dell'esecuzione."],
+  ["Durata dei componenti",
+    "Un motore usato correttamente, con materiali di qualità e manutenzione regolare, dura in media 15-25 anni. Intemperie, uso intenso e " +
+    "mancata manutenzione ne riducono la durata; fotocellule, coste e batterie vanno controllate a ogni intervento e sostituite quando non " +
+    "garantiscono più la sicurezza."],
+  ["Responsabilità e conseguenze",
+    "Il proprietario o l'amministratore risponde dei danni causati da una chiusura non mantenuta: in caso di incidente può avere responsabilità " +
+    "civili e penali e l'assicurazione può contestare il risarcimento se manca il registro di manutenzione aggiornato. La manutenzione deve essere " +
+    "eseguita da personale tecnico qualificato, non dall'utilizzatore."],
+  ["Documenti da conservare",
+    "Dichiarazione di conformità, manuale d'uso e manutenzione, istruzioni dei componenti e Registro di manutenzione aggiornato a ogni intervento: " +
+    "vanno conservati per tutta la vita dell'impianto e mostrati in caso di controlli."],
   ["Modifiche all'impianto",
     "Qualsiasi modifica sostanziale (sostituzione del motore, nuove funzioni, rimozione di sicurezze) fatta da altri fa decadere la presente dichiarazione: " +
     "chi interviene se ne assume la responsabilità e deve aggiornare la documentazione."],

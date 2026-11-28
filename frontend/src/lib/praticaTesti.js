@@ -253,7 +253,7 @@ export const DOCUMENTI_PRATICA = [
   ["componenti", "Elenco componenti e zone di pericolo"],
   ["dm37", "Dichiarazione DM 37/08"],
   ["manuale", "Manuale d'uso e manutenzione"],
-  ["informativa", "Informativa obblighi e manutenzione"],
+  ["informativa", "Manutenzione: costi, obblighi e norme (informativa)"],
   ["registro", "Registro di manutenzione (primo intervento)"],
   ["registro_righe", "Registro manutenzioni a righe (per il cliente)"],
   ["targhetta", "Targhetta CE da stampare"],

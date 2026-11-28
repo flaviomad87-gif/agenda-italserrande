@@ -772,7 +772,7 @@ function componenti(fl, d) {
 
 function informativa(fl, d) {
   const f = d.fields;
-  fl.start("INFORMATIVA AL COMMITTENTE: OBBLIGHI E MANUTENZIONE", `${tipoLabel(f)} - ${[d.indirizzo, f.comune].filter(Boolean).join(" - ")}`);
+  fl.start("MANUTENZIONE DELLE CHIUSURE AUTOMATICHE: COSTI, OBBLIGHI E NORME", `${tipoLabel(f)} - ${[d.indirizzo, f.comune].filter(Boolean).join(" - ")}`);
   X.INFORMATIVA.forEach(([t, p]) => {
     fl.h2(t, "left", 50);
     fl.para(p, { size: 8.8 });
