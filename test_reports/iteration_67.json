@@ -1,0 +1,17 @@
+{
+  "summary": "Frontend-only retest of the Segnaletica document after iter66. I used the kept account testuser+yr1777994990 on the public URL (/documenti > StampaVuoto) and downloaded 8 PDFs into /tmp/iter67: the single segnaletica for all 6 types, plus basculante informativa and basculante full documentation. I checked them with /app/backend/tests/iter66_segnaletica_check.py: 8/8 PASS. I also reviewed the rendered PNGs. All 4 fixes are confirmed. (1) Basculante segnaletica is now 6 pages (was 7). The 9 cartelli use the compact layout (40pt icon, Significato + Dove on one paragraph at 7.9pt) and are readable. 'Il cliente per ricevuta e presa visione' with its box is on page 1, so there is no orphan page. (2) The heads in VIETATO TRANSITARE and VIETATO AI BAMBINI are clearly inside the white disc with a visible gap from the red ring (k=0.9: head top at 0.342s vs inner radius 0.39s). (3) The PERICOLO ELETTRICO bolt is larger (about 50% of the triangle height) and centered. (4) The informativa says 'fa decadere la dichiarazione di conformità rilasciata da Italserrande S.r.l.' and still fits on 1 page. Regression: avvolgibile, battente, sezionale and scorrevole have 8 items each, tapparella has 6. They keep the standard layout with the signature on page 1 and 2 cartelli per page. 'Pagina X di Y' and the section footers (1/N) are correct. The basculante full PDF is 24 pages, with segnaletica on p11-16 and informativa on p21. 0 console errors and 0 page errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/iter66_segnaletica_check.py"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "segnaletica(): the compact mode is a hardcoded threshold at list.length > 8. If a tipo ever gets 10 or more cartelli, the signature could again be orphaned. A generic keep-with-previous guard in signatures() would be more robust.",
+    "The phone number 'Tel. 06-6240259' is still hardcoded in praticaPdf.js segnaletica() instead of coming from the company profile."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100%"},
+  "seed_data_creation": "None. Only blank StampaVuoto PDFs were generated, and no records were created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Account testuser+yr1777994990@italserrande.test / TestPassword123!. Blank PDFs: on /documenti, click stampa-vuoto-toggle, then select stampa-vuoto-tipo and stampa-vuoto-documento (segnaletica, informativa or ''), then click stampa-vuoto-scarica. Run python /app/backend/tests/iter66_segnaletica_check.py '/tmp/iter67/*.pdf'. PDFs and PNGs are in /tmp/iter67."
+}

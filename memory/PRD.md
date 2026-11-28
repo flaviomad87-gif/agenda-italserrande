@@ -522,3 +522,9 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 ## 27/11/2026 — Audit completo (iteration 63-64)
 - Backend pytest 285 passed (serve export REACT_APP_FIREBASE_API_KEY e REACT_APP_BACKEND_URL); POST /clients rifiuta nome vuoto (422).
 - Frontend: fix layout 768px, FAB Agenda, tema blu su pulsanti shadcn (--primary), AreaTabs a capo su desktop, testi/etichette, toast errore Documenti, manifest icone any/maskable separate, footer registro standalone.
+
+## 27/11/2026 — Informativa costi + Segnaletica (iteration 65-67)
+- Informativa rinominata "Manutenzione delle chiusure automatiche: costi, obblighi e norme" con costi (senza cifre), durata componenti, responsabilità, documenti.
+- Nuovo documento "Segnaletica di sicurezza (cartelli)" (lib/segnaletica.js): elenco con significato e dove applicarlo + cartelli grandi da stampare (2 per pagina),
+  forma/colori UNI EN ISO 7010, cartelli diversi per tipo chiusura. Disponibile in pratica, fascicolo e moduli vuoti.
+- Pulsante Assistente mostra "$ ?" giallo se il credito non è impostato.
