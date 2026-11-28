@@ -40,9 +40,9 @@ const BLUE = [0, 82, 156];
 const BLACK = [0, 0, 0];
 
 function person(doc, cx, cy, s, child = false) {
-  const k = child ? 0.7 : 1;
+  const k = child ? 0.7 : 0.9;
   doc.setFillColor(...BLACK);
-  doc.circle(cx, cy - s * 0.32 * k, s * 0.08 * k, "F");
+  doc.circle(cx, cy - s * 0.3 * k, s * 0.08 * k, "F");
   doc.setDrawColor(...BLACK);
   doc.setLineWidth(s * 0.07 * k);
   doc.line(cx, cy - s * 0.22 * k, cx, cy + s * 0.08 * k);
@@ -67,8 +67,9 @@ export function drawSign(doc, sg, cx, cy, s) {
     doc.setFillColor(...BLACK);
     doc.setDrawColor(...BLACK);
     if (sg.simbolo === "bolt") {
-      const u = s * 0.12;
-      doc.lines([[u * 0.9, -u * 1.6], [-u * 0.1, u * 1.1], [u * 0.9, 0], [-u * 1.9, u * 2.2], [u * 0.3, -u * 1.3], [-u * 0.9, 0]], cx - u * 0.4, sy, [1, 1], "F", true);
+      const u = s * 0.16;
+      const pts = [[0.3, -1.45], [-0.6, 0.2], [0.02, 0.2], [-0.3, 1.35], [0.62, -0.3], [0.0, -0.3]].map(([x, y]) => [cx + x * u, sy + y * u]);
+      doc.lines(pts.slice(1).map(([x, y], i) => [x - pts[i][0], y - pts[i][1]]), pts[0][0], pts[0][1], [1, 1], "F", true);
     } else if (sg.simbolo === "crush") {
       const u = s * 0.1;
       doc.rect(cx - u * 2, sy + u * 0.9, u * 4, u * 0.45, "F");

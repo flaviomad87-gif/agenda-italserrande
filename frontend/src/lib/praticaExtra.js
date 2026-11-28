@@ -115,7 +115,7 @@ export const INFORMATIVA = [
     "Dichiarazione di conformità, manuale d'uso e manutenzione, istruzioni dei componenti e Registro di manutenzione aggiornato a ogni intervento: " +
     "vanno conservati per tutta la vita dell'impianto e mostrati in caso di controlli."],
   ["Modifiche all'impianto",
-    "Qualsiasi modifica sostanziale (sostituzione del motore, nuove funzioni, rimozione di sicurezze) fatta da altri fa decadere la presente dichiarazione: " +
+    "Qualsiasi modifica sostanziale (sostituzione del motore, nuove funzioni, rimozione di sicurezze) fatta da altri fa decadere la dichiarazione di conformità rilasciata da Italserrande S.r.l.: " +
     "chi interviene se ne assume la responsabilità e deve aggiornare la documentazione."],
   ["Norme di riferimento",
     "Direttiva Macchine 2006/42/CE (dal 20/01/2027 Regolamento UE 2023/1230); Direttive 2014/30/UE (compatibilità elettromagnetica) e 2014/35/UE " +

@@ -782,17 +782,21 @@ function segnaletica(fl, d) {
     { size: 8.6 },
   );
   fl.y += 4;
+  const ts = list.length > 8 ? 7.9 : 8.4;
   list.forEach((sg, i) => {
     fl.ensure(70);
     const y0 = fl.y;
-    drawSign(doc, sg, L + 26, y0 + 22, 46);
+    drawSign(doc, sg, L + 26, y0 + 22, list.length > 8 ? 40 : 46);
     fl.font(9.5, "bold");
     const t = doc.splitTextToSize(`${i + 1}. ${sg.titolo}`, W - 64);
     t.forEach((l, k) => doc.text(l, L + 64, y0 + 6 + k * 11));
     fl.y = y0 + 8 + t.length * 11;
-    fl.para(`Significato: ${sg.significato}`, { size: 8.4, indent: 64 });
-    fl.para(`Dove applicarlo: ${sg.dove}`, { size: 8.4, indent: 64, color: GREY });
-    fl.y = Math.max(fl.y, y0 + 54) + 4;
+    if (list.length > 8) fl.para(`Significato: ${sg.significato} Dove applicarlo: ${sg.dove}`, { size: ts, indent: 64 });
+    else {
+      fl.para(`Significato: ${sg.significato}`, { size: ts, indent: 64 });
+      fl.para(`Dove applicarlo: ${sg.dove}`, { size: ts, indent: 64, color: GREY });
+    }
+    fl.y = Math.max(fl.y, y0 + (list.length > 8 ? 46 : 54)) + 4;
     doc.setDrawColor(...BORDER);
     doc.setLineWidth(0.4);
     doc.line(L, fl.y - 6, R, fl.y - 6);

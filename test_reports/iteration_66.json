@@ -1,0 +1,40 @@
+{
+  "summary": "Frontend-only test of the new 'Segnaletica di sicurezza (cartelli)' document and the informativa 1-page fix. I used the kept account testuser+yr1777994990 on the public URL and downloaded 11 PDFs from the UI into /tmp/iter66: StampaVuoto single segnaletica for all 6 types, StampaVuoto full avvolgibile, StampaVuoto informativa, and a pratica 'TEST_I66 Cliente' (battente) with single segnaletica, single informativa and the full PDF. I checked them with a PyMuPDF script and rendered PNG pages for visual review. Avvolgibile (8), battente (8, with urto and without mani), tapparella (6), sezionale (8) and scorrevole (8) are all correct. Page 1 has the ISO 7010 note, the numbered list with icons, Significato and Dove applicarlo, and the signature. Then come the 'CARTELLI DA STAMPARE E APPLICARE' pages with 2 per page. Footers are consistent and there is no overlap or overflow. ONE BUG on basculante (9 cartelli, a type not in the requested list): the list fills page 1, so 'Il cliente per ricevuta e presa visione' lands alone on page 2. The informativa now fits on 1 page with the signature. 0 console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "praticaPdf.js segnaletica() - basculante", "issue": "Basculante has 9 cartelli (mani + urto). After the 9th item the y position is too low, so signatures() ensure(46) adds a page that holds only 'SEGNALETICA DI SICUREZZA (segue)' and the signature box (vuoto_basculante_segnaletica.pdf p2 of 7). Possible fixes: lower ensure/row height (each row is about 78pt; for example a 42pt icon and 8.2 text) when list.length > 8; or put the signature at the bottom of the first cartelli page; or reserve the signature space before the last item.", "selector": "PDF segnaletica basculante", "priority": "MEDIUM"},
+      {"component": "segnaletica.js person() in divieto", "issue": "In the adult 'VIETATO TRANSITARE' sign the head (cy-0.32s, r 0.08s, top 0.40s) overlaps the inner edge of the red ring (inner radius 0.39s). This is clearly visible on the big cartello. Possible fix: lower the head offset to about 0.28s or scale the figure to about 0.9.", "selector": "PDF cartello transito", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Cartello PERICOLO ELETTRICO", "issues": ["The lightning bolt is small (about 35% of the triangle height) and is offset to the right/up compared with the '!' signs. It is still recognizable, but enlarging it to about 0.16s units would match ISO 7010 W012 better."]},
+      {"screen": "Informativa", "issues": ["'Modifiche all'impianto' still says 'fa decadere la presente dichiarazione', but this document is an informativa (carried over from iter65)."]}
+    ]
+  },
+  "verified": [
+    "The pratica dialog list order is fascicolo, ce, collaudo, rischi, componenti, segnaletica ('Segnaletica di sicurezza (cartelli)', checked by default), dm37, and so on. The StampaVuoto select has the same entry in the same position.",
+    "Counts are correct: avvolgibile 8, battente 8 (urto, no mani), tapparella 6, sezionale 8, scorrevole 8 and basculante 9, numbered 1..N. Each type shows its own subtitle.",
+    "Icons are recognizable and centered: a yellow triangle with a black border and '!', a lightning bolt or the crush symbol (arrow on a bar); a red barred circle with a person (smaller figure for bambini); a blue circle with 'i'.",
+    "Cartelli pages: dashed frame, large sign, title in a bordered panel (2-line titles fit inside), 'Italserrande S.r.l. - Tel. 06-6240259', 2 per page. The last page holds 1 when the count is odd. No orphan pages except the basculante signature page.",
+    "'Pagina X di Y' is correct in all 11 PDFs. The section footers show (1/5)...(5/5). No undefined/NaN and no text outside the margins.",
+    "The full pratica PDF (24 pages) and the blank full PDF (23 pages) contain the segnaletica on pages 11-15. The fascicolo index lists '5. Segnaletica di sicurezza (cartelli)'.",
+    "The informativa takes 1 page with 'Il cliente per ricevuta' in the single, full and blank PDFs. The iter65 bug is fixed.",
+    "0 console errors and 0 page errors."
+  ],
+  "test_report_links": ["/app/backend/tests/iter66_segnaletica_check.py", "/app/backend/tests/iter65_setup.py"],
+  "action_items": [
+    "Fix the basculante segnaletica (9 items) so the signature does not end up alone on page 2.",
+    "Optional: move the transito person's head inside the white disc; enlarge the bolt; change the 'presente dichiarazione' wording in the informativa."
+  ],
+  "critical_code_review_comments": [
+    "signatures() still has no keep-with-previous guard, so any builder whose content ends near BOTTOM produces a signature-only page. A generic fix in Flow (for example, ensure space for the last block together with the signature) would prevent repeats.",
+    "segnaletica.js hardcodes the phone number 'Tel. 06-6240259' in praticaPdf cartelli. It matches the header, but it would be better to take it from the shared company constant."
+  ],
+  "updated_files": ["/app/backend/tests/iter66_segnaletica_check.py"],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "~92% (1 medium layout bug on basculante, 1 low icon detail)"},
+  "seed_data_creation": "Created pratica 'TEST_I66 Cliente' (id 062fcb22…, n. 3/2026). Deleting it in the UI only soft-deleted it (is_deleted). I then hard-deleted it by id and set the pratica counter back from 3 to 2. The account's other data (2 quotes, 1 quote_settings, 2 contratti, 2 counters, 2 employees) was not touched.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Use the kept account testuser+yr1777994990@italserrande.test / TestPassword123!. Blank PDFs come from StampaVuoto (stampa-vuoto-toggle, -tipo, -documento=segnaletica, -scarica) and need no data. Run python /app/backend/tests/iter66_segnaletica_check.py '/tmp/iter66/*.pdf'. For basculante, check that page 2 is no longer 'near-empty'. Register page.on('dialog') before pratica-delete, and do not use asyncio in the browser tool."
+}
