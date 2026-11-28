@@ -67,15 +67,15 @@ export function drawSign(doc, sg, cx, cy, s) {
     const sy = top + h * 0.62;
     doc.setFillColor(...BLACK);
     doc.setDrawColor(...BLACK);
-    const u = s * 0.5;
-    const c = top + h * 0.64;
+    const u = s * 0.4;
+    const c = top + h * 0.66;
     if (sg.simbolo === "bolt") {
       const v = s * 0.16;
       const pts = [[0.3, -1.45], [-0.6, 0.2], [0.02, 0.2], [-0.3, 1.1], [0.62, -0.3], [0.0, -0.3]].map(([x, y]) => [cx + x * v, sy + y * v]);
       doc.lines(pts.slice(1).map(([x, y], i) => [x - pts[i][0], y - pts[i][1]]), pts[0][0], pts[0][1], [1, 1], "F", true);
       doc.triangle(cx - 0.55 * v, sy + 0.95 * v, cx - 0.05 * v, sy + 1.05 * v, cx - 0.42 * v, sy + 1.5 * v, "F");
     } else if (sg.simbolo === "crush") {
-      const k = top + h * 0.6;
+      const k = top + h * 0.64;
       doc.rect(cx - 0.02 * u, k - 0.15 * u, 0.48 * u, 0.1 * u, "F");
       doc.rect(cx - 0.02 * u, k + 0.1 * u, 0.48 * u, 0.1 * u, "F");
       arrow(doc, cx + 0.22 * u, k - 0.17 * u, u, true);

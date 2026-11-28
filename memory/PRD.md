@@ -528,3 +528,5 @@ Durante l'ascolto il pulsante pulsa in arancione (icona `MicOff`), il testo inte
 - Nuovo documento "Segnaletica di sicurezza (cartelli)" (lib/segnaletica.js): elenco con significato e dove applicarlo + cartelli grandi da stampare (2 per pagina),
   forma/colori UNI EN ISO 7010, cartelli diversi per tipo chiusura. Disponibile in pratica, fascicolo e moduli vuoti.
 - Pulsante Assistente mostra "$ ?" giallo se il credito non è impostato.
+- 27/11 (iteration 68): catalogo segnaletica sostituito con i 6 cartelli reali dell'utente (inciampo, schiacciamento mani e piedi, attenzione alle mani,
+  scivolamento e caduta, elettrico, vietato salire; tapparella: mani + elettrico). Rimosse le pagine di cartelli da stampare (li stampa lui). Icone ridimensionate dentro i triangoli.

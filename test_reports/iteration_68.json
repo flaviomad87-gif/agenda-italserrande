@@ -1,0 +1,32 @@
+{
+  "summary": "Frontend-only test of the new 'Segnaletica di sicurezza (cartelli)' document on the public URL, using account testuser+yr1777994990. I downloaded 11 PDFs into /tmp/iter68. From StampaVuoto: the single segnaletica PDF for all 6 types, plus the full documentation for avvolgibile and tapparella. From a TEST_ pratica in PraticaDialog: the single segnaletica PDF for basculante and tapparella, plus the full tapparella documentation. The TEST_ pratica was deleted afterwards. I checked them with the new iter68_segnaletica_check.py: 11/11 PASS. Each segnaletica PDF is 1 page titled 'SEGNALETICA DI SICUREZZA', with the UNI EN ISO 7010 note, a numbered list and the signature 'Il cliente per ricevuta e presa visione' on the same page. Avvolgibile, sezionale, basculante, scorrevole and battente show exactly 6 cartelli, in this order: PERICOLO D'INCIAMPO, PERICOLO DI SCHIACCIAMENTO MANI E PIEDI, PERICOLO - ATTENZIONE ALLE MANI, PERICOLO DI SCIVOLAMENTO E CADUTA, PERICOLO ELETTRICO, VIETATO SALIRE. Tapparella shows 2 (ATTENZIONE ALLE MANI, PERICOLO ELETTRICO). No page has 'CARTELLI DA STAMPARE', and none of the old cartelli (lampeggiante, bambini, transito, sblocco, urto, chiusura automatica, non inserire le mani) appear. Text never overlaps the icons (text column starts at about x=115pt, icons sit at x=60-94pt) and no text spans overlap. The full PDFs are 19 pages with segnaletica on p11; the index on p1 lists '5. Segnaletica di sicurezza (cartelli)'; 'Pagina X di 19' is correct on every page. There were 0 console errors and 0 page errors. On the PNG review, the icons are mostly recognizable: lightning bolt, falling person (trip and slip), hand with arrow, and a climbing person in a red barred circle. The shapes are correct: yellow triangle with black border for danger, red barred circle for prohibition. Minor cosmetic point: in 4 of the 5 triangle icons, small parts of the drawing touch or run into the black border by up to about 2.7pt (4.2pt for one stroke in the slip icon).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Segnaletica PDF icons (segnaletica.js drawSign)", "issues": [
+        "crush (SCHIACCIAMENTO MANI E PIEDI): the left 'foot' block and the top down-arrow merge into the black border of the triangle; the icon is abstract (bars plus arrows) and only moderately recognizable as hands/feet",
+        "hand (ATTENZIONE ALLE MANI): the top of the arrow and the left finger tips touch the left black border",
+        "slip (SCIVOLAMENTO): the right arm stroke reaches the right border (about 4.2pt past the yellow edge); the figure reads more as 'falling backwards' than 'slipping'",
+        "trip (INCIAMPO): the head circle sits about 2.7pt into the border area at top right",
+        "Suggestion: scale the glyphs by about 0.85 (u = s*0.42) or move them toward the triangle centroid so they keep a gap from the border; bolt and VIETATO SALIRE are fine"
+      ]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/iter68_segnaletica_check.py", "/app/backend/tests/iter68_icon_containment.py"],
+  "action_items": [
+    "Optional/cosmetic: shrink or re-center the crush, hand, slip and trip glyphs in drawSign so they do not touch the black triangle border",
+    "Optional wording: the intro says 'i cartelli sono applicati da Italserrande S.r.l.'. This is fine if Italserrande applies the cartelli it prints itself; otherwise adjust"
+  ],
+  "critical_code_review_comments": [
+    "segnaletica.js: the list.length > 8 compact-layout branch in praticaPdf.segnaletica() is now dead code (max 6 items); it can be removed",
+    "segnaletica.js: the blue 'obbligo' branch and the '!' fallback in drawSign are unused with the current catalog (harmless)"
+  ],
+  "updated_files": ["/app/backend/tests/iter68_segnaletica_check.py", "/app/backend/tests/iter68_icon_containment.py"],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% functional (11/11 PDFs PASS); minor cosmetic icon issues"},
+  "seed_data_creation": "Created one pratica with cliente TEST_Iter68 Cliente via PraticaDialog and deleted it with pratica-delete; it no longer appears in the list.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Account testuser+yr1777994990@italserrande.test / TestPassword123!. Blank PDFs: on /documenti, click stampa-vuoto-toggle, then select stampa-vuoto-tipo and stampa-vuoto-documento ('segnaletica' or '' for all), then click stampa-vuoto-scarica. Pratica PDFs: open documenti-add, fill documento-input-cliente, choose pratica-tipo-<tipo>, then click pratica-pdf-segnaletica or pratica-share-all; finish with pratica-delete (accept the confirm dialog). Run: python /app/backend/tests/iter68_segnaletica_check.py '/tmp/iter68/*.pdf'. PNGs are in /app/test_reports/iter68_png (z_*.png are 500dpi icon zooms)."
+}
