@@ -1,0 +1,39 @@
+{
+  "summary": "Frontend-only test of the new 'Manutenzione: costi, obblighi e norme (informativa)' document and the credito-pill. I used the kept account testuser+yr1777994990 on the public URL. I generated 8 PDFs from the UI: the single informativa and the full pratica for avvolgibile and scorrevole, plus StampaVuoto blank forms (informativa only, and all documents) for scorrevole and avvolgibile. In every case the informativa is present. It has the exact title, all 10 sections in order, the 'Il cliente per ricevuta' signature, correct 'Pagina X di Y' and no NOVA TECH or friend's data. The only contact data is Italserrande's own header. ONE BUG: the signature box always lands alone on its own page. The informativa takes 2 pages, and page 2 holds only the '(segue)' header plus the 'Il cliente per ricevuta' box. This happens in the single PDF, the full pratica and the blank forms. The credito-pill works: it shows a yellow '$ ?' when not set, '$ 10,00' (white/20 on dark) after a 10 USD recharge, and '$ ?' again after 'Riparti da qui' with an empty amount. 0 console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "praticaPdf.js informativa()", "issue": "The signature is alone on a page. The page 1 content ends at y≈726pt, with the bold closing line 'Per la manutenzione periodica…' at 714-726. signatures() calls ensure(38+18=56), and y + 56 > BOTTOM (786), so it adds a page that contains only the '(segue)' header and the 'Il cliente per ricevuta' box. Reproduced in ui_single_informativa.pdf (2 pages), in the full pratica (pages 16-17 of 20) and in StampaVuoto (pages 15-16 of 19, and the 2-page single). It is the same for every closure type. Possible fixes: lower the para size from 8.8 to ~8.4, use signatures(['Il cliente per ricevuta'], 28), shorten the h2 keep/spacing, or merge the closing bold line into the last section. Also add a guard so signatures() never opens a page for the signature alone (for example, an ensure check before the last paragraph).", "selector": "PDF informativa", "priority": "MEDIUM"},
+      {"component": "BottomSheet (ai-sheet)", "issue": "The Escape key does not close the sheet. Only ai-sheet-close or a click on the overlay closes it. Minor accessibility issue. Note that the pill refreshes only when the sheet closes, which is by design.", "selector": "[data-testid=ai-sheet]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Informativa PDF text", "issues": ["'Modifiche all'impianto' says '…fa decadere la presente dichiarazione'. This document is an informativa, not a declaration. Suggested wording: 'fa decadere la dichiarazione di conformità'."]},
+      {"screen": "CreditoBox", "issues": ["When the credit is not set, the edit form opens by default and the credito-edit button reads 'Chiudi'. So the requested flow 'credito-edit → ricarica' would actually close the form. This works as designed, but note it for testers."]}
+    ]
+  },
+  "verified": [
+    "The Pratica dialog list contains 'Manutenzione: costi, obblighi e norme (informativa)' with pratica-includi-informativa (checked by default) and pratica-pdf-informativa. The download file name is Manutenzione-costi-obblighi-e-norme-informativa--N-Cliente.pdf.",
+    "The title 'MANUTENZIONE DELLE CHIUSURE AUTOMATICHE: COSTI, OBBLIGHI E NORME' and all 10 sections are present in the single, full and blank PDFs. The subtitle shows type, address and comune.",
+    "The 'Pagina X di Y' footers are correct in all 8 PDFs (iter63_pdf_check passes: no undefined/NaN/odd characters, no text at the edges). The span-overlap detector only flagged wrapped title lines touching each other, and visual inspection confirmed there is no real overlap.",
+    "The StampaVuoto select lists the informativa. Blank PDFs for scorrevole and avvolgibile, both single and full, include it.",
+    "credito-pill: '$ ?' in rgb(251,191,36) with dark text when not set. After the recharge it shows '$ 10,00' in mobile ai-fab and desktop side-ai-button. After azzera with an empty amount it goes back to '$ ?'. CreditoBox shows 'Credito rimasto circa $ 10,00 su $ 10,00'.",
+    "0 console errors and 0 page errors during all flows. No message was sent to the AI chat."
+  ],
+  "test_report_links": ["/app/backend/tests/iter65_informativa_check.py", "/app/backend/tests/iter65_setup.py", "/app/backend/tests/iter63_pdf_check.py"],
+  "action_items": [
+    "Fix the informativa layout so 'Il cliente per ricevuta' fits on page 1 (or the last paragraph moves with it), so that no page holds only the signature.",
+    "Optional: change 'la presente dichiarazione' in INFORMATIVA 'Modifiche all'impianto'.",
+    "Optional: let Escape close BottomSheet."
+  ],
+  "critical_code_review_comments": [
+    "praticaPdf.js signatures(): ensure(boxH+18) can create a page with only the signature. Consider a generic 'keep with previous' (for example, reserve room for the signature before the last para) for all builders.",
+    "AppShell refreshes the credito only when the sheet or path changes, so the pill under an open sheet is stale until close. Acceptable."
+  ],
+  "updated_files": ["/app/backend/tests/iter65_informativa_check.py", "/app/backend/tests/iter65_setup.py"],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "~90% (1 medium PDF layout bug)"},
+  "seed_data_creation": "Created 1 pratica 'TEST_I65 Cliente' (id 7ff8a7f0…, n. 3/2026). Hard-deleted it by id and set the pratica counter back from 3 to 2. The ai_settings doc created by the credito test was deleted, so the credit is back to not set as before. The account's pre-existing data (2 quotes, 1 quote_settings, 2 contratti, 2 counters, 2 employees) was not touched.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Use the kept account testuser+yr1777994990@italserrande.test / TestPassword123! (uid YWlExWKNKZaNv0KMXAVcDsa0bDs1). Download PDFs with Playwright expect_download on pratica-pdf-informativa, pratica-share-all and stampa-vuoto-scarica, then run python iter65_informativa_check.py '/tmp/iter65/*.pdf' (ignore the title-wrap overlap false positive and look for 'signature-only'). Close the AI sheet with ai-sheet-close, not Escape. Reset the credito with credito-azzera and an empty ricarica, then delete ai_settings by uid."
+}

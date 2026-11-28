@@ -775,10 +775,10 @@ function informativa(fl, d) {
   fl.start("MANUTENZIONE DELLE CHIUSURE AUTOMATICHE: COSTI, OBBLIGHI E NORME", `${tipoLabel(f)} - ${[d.indirizzo, f.comune].filter(Boolean).join(" - ")}`);
   X.INFORMATIVA.forEach(([t, p]) => {
     fl.h2(t, "left", 50);
-    fl.para(p, { size: 8.8 });
+    fl.para(p, { size: 8.4 });
   });
-  fl.para("Per la manutenzione periodica Italserrande S.r.l. offre contratti con promemoria automatico alla scadenza.", { size: 8.8, style: "bold" });
-  fl.signatures(["Il cliente per ricevuta"]);
+  fl.para("Per la manutenzione periodica Italserrande S.r.l. offre contratti con promemoria automatico alla scadenza.", { size: 8.4, style: "bold" });
+  fl.signatures(["Il cliente per ricevuta"], 28);
 }
 
 function registroRighe(fl, d) {
